@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // "bundler" est requis par Prisma 7 : les fichiers générés utilisent
+    // import.meta.url (ESM) et des imports avec extension .ts explicite.
+    // "node" ne supporte pas ces deux fonctionnalités simultanément.
+    "module": "CommonJS",
+    "moduleResolution": "bundler",
+    // Autorise les imports du style `from "./foo.ts"` dans les fichiers générés.
+    "allowImportingTsExtensions": true,
+    // Obligatoire avec allowImportingTsExtensions — tsx gère la transpilation,
+    // tsc n'a pas besoin d'émettre du JavaScript.
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*", "generated/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

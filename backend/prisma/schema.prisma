@@ -1,0 +1,416 @@
+// backend/prisma/schema.prisma
+// Schéma de base de données — Phila Intégration v1.0
+// Gestion des contacts, référents, messagerie et plannings de service
+// Église Phila Cité des Adorateurs — Campus Paris & Paris Nord
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// Valeurs fixes utilisées dans les modèles.
+// Modifier ici impacte toute la base — faire une migration à chaque changement.
+// ─────────────────────────────────────────
+
+/// Genre de la personne — collecté à l'étape 1 des deux formulaires
+enum Genre {
+  homme
+  femme
+}
+
+/// État civil — collecté dans les deux formulaires (présentiel et en ligne)
+enum EtatCivil {
+  celibataire
+  fiance
+  marie
+  divorce
+  veuf
+}
+
+/// Relation de la personne avec l'église Phila au moment de l'inscription
+/// - oui : membre actif d'un campus Phila → Profil A
+/// - non : n'est pas membre Phila → Profil B
+/// - premiere_visite : premier contact avec l'église → Profil B
+enum StatutPhila {
+  oui
+  non
+  premiere_visite
+}
+
+/// Campus Phila d'appartenance — utilisé uniquement pour les membres Phila (Profil A)
+/// Distinct de l'enum Campus qui représente le campus de suivi (Paris / Paris Nord)
+enum Extension {
+  paris
+  paris_nord
+  orleans
+  montpellier
+}
+
+/// Canal par lequel le contact a soumis son formulaire
+/// - presentiel : QR code teal, rempli sur place lors d'un culte ou événement
+/// - en_ligne : QR code doré, rempli à distance pour les participants en ligne
+enum Canal {
+  presentiel
+  en_ligne
+}
+
+/// Profil pastoral du contact — déterminé automatiquement à l'inscription
+/// - A : croyant avec une église d'attache (membre Phila ou autre église)
+/// - B : visiteur, primo-visiteur, ou personne sans église d'attache
+/// Le profil est modifiable manuellement par un admin si la situation évolue
+enum Profil {
+  A
+  B
+}
+
+/// Intention exprimée par le contact lors de l'inscription — Profil B uniquement
+enum Souhait {
+  devenir_membre
+  servir          // souhaite être ouvrier
+  juste_visiter
+}
+
+/// Besoins spirituels exprimés — Profil B uniquement, sélection multiple possible
+enum BesoinSpirituel {
+  priere
+  bapteme
+  suivi
+  rencontrer_pasteur
+}
+
+/// Intérêt pour rejoindre une cellule de prière — commun aux deux profils
+enum InteretCellule {
+  oui
+  non
+  peut_etre
+}
+
+/// Disponibilité préférée pour le suivi pastoral — formulaire en ligne uniquement
+enum DisponibiliteSuivi {
+  message
+  appel
+  email
+}
+
+/// Étapes du parcours d'intégration d'un contact
+/// nouveau → contacte → en_suivi → integre → ouvrier
+/// Un contact peut aussi passer à inactif à tout moment
+enum StatutContact {
+  nouveau      // vient de s'inscrire, pas encore contacté
+  contacte     // premier contact établi par le référent
+  en_suivi     // suivi pastoral en cours
+  integre      // intégration confirmée dans l'église
+  ouvrier      // a rejoint l'équipe de service
+  inactif      // plus de contact ou désengagement
+}
+
+/// Campus couverts par l'application au lancement
+/// Extensible à orléans et montpellier dans une version future
+enum Campus {
+  paris
+  paris_nord
+}
+
+/// Niveaux d'accès dans l'interface d'administration
+/// Les droits sont appliqués dans roles.middleware.ts côté backend
+enum Role {
+  super_admin          // accès total, tous campus, configuration système
+  admin_campus         // gestion complète de son/ses campus (2-3 max)
+  referent_eglise      // voit ses contacts + toutes les notes (intégration + église)
+  referent_integration // voit ses contacts + ses propres notes uniquement
+  lecteur              // lecture seule, pas accès aux commentaires
+}
+
+/// État d'un message WhatsApp dans le système
+/// Le statut est mis à jour via webhook Twilio
+enum StatutMessage {
+  en_attente // message créé mais pas encore envoyé (planifié ou en attente de référent)
+  envoye     // confirmé par Twilio
+  echoue     // erreur Twilio — alerte remontée dans le dashboard
+}
+
+/// Type de message envoyé via WhatsApp
+enum TypeMessage {
+  bienvenue  // envoyé automatiquement à J+3 si référent intégration assigné
+  evenement  // rappel d'un événement planifié par un admin
+  actu       // message d'actualité envoyé à tous les inscrits
+}
+
+/// État d'un événement dans le module de messagerie
+enum StatutEvenement {
+  brouillon  // en cours de rédaction, non planifié
+  planifie   // date et heure d'envoi définies, en attente d'exécution
+  envoye     // messages envoyés à tous les destinataires
+}
+
+/// Cible des messages événement et actu
+/// Permet de segmenter les envois par campus ou par profil
+enum DestinataireEvenement {
+  tous             // tous les contacts inscrits, tous campus
+  profil_a         // uniquement les contacts Profil A
+  profil_b         // uniquement les contacts Profil B
+  campus_paris     // uniquement le campus Paris
+  campus_paris_nord // uniquement le campus Paris Nord
+}
+
+// ─────────────────────────────────────────
+// USER
+// Comptes des membres du département et référents
+// Créés uniquement par le Super Admin via l'interface d'administration
+// ─────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  prenom     String
+  nom        String
+  email      String   @unique                // utilisé comme identifiant de connexion
+  password   String                          // hashé avec bcrypt avant stockage
+  role       Role                            // détermine les droits d'accès dans l'app
+  campus     Campus[]                        // un admin peut gérer plusieurs campus (max 2-3)
+  actif      Boolean  @default(true)         // false = compte désactivé sans suppression
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  contacts_integration  Contact[]          @relation("ReferentIntegration") // contacts dont il est référent intégration
+  contacts_eglise       Contact[]          @relation("ReferentEglise")       // contacts dont il est référent église
+  commentaires          Commentaire[]                                         // notes rédigées par cet utilisateur
+  historique_statuts    HistoriqueStatut[]                                    // changements de statut effectués par cet utilisateur
+  messages_crees        Message[]                                             // messages créés ou planifiés par cet utilisateur
+  evenements_crees      Evenement[]                                           // événements créés par cet utilisateur
+  planning_crees        PlanningService[]                                     // plannings créés par cet utilisateur
+}
+
+// ─────────────────────────────────────────
+// CONTACT
+// Table centrale de l'application
+// Centralise tous les visiteurs et membres inscrits via les formulaires
+// Clé anti-doublon : numéro de téléphone en format E.164 (ex: +33612345678)
+// ─────────────────────────────────────────
+
+model Contact {
+  id                    String              @id @default(cuid())
+
+  // ── Identité ──────────────────────────
+  genre                 Genre
+  prenom                String
+  nom                   String
+  telephone             String              @unique  // format E.164 — clé anti-doublon principale
+  email                 String?                      // optionnel — non utilisé pour la messagerie (WhatsApp uniquement)
+
+  // ── Localisation ──────────────────────
+  ville                 String
+  code_postal           String?
+
+  // ── Profil & statut ───────────────────
+  etat_civil            EtatCivil
+  statut_phila          StatutPhila                  // détermine le profil A ou B
+  extension_phila       Extension?                   // renseigné uniquement si statut_phila = oui
+  profil                Profil                       // A ou B — calculé à l'inscription, modifiable par admin
+  statut                StatutContact       @default(nouveau)  // progression dans le parcours d'intégration
+  campus                Campus                       // campus de suivi (Paris ou Paris Nord)
+
+  // ── Canal & saisie ────────────────────
+  canal                 Canal                        // présentiel (QR teal) ou en ligne (QR doré)
+  saisi_par_membre      Boolean             @default(false) // true si un membre du département a rempli pour la personne
+
+  // ── Branche A — Membre Phila ou autre église ──
+  // Champs renseignés uniquement pour le Profil A
+  interet_cellule       InteretCellule?
+  comment_connu         String?
+
+  // ── Branche B — Visiteur / Sans église d'attache ──
+  // Champs renseignés uniquement pour le Profil B
+  souhait               Souhait?                     // intention principale de la personne
+  besoins               BesoinSpirituel[]            // besoins spirituels exprimés (sélection multiple)
+  autre_eglise          Boolean?                     // est-il membre d'une autre église ?
+  nom_autre_eglise      String?                      // si autre_eglise = true
+  sert_autre_eglise     Boolean?                     // sert-il dans cette autre église ?
+  service_autre_eglise  String?                      // précision du service dans l'autre église
+
+  // ── Champs communs fin de formulaire ──
+  rdv_pasteur           Boolean             @default(false) // souhaite un rendez-vous avec le pasteur
+  don                   Boolean?                            // souhaite faire un don (optionnel)
+
+  // ── Formulaire en ligne uniquement ────
+  disponibilite_suivi   DisponibiliteSuivi?          // canal préféré pour le suivi pastoral
+
+  // ── Référents ─────────────────────────
+  // Le référent intégration est obligatoire avant l'envoi du message de bienvenue J+3
+  // Le référent église est optionnel
+  referent_integration_id   String?
+  referent_integration      User?           @relation("ReferentIntegration", fields: [referent_integration_id], references: [id])
+  referent_eglise_id        String?
+  referent_eglise           User?           @relation("ReferentEglise", fields: [referent_eglise_id], references: [id])
+  date_attribution_referent DateTime?       // date à laquelle le référent intégration a été assigné
+
+  // ── RGPD ──────────────────────────────
+  consentement_rgpd     Boolean                      // obligatoire — case cochée à la soumission du formulaire
+  date_consentement     DateTime            @default(now())
+
+  // ── Meta ──────────────────────────────
+  date_inscription      DateTime            @default(now())
+  derniere_interaction  DateTime?           // mise à jour à chaque commentaire ou message envoyé
+  created_at            DateTime            @default(now())
+  updated_at            DateTime            @updatedAt
+
+  // Relations
+  commentaires          Commentaire[]
+  historique_statuts    HistoriqueStatut[]
+  messages              Message[]
+  ouvrier               Ouvrier?            // relation 1-1 si le contact devient ouvrier
+}
+
+// ─────────────────────────────────────────
+// HISTORIQUE STATUTS
+// Trace chaque changement de statut d'un contact
+// Permet de reconstruire le parcours complet d'intégration
+// ─────────────────────────────────────────
+
+model HistoriqueStatut {
+  id            String        @id @default(cuid())
+  contact_id    String
+  contact       Contact       @relation(fields: [contact_id], references: [id], onDelete: Cascade) // supprimé si contact supprimé
+  statut_avant  StatutContact
+  statut_apres  StatutContact
+  change_par_id String
+  change_par    User          @relation(fields: [change_par_id], references: [id])
+  commentaire   String?       // note optionnelle expliquant le changement
+  created_at    DateTime      @default(now())
+}
+
+// ─────────────────────────────────────────
+// COMMENTAIRES
+// Notes et feedbacks rédigés par les référents sur leurs contacts
+//
+// Règle de visibilité (appliquée dans contacts.controller.ts) :
+// - referent_integration : ne voit que les commentaires où role_auteur = referent_integration
+// - referent_eglise : voit tous les commentaires (intégration + église)
+// - admin_campus et super_admin : voient tout
+// ─────────────────────────────────────────
+
+model Commentaire {
+  id           String   @id @default(cuid())
+  contact_id   String
+  contact      Contact  @relation(fields: [contact_id], references: [id], onDelete: Cascade)
+  auteur_id    String
+  auteur       User     @relation(fields: [auteur_id], references: [id])
+  role_auteur  Role     // rôle au moment de la rédaction — utilisé pour le filtrage côté API
+  contenu      String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// OUVRIERS
+// Membres actifs dans les équipes de service de l'église
+//
+// Deux modes d'inscription :
+// 1. Promotion depuis un contact existant : contact_id renseigné, inscription_directe = false
+//    → Le contact passe au statut "ouvrier" dans la table Contact
+// 2. Inscription directe d'un ouvrier existant : contact_id null, inscription_directe = true
+//    → Pour les ouvriers déjà en place avant le lancement de l'application
+// ─────────────────────────────────────────
+
+model Ouvrier {
+  id                   String    @id @default(cuid())
+
+  // Lien optionnel vers un contact existant (null si inscription directe)
+  contact_id           String?   @unique           // @unique : un contact ne peut être ouvrier qu'une fois
+  contact              Contact?  @relation(fields: [contact_id], references: [id])
+
+  // Champs renseignés directement (toujours remplis, même si contact_id existe)
+  prenom               String
+  nom                  String
+  telephone            String
+  email                String?
+  campus               Campus
+  services             String[]  // ex: ["accueil", "prière", "technique", "médias"]
+  date_debut_service   DateTime?
+  statut               Boolean   @default(true)    // true = actif, false = inactif
+  inscription_directe  Boolean   @default(false)   // true = ouvrier existant ajouté manuellement
+
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+}
+
+// ─────────────────────────────────────────
+// MESSAGES
+// Historique de tous les messages WhatsApp envoyés ou planifiés
+// Chaque envoi individuel (vers un contact) crée une ligne dans cette table
+// Les broadcasts (événement/actu) créent autant de lignes que de destinataires
+// ─────────────────────────────────────────
+
+model Message {
+  id           String        @id @default(cuid())
+  contact_id   String?                             // null si message de broadcast non lié à un contact spécifique
+  contact      Contact?      @relation(fields: [contact_id], references: [id])
+  type         TypeMessage
+  contenu      String                              // message final après substitution des variables dynamiques
+  canal        String        @default("whatsapp")  // WhatsApp uniquement au lancement
+  statut       StatutMessage @default(en_attente)
+  twilio_sid   String?                             // identifiant Twilio pour tracking et webhook
+  planifie_le  DateTime?                           // heure d'envoi programmée (null = envoi immédiat)
+  envoye_le    DateTime?                           // horodatage réel de l'envoi confirmé par Twilio
+  created_by   String?
+  createur     User?         @relation(fields: [created_by], references: [id])
+  evenement_id String?                             // lien vers l'événement si message de type evenement ou actu
+  evenement    Evenement?    @relation(fields: [evenement_id], references: [id])
+  created_at   DateTime      @default(now())
+}
+
+// ─────────────────────────────────────────
+// EVENEMENTS
+// Événements et actualités créés par les admins
+// Utilisés pour planifier des envois groupés via WhatsApp
+// Le message_template contient des variables : [Prénom], [Date], [Campus]
+// ─────────────────────────────────────────
+
+model Evenement {
+  id               String                @id @default(cuid())
+  titre            String
+  description      String?
+  campus           Campus?               // null = concerne tous les campus
+  date_evenement   DateTime              // date de l'événement (pas de l'envoi)
+  message_template String               // texte brut avec variables — ex: "Bonjour [Prénom], ..."
+  destinataires    DestinataireEvenement // segmentation de l'audience
+  statut           StatutEvenement       @default(brouillon)
+  planifie_le      DateTime?             // date/heure à laquelle node-cron déclenchera l'envoi
+  envoye_le        DateTime?             // horodatage de fin d'envoi (tous messages créés)
+  created_by       String
+  createur         User                  @relation(fields: [created_by], references: [id])
+  created_at       DateTime              @default(now())
+  updated_at       DateTime              @updatedAt
+
+  // Un événement génère autant de Messages que de destinataires ciblés
+  messages         Message[]
+}
+
+// ─────────────────────────────────────────
+// PLANNING SERVICE
+// Planning dominical des équipes de service par campus
+// Un seul planning par dimanche par campus (contrainte @@unique)
+// Exportable en PDF depuis l'interface admin
+// ─────────────────────────────────────────
+
+model PlanningService {
+  id                 String   @id @default(cuid())
+  date_dimanche      DateTime                      // toujours un dimanche — validé côté application
+  campus             Campus
+  nouveaux_membres   String?                       // noms des NM accueillis ce dimanche
+  service_salle      String?                       // noms des personnes en service dans la salle
+  preparation_salle  String?                       // noms des personnes en préparation
+  priere_lundi       String?                       // nom de la personne responsable de la prière du lundi
+  created_by         String
+  createur           User     @relation(fields: [created_by], references: [id])
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@unique([date_dimanche, campus]) // contrainte : un seul planning par dimanche par campus
+}

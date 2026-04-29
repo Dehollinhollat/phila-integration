@@ -1,0 +1,74 @@
+/* src/index.css */
+/* Reset et styles globaux — Phila Intégration */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin:  0;
+  padding: 0;
+  height:  100%;
+}
+
+body {
+  font-family: system-ui, 'Segoe UI', Roboto, -apple-system, sans-serif;
+  font-size:   14px;
+  line-height: 1.5;
+  color:       #374151;
+  background:  #F9FAFB;
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  display:        flex;
+  flex-direction: column;
+  min-height:     100vh;
+  width:          100%;
+  max-width:      100%;
+  text-align:     left;
+  border:         none;
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* Focus visible accessible */
+:focus-visible {
+  outline:        2px solid #0C5E6B;
+  outline-offset: 2px;
+}
+
+/* Liens */
+a { color: #0C5E6B; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Titres */
+h1, h2, h3, h4 {
+  font-weight: 600;
+  color:       #111827;
+  margin:      0;
+}
+
+/* Inputs focus */
+input:focus, select:focus, textarea:focus {
+  outline:       none;
+  border-color:  #0C5E6B !important;
+  box-shadow:    0 0 0 3px rgba(12, 94, 107, 0.12);
+}
+
+/* Utilitaires */
+.sr-only {
+  position:  absolute;
+  width:     1px;
+  height:    1px;
+  padding:   0;
+  margin:    -1px;
+  overflow:  hidden;
+  clip:      rect(0, 0, 0, 0);
+  border:    0;
+}
