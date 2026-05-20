@@ -1,7 +1,7 @@
 // src/context/AuthContext.tsx
-// Contexte d'authentification — fournit token JWT, infos utilisateur,
+// Contexte d'authentification — fournit access token, refresh token, infos utilisateur,
 // et fonctions login/logout à toute l'application.
-// Persiste le token dans localStorage sous la clé "phila_token".
+// Persiste les tokens dans localStorage sous "phila_token" et "phila_refresh_token".
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import type { User, LoginPayload, LoginResponse } from '../types';
@@ -15,6 +15,7 @@ interface AuthContextValue {
   loading: boolean;
   login:   (payload: LoginPayload) => Promise<void>;
   logout:  () => void;
+  updateUser: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
 }
 
@@ -22,13 +23,13 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_KEY = 'phila_token';
-const USER_KEY  = 'phila_user';
+const TOKEN_KEY         = 'phila_token';
+const REFRESH_TOKEN_KEY = 'phila_refresh_token';
+const USER_KEY          = 'phila_user';
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Initialisation depuis localStorage pour survivre aux rechargements de page
   const [token, setToken] = useState<string | null>(
     () => localStorage.getItem(TOKEN_KEY)
   );
@@ -42,9 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const { data } = await api.post<LoginResponse>('/auth/login', payload);
-      localStorage.setItem(TOKEN_KEY, data.token);
+      localStorage.setItem(TOKEN_KEY, data.accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      setToken(data.token);
+      setToken(data.accessToken);
       setUser(data.user);
     } finally {
       setLoading(false);
@@ -52,15 +54,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback((): void => {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    // Révocation asynchrone — on ne bloque pas la déconnexion UI
+    if (refreshToken) {
+      api.post('/auth/logout', { refreshToken }).catch(() => {});
+    }
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setToken(null);
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((updates: Partial<User>): void => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updates };
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, logout, isAuthenticated: !!token }}
+      value={{ user, token, loading, login, logout, updateUser, isAuthenticated: !!token }}
     >
       {children}
     </AuthContext.Provider>

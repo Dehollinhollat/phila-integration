@@ -41,7 +41,8 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   if (!secret) throw new Error('JWT_SECRET non défini dans .env');
 
   try {
-    const payload = jwt.verify(token, secret) as JwtPayload;
+    // algorithms explicite : prévient l'attaque "alg:none" et les tokens RS256 non attendus
+    const payload = jwt.verify(token, secret, { algorithms: ['HS256'] }) as JwtPayload;
     req.user = payload;
     next();
   } catch {

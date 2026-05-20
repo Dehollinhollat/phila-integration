@@ -34,9 +34,9 @@ enum EtatCivil {
 }
 
 /// Relation de la personne avec l'église Phila au moment de l'inscription
-/// - oui : membre actif d'un campus Phila → Profil A
-/// - non : n'est pas membre Phila → Profil B
-/// - premiere_visite : premier contact avec l'église → Profil B
+/// - oui : membre actif d'un campus Phila → membre_phila
+/// - non : n'est pas membre Phila → visiteur_sans_eglise ou visiteur_avec_eglise
+/// - premiere_visite : premier contact avec l'église → visiteur_sans_eglise
 enum StatutPhila {
   oui
   non
@@ -61,12 +61,13 @@ enum Canal {
 }
 
 /// Profil pastoral du contact — déterminé automatiquement à l'inscription
-/// - A : croyant avec une église d'attache (membre Phila ou autre église)
-/// - B : visiteur, primo-visiteur, ou personne sans église d'attache
-/// Le profil est modifiable manuellement par un admin si la situation évolue
+/// - membre_phila          : statut_phila = oui (membre actif d'un campus Phila)
+/// - visiteur_sans_eglise  : statut_phila ≠ oui ET autre_eglise = false
+/// - visiteur_avec_eglise  : statut_phila ≠ oui ET autre_eglise = true
 enum Profil {
-  A
-  B
+  membre_phila
+  visiteur_sans_eglise
+  visiteur_avec_eglise
 }
 
 /// Intention exprimée par le contact lors de l'inscription — Profil B uniquement
@@ -149,14 +150,61 @@ enum StatutEvenement {
   envoye     // messages envoyés à tous les destinataires
 }
 
+/// Étapes du parcours d'intégration — 7 jalons, une ChecklistItem par étape par contact.
+/// La dernière étape (integration_confirmee) déclenche automatiquement le statut "intégré".
+enum EtapeIntegration {
+  message_bienvenue_envoye  // SMS/WhatsApp de bienvenue envoyé
+  premier_appel_effectue    // premier appel téléphonique établi
+  inscription_cellule       // inscrit dans une cellule de prière
+  journee_integration       // participation à la journée d'intégration
+  cours_antioche_valides    // cours de fondements (Antioche) validés
+  service_departement       // affecté à un département de service
+  integration_confirmee     // intégration validée → statut contact = intégré
+}
+
+/// Types de notifications système envoyées aux utilisateurs dans l'interface
+enum TypeNotification {
+  nouveau_contact_assigne       // référent notifié quand un contact lui est assigné
+  contact_sans_referent         // admins notifiés pour les contacts J+2 sans référent
+  planning_non_confirme         // rappel ouvrier pour confirmer son affectation
+  rappel_evenement              // rappel avant un événement planifié
+  checklist_completee           // super_admin notifié quand intégration_confirmee coché
+  nouvelle_candidature_ouvrier  // admins notifiés quand un ouvrier soumet une candidature publique
+}
+
+/// Rôle de service d'un ouvrier dans un planning dominical
+enum RoleService {
+  identification_nm
+  service_salle
+  preparation_salle
+  service_en_ligne
+}
+
+/// Statut de réponse d'un ouvrier à une affectation de planning
+enum StatutAffectation {
+  en_attente
+  accepte
+  decline
+}
+
+/// Actions traçables dans le journal d'audit
+enum AuditAction {
+  creation
+  modification
+  suppression
+  changement_statut
+  assignation_referent
+  checklist_cochee
+}
+
 /// Cible des messages événement et actu
 /// Permet de segmenter les envois par campus ou par profil
 enum DestinataireEvenement {
-  tous             // tous les contacts inscrits, tous campus
-  profil_a         // uniquement les contacts Profil A
-  profil_b         // uniquement les contacts Profil B
-  campus_paris     // uniquement le campus Paris
-  campus_paris_nord // uniquement le campus Paris Nord
+  tous                    // tous les contacts inscrits, tous campus
+  profil_membre_phila     // uniquement les membres Phila
+  profil_visiteur         // visiteurs_sans_eglise + visiteur_avec_eglise
+  campus_paris            // uniquement le campus Paris
+  campus_paris_nord       // uniquement le campus Paris Nord
 }
 
 // ─────────────────────────────────────────
@@ -170,12 +218,14 @@ model User {
   prenom     String
   nom        String
   email      String   @unique                // utilisé comme identifiant de connexion
+  telephone  String?                         // numéro du référent — utilisé dans la variable [Telephone_Referent]
   password   String                          // hashé avec bcrypt avant stockage
   role       Role                            // détermine les droits d'accès dans l'app
   campus     Campus[]                        // un admin peut gérer plusieurs campus (max 2-3)
-  actif      Boolean  @default(true)         // false = compte désactivé sans suppression
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  actif               Boolean  @default(true)         // false = compte désactivé sans suppression
+  onboarding_complete Boolean  @default(false)        // false = guide première connexion à afficher
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
 
   // Relations
   contacts_integration  Contact[]          @relation("ReferentIntegration") // contacts dont il est référent intégration
@@ -185,6 +235,12 @@ model User {
   messages_crees        Message[]                                             // messages créés ou planifiés par cet utilisateur
   evenements_crees      Evenement[]                                           // événements créés par cet utilisateur
   planning_crees        PlanningService[]                                     // plannings créés par cet utilisateur
+  notifications         Notification[]                                        // notifications reçues par cet utilisateur
+  checklist_items       ChecklistItem[]                                       // étapes de checklist complétées par cet utilisateur
+  connection_logs       ConnectionLog[]                                       // historique des tentatives de connexion
+  refresh_tokens        RefreshToken[]                                         // tokens de session persistants
+  password_reset_tokens PasswordResetToken[]                                  // tokens de réinitialisation mot de passe
+  audit_logs            AuditLog[]                                             // journal des actions effectuées par cet utilisateur
 }
 
 // ─────────────────────────────────────────
@@ -203,6 +259,7 @@ model Contact {
   nom                   String
   telephone             String              @unique  // format E.164 — clé anti-doublon principale
   email                 String?                      // optionnel — non utilisé pour la messagerie (WhatsApp uniquement)
+  date_naissance        DateTime?                    // facultatif — utilisé pour l'envoi automatique du message d'anniversaire
 
   // ── Localisation ──────────────────────
   ville                 String
@@ -210,9 +267,9 @@ model Contact {
 
   // ── Profil & statut ───────────────────
   etat_civil            EtatCivil
-  statut_phila          StatutPhila                  // détermine le profil A ou B
+  statut_phila          StatutPhila                  // détermine le profil (membre_phila / visiteur_*)
   extension_phila       Extension?                   // renseigné uniquement si statut_phila = oui
-  profil                Profil                       // A ou B — calculé à l'inscription, modifiable par admin
+  profil                Profil                       // calculé automatiquement à l'inscription et à chaque mise à jour
   statut                StatutContact       @default(nouveau)  // progression dans le parcours d'intégration
   campus                Campus                       // campus de suivi (Paris ou Paris Nord)
 
@@ -220,13 +277,11 @@ model Contact {
   canal                 Canal                        // présentiel (QR teal) ou en ligne (QR doré)
   saisi_par_membre      Boolean             @default(false) // true si un membre du département a rempli pour la personne
 
-  // ── Branche A — Membre Phila ou autre église ──
-  // Champs renseignés uniquement pour le Profil A
+  // ── Branche membre_phila ──────────────
   interet_cellule       InteretCellule?
   comment_connu         String?
 
-  // ── Branche B — Visiteur / Sans église d'attache ──
-  // Champs renseignés uniquement pour le Profil B
+  // ── Branche visiteur (sans ou avec église) ────────
   souhait               Souhait?                     // intention principale de la personne
   besoins               BesoinSpirituel[]            // besoins spirituels exprimés (sélection multiple)
   autre_eglise          Boolean?                     // est-il membre d'une autre église ?
@@ -265,6 +320,18 @@ model Contact {
   historique_statuts    HistoriqueStatut[]
   messages              Message[]
   ouvrier               Ouvrier?            // relation 1-1 si le contact devient ouvrier
+  checklist             ChecklistItem[]     // 6 étapes générées automatiquement à l'inscription
+
+  @@index([telephone])
+  @@index([campus])
+  @@index([statut])
+  @@index([profil])
+  @@index([canal])
+  @@index([referent_integration_id])
+  @@index([referent_eglise_id])
+  @@index([date_inscription])
+  @@index([campus, statut])
+  @@index([campus, profil])
 }
 
 // ─────────────────────────────────────────
@@ -335,9 +402,12 @@ model Ouvrier {
   date_debut_service   DateTime?
   statut               Boolean   @default(true)    // true = actif, false = inactif
   inscription_directe  Boolean   @default(false)   // true = ouvrier existant ajouté manuellement
+  notes                String?                     // JSON : données complémentaires candidature (motivation, expérience…)
 
   created_at           DateTime  @default(now())
   updated_at           DateTime  @updatedAt
+
+  affectations         AffectationPlanning[]
 }
 
 // ─────────────────────────────────────────
@@ -363,6 +433,11 @@ model Message {
   evenement_id String?                             // lien vers l'événement si message de type evenement ou actu
   evenement    Evenement?    @relation(fields: [evenement_id], references: [id])
   created_at   DateTime      @default(now())
+
+  @@index([contact_id])
+  @@index([statut])
+  @@index([type])
+  @@index([created_at])
 }
 
 // ─────────────────────────────────────────
@@ -383,6 +458,7 @@ model Evenement {
   statut           StatutEvenement       @default(brouillon)
   planifie_le      DateTime?             // date/heure à laquelle node-cron déclenchera l'envoi
   envoye_le        DateTime?             // horodatage de fin d'envoi (tous messages créés)
+  filtres_json     String?               // JSON des filtres destinataires avancés ; null = mode hérité (destinataires enum)
   created_by       String
   createur         User                  @relation(fields: [created_by], references: [id])
   created_at       DateTime              @default(now())
@@ -412,5 +488,170 @@ model PlanningService {
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
+  affectations       AffectationPlanning[]
+
   @@unique([date_dimanche, campus]) // contrainte : un seul planning par dimanche par campus
+}
+
+// ─────────────────────────────────────────
+// CHECKLIST ITEM
+// Une ligne par étape d'intégration par contact (6 lignes générées à l'inscription).
+// Quand integration_confirmee est cochée, le statut du contact passe à 'integre'
+// et une notification est créée pour le super_admin.
+// ─────────────────────────────────────────
+
+model ChecklistItem {
+  id               String           @id @default(cuid())
+  contact_id       String
+  contact          Contact          @relation(fields: [contact_id], references: [id], onDelete: Cascade)
+  etape            EtapeIntegration
+  complete         Boolean          @default(false)
+  complete_par_id  String?
+  complete_par     User?            @relation(fields: [complete_par_id], references: [id])
+  complete_le      DateTime?
+  commentaire      String?
+  created_at       DateTime         @default(now())
+
+  @@unique([contact_id, etape])
+  @@index([contact_id])
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATION
+// Notifications in-app générées par les actions métier (assignation, alertes J+2, etc.)
+// Chaque notification est liée à un utilisateur spécifique (son destinataire).
+// ─────────────────────────────────────────
+
+model Notification {
+  id          String           @id @default(cuid())
+  user_id     String
+  user        User             @relation(fields: [user_id], references: [id])
+  type        TypeNotification
+  titre       String
+  message     String
+  lue         Boolean          @default(false)
+  lien        String?          // route frontend optionnelle (ex: /contacts/:id)
+  created_at  DateTime         @default(now())
+
+  @@index([user_id, lue])
+  @@index([created_at])
+}
+
+// ─────────────────────────────────────────
+// AFFECTATION PLANNING
+// Association ouvrier ↔ planning avec un rôle et un statut de confirmation.
+// Remplace les champs texte libres (service_salle, preparation_salle, etc.)
+// par des relations structurées et traçables.
+// ─────────────────────────────────────────
+
+model AffectationPlanning {
+  id            String            @id @default(cuid())
+  planning_id   String
+  planning      PlanningService   @relation(fields: [planning_id], references: [id], onDelete: Cascade)
+  ouvrier_id    String
+  ouvrier       Ouvrier           @relation(fields: [ouvrier_id], references: [id])
+  role_service  RoleService
+  statut        StatutAffectation @default(en_attente)
+  repondu_le    DateTime?
+  created_at    DateTime          @default(now())
+
+  @@unique([planning_id, ouvrier_id, role_service])
+  @@index([planning_id])
+  @@index([ouvrier_id])
+  @@index([statut])
+}
+
+// ─────────────────────────────────────────
+// SETTINGS
+// Paramètres applicatifs stockés sous forme clé/valeur.
+// Utilisés pour les seuils d'alerte, les informations de l'église
+// et les templates de messages WhatsApp automatiques.
+// ─────────────────────────────────────────
+
+model Settings {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  value      String
+  updated_at DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// CONNECTION LOG
+// Historique des tentatives de connexion (succès et échecs).
+// user_id nullable pour pouvoir logguer les tentatives sur comptes inactifs
+// même quand la correspondance email → user est trouvée.
+// IP + user_agent permettent de détecter les attaques brute-force distribuées.
+// ─────────────────────────────────────────
+
+model ConnectionLog {
+  id         String   @id @default(cuid())
+  user_id    String?
+  user       User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  ip         String
+  user_agent String?
+  succes     Boolean
+  raison     String?  // 'mot_de_passe_incorrect' | 'compte_inactif' | null (si succès)
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@index([created_at])
+}
+
+// ─────────────────────────────────────────
+// REFRESH TOKEN
+// Sessions persistantes — durée 7 jours.
+// onDelete: Cascade : supprimé automatiquement si l'utilisateur est supprimé.
+// ─────────────────────────────────────────
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  @@index([token])
+  @@index([user_id])
+}
+
+// ─────────────────────────────────────────
+// PASSWORD RESET TOKEN
+// Token à usage unique pour réinitialiser le mot de passe par email.
+// Durée : 1 heure. Marqué 'used' après utilisation pour éviter le replay.
+// ─────────────────────────────────────────
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@index([token])
+}
+// ─────────────────────────────────────────
+// AUDIT LOG
+// Journal de toutes les actions significatives sur les entités.
+// Utilisé pour l'historique des modifications dans les fiches contact.
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id              String      @id @default(cuid())
+  entite          String
+  entite_id       String
+  action          AuditAction
+  champ           String?
+  ancienne_valeur String?
+  nouvelle_valeur String?
+  description     String
+  auteur_id       String
+  auteur          User        @relation(fields: [auteur_id], references: [id])
+  created_at      DateTime    @default(now())
+
+  @@index([entite, entite_id])
+  @@index([auteur_id])
+  @@index([created_at])
 }

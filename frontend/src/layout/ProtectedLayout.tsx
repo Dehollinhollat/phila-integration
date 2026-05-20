@@ -1,52 +1,77 @@
 // src/layout/ProtectedLayout.tsx
-// Wrapper pour toutes les routes de l'interface d'administration.
-// - Redirige vers /login si l'utilisateur n'est pas authentifié
-// - Affiche la Sidebar + la zone de contenu principale
-// - Applique le décalage gauche pour laisser place à la sidebar fixe
+// Wrapper pour toutes les routes protégées.
+// - Redirige vers /login si non authentifié ou si le JWT est expiré
+// - Redirige vers /onboarding si onboarding_complete = false (première connexion)
+// - Déconnexion automatique dès que le token expire (vérifié à chaque navigation)
+// - Gère l'état ouvert/fermé de la sidebar sur mobile
+// - Sur desktop : sidebar fixe à gauche via var(--sidebar-width)
+// - Sur mobile  : sidebar en overlay (transform CSS) + backdrop sombre
 
-import { Navigate, Outlet } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from './Sidebar';
-import { colors, layout, spacing } from '../components/ui/tokens';
+import AppBar from './AppBar';
+
+// Décode le claim `exp` du JWT sans vérifier la signature (lecture seule).
+// La vérification cryptographique est toujours faite côté backend sur chaque requête.
+function isJwtExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.exp === 'number' && Date.now() >= payload.exp * 1000;
+  } catch {
+    return true; // token malformé → considéré expiré par sécurité
+  }
+}
 
 export default function ProtectedLayout() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, token, user, logout } = useAuth();
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Redirige non-authentifiés vers la page de login
-  if (!isAuthenticated) {
+  // Évaluation synchrone : évite un flash du contenu protégé si le token est expiré
+  const tokenExpired = useMemo(
+    () => !!token && isJwtExpired(token),
+    [token]
+  );
+
+  // Nettoie localStorage après le rendu (setState pendant le rendu est interdit en React)
+  useEffect(() => {
+    if (tokenExpired) logout();
+  }, [tokenExpired, logout]);
+
+  if (!isAuthenticated || tokenExpired) {
     return <Navigate to="/login" replace />;
   }
 
-  return (
-    <div
-      style={{
-        display:    'flex',
-        minHeight:  '100vh',
-        background: colors.gray50,
-      }}
-    >
-      <Sidebar />
+  // Première connexion - redirige vers le guide d'onboarding sauf si déjà sur /onboarding
+  if (user && user.onboarding_complete === false && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
 
-      {/* Zone de contenu — décalée de la largeur de la sidebar */}
-      <main
-        style={{
-          flex:       1,
-          marginLeft: layout.sidebarWidth,
-          minWidth:   0,
-          display:    'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div
-          style={{
-            flex:      1,
-            padding:   spacing[6],
-            maxWidth:  layout.contentMaxWidth,
-            width:     '100%',
-            boxSizing: 'border-box' as const,
-          }}
-        >
-          {/* Outlet rend la page correspondant à la route active */}
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+
+      {/* Overlay mobile - clic ferme la sidebar */}
+      <div
+        className={`sidebar-overlay${sidebarOpen ? ' visible' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Zone de contenu - margin-left géré par var(--sidebar-width) en CSS */}
+      <main className="main-content">
+        <AppBar onMenuToggle={() => setSidebarOpen(o => !o)} />
+
+        <div style={{
+          flex:      1,
+          padding:   'clamp(16px, 4vw, 32px) clamp(16px, 3vw, 32px)',
+          width:     '100%',
+          maxWidth:  '1200px',
+          boxSizing: 'border-box',
+        }}>
           <Outlet />
         </div>
       </main>

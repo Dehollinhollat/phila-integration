@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "isolatedModules": true
+  },
+  "include": ["src/**/*", "generated/**/*"]
+}

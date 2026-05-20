@@ -8,6 +8,7 @@ import {
   updateEvenement,
   deleteEvenement,
   planifierEvenement,
+  envoyerEvenement,
 } from '../controllers/evenements.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireMinRole, requireRole } from '../middlewares/roles.middleware';
@@ -24,5 +25,8 @@ router.delete('/:id', requireRole('super_admin', 'admin_campus'), deleteEvenemen
 
 // Planifie l'envoi groupé — passe le statut à 'planifie' et enregistre la date d'envoi
 router.post('/:id/planifier', requireRole('super_admin', 'admin_campus'), planifierEvenement);
+
+// Déclenche l'envoi immédiat (override planification ou brouillon)
+router.post('/:id/envoyer', requireRole('super_admin', 'admin_campus'), envoyerEvenement);
 
 export default router;

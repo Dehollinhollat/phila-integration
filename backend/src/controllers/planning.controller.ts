@@ -29,8 +29,17 @@ export async function listPlannings(req: Request, res: Response): Promise<void> 
 
   const plannings = await prisma.planningService.findMany({
     where,
-    orderBy: { date_dimanche: 'desc' },
-    include: { createur: { select: { id: true, prenom: true, nom: true } } },
+    orderBy: { date_dimanche: 'asc' },
+    include: {
+      createur: { select: { id: true, prenom: true, nom: true } },
+      _count: { select: { affectations: true } },
+      affectations: {
+        select: {
+          role_service: true,
+          ouvrier: { select: { prenom: true, nom: true } },
+        },
+      },
+    },
   });
 
   res.json(plannings);
@@ -38,11 +47,19 @@ export async function listPlannings(req: Request, res: Response): Promise<void> 
 
 // GET /api/planning/:id
 export async function getPlanning(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params['id'] as string;
 
   const planning = await prisma.planningService.findUnique({
     where: { id },
-    include: { createur: { select: { id: true, prenom: true, nom: true } } },
+    include: {
+      createur: { select: { id: true, prenom: true, nom: true } },
+      affectations: {
+        include: {
+          ouvrier: { select: { id: true, prenom: true, nom: true, telephone: true, campus: true } },
+        },
+        orderBy: { role_service: 'asc' },
+      },
+    },
   });
 
   if (!planning) {
@@ -68,24 +85,43 @@ export async function createPlanning(req: Request, res: Response): Promise<void>
     return;
   }
 
-  const planning = await prisma.planningService.create({
-    data: {
-      date_dimanche: date,
-      campus,
-      nouveaux_membres,
-      service_salle,
-      preparation_salle,
-      priere_lundi,
-      created_by: req.user!.id,
-    },
-  });
-
-  res.status(201).json(planning);
+  try {
+    const planning = await prisma.planningService.create({
+      data: {
+        date_dimanche: date,
+        campus,
+        nouveaux_membres,
+        service_salle,
+        preparation_salle,
+        priere_lundi,
+        created_by: req.user!.id,
+      },
+    });
+    res.status(201).json(planning);
+  } catch (err: unknown) {
+    if ((err as { code?: string }).code === 'P2002') {
+      // Planning already exists for this Sunday/campus — return the existing one
+      const existing = await prisma.planningService.findFirst({
+        where: { date_dimanche: date, campus },
+        include: {
+          createur: { select: { id: true, prenom: true, nom: true } },
+          affectations: {
+            include: {
+              ouvrier: { select: { id: true, prenom: true, nom: true, telephone: true, campus: true } },
+            },
+          },
+        },
+      });
+      res.status(200).json(existing);
+    } else {
+      throw err;
+    }
+  }
 }
 
 // PATCH /api/planning/:id
 export async function updatePlanning(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params['id'] as string;
 
   const data = { ...req.body };
   if (data.date_dimanche) {
@@ -103,7 +139,7 @@ export async function updatePlanning(req: Request, res: Response): Promise<void>
 
 // DELETE /api/planning/:id
 export async function deletePlanning(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params['id'] as string;
 
   const exists = await prisma.planningService.findUnique({ where: { id } });
   if (!exists) {

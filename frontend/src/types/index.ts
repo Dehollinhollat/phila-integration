@@ -9,7 +9,7 @@ export type EtatCivil       = 'celibataire' | 'fiance' | 'marie' | 'divorce' | '
 export type StatutPhila     = 'oui' | 'non' | 'premiere_visite';
 export type Extension       = 'paris' | 'paris_nord' | 'orleans' | 'montpellier';
 export type Canal           = 'presentiel' | 'en_ligne';
-export type Profil          = 'A' | 'B';
+export type Profil          = 'membre_phila' | 'visiteur_sans_eglise' | 'visiteur_avec_eglise';
 export type Souhait         = 'devenir_membre' | 'servir' | 'juste_visiter';
 export type BesoinSpirituel = 'priere' | 'bapteme' | 'suivi' | 'rencontrer_pasteur';
 export type InteretCellule  = 'oui' | 'non' | 'peut_etre';
@@ -32,28 +32,77 @@ export type Role =
   | 'referent_integration'
   | 'lecteur';
 
+export type EtapeIntegration =
+  | 'message_bienvenue_envoye'
+  | 'premier_appel_effectue'
+  | 'inscription_cellule'
+  | 'journee_integration'
+  | 'cours_antioche_valides'
+  | 'service_departement'
+  | 'integration_confirmee';
+
+export interface ChecklistItem {
+  id:            string;
+  contact_id:    string;
+  etape:         EtapeIntegration;
+  complete:      boolean;
+  complete_par?: { id: string; prenom: string; nom: string } | null;
+  complete_le?:  string | null;
+  commentaire?:  string | null;
+  created_at:    string;
+}
+
+export type TypeNotification =
+  | 'nouveau_contact_assigne'
+  | 'contact_sans_referent'
+  | 'planning_non_confirme'
+  | 'rappel_evenement'
+  | 'checklist_completee'
+  | 'nouvelle_candidature_ouvrier';
+
+export interface Notification {
+  id:         string;
+  user_id:    string;
+  type:       TypeNotification;
+  titre:      string;
+  message:    string;
+  lue:        boolean;
+  lien?:      string | null;
+  created_at: string;
+}
+
 export type StatutMessage   = 'en_attente' | 'envoye' | 'echoue';
 export type TypeMessage     = 'bienvenue' | 'evenement' | 'actu';
 export type StatutEvenement = 'brouillon' | 'planifie' | 'envoye';
 export type DestinataireEvenement =
   | 'tous'
-  | 'profil_a'
-  | 'profil_b'
+  | 'profil_membre_phila'
+  | 'profil_visiteur'
   | 'campus_paris'
   | 'campus_paris_nord';
 
 // ─── Modèles ─────────────────────────────────────────────────────────────────
 
 export interface User {
-  id:        string;
-  prenom:    string;
-  nom:       string;
-  email:     string;
-  role:      Role;
-  campus:    Campus[];
-  actif:     boolean;
+  id:                  string;
+  prenom:              string;
+  nom:                 string;
+  email:               string;
+  role:                Role;
+  campus:              Campus[];
+  actif:               boolean;
+  onboarding_complete: boolean;
+  created_at:          string;
+  updated_at:          string;
+}
+
+export interface ConnectionLog {
+  id:         string;
+  ip:         string;
+  user_agent: string | null;
+  succes:     boolean;
+  raison:     string | null;
   created_at: string;
-  updated_at: string;
 }
 
 // Version allégée pour les listes de sélection (référents)
@@ -66,6 +115,7 @@ export interface Contact {
   nom:                  string;
   telephone:            string;
   email?:               string;
+  date_naissance?:      string;
   ville:                string;
   code_postal?:         string;
   etat_civil:           EtatCivil;
@@ -99,6 +149,8 @@ export interface Contact {
   // RGPD
   consentement_rgpd:    boolean;
   date_consentement:    string;
+  // Ouvrier lié
+  ouvrier?:             { id: string; statut: boolean } | null;
   // Meta
   date_inscription:     string;
   derniere_interaction?: string;
@@ -190,16 +242,35 @@ export interface Evenement {
   _count?:          { messages: number };
 }
 
+export type RoleService      = 'identification_nm' | 'service_salle' | 'preparation_salle' | 'service_en_ligne';
+export type StatutAffectation = 'en_attente' | 'accepte' | 'decline';
+
+export interface AffectationPlanning {
+  id:           string;
+  planning_id:  string;
+  ouvrier_id:   string;
+  // Present in listAffectations (admin view); absent in mesAffectations (self view)
+  ouvrier?: { id: string; prenom: string; nom: string; telephone: string; campus: Campus };
+  role_service: RoleService;
+  statut:       StatutAffectation;
+  repondu_le?:  string | null;
+  created_at:   string;
+  // Present in mesAffectations
+  planning?: { id: string; date_dimanche: string; campus: Campus; nouveaux_membres?: string | null };
+}
+
 export interface PlanningService {
   id:               string;
   date_dimanche:    string;
   campus:           Campus;
-  nouveaux_membres?: string;
-  service_salle?:   string;
-  preparation_salle?: string;
-  priere_lundi?:    string;
+  nouveaux_membres?: string | null;
+  service_salle?:   string | null;
+  preparation_salle?: string | null;
+  priere_lundi?:    string | null;
   created_by:       string;
-  createur:         UserSummary;
+  createur?:        UserSummary;
+  affectations?:    AffectationPlanning[];
+  _count?:          { affectations: number };
   created_at:       string;
   updated_at:       string;
 }
@@ -207,7 +278,7 @@ export interface PlanningService {
 // ─── Payloads API ─────────────────────────────────────────────────────────────
 
 export interface LoginPayload   { email: string; password: string }
-export interface LoginResponse  { token: string; user: User }
+export interface LoginResponse  { accessToken: string; refreshToken: string; user: User }
 
 export interface PaginatedResponse<T> {
   contacts?: T[];     // /contacts retourne "contacts"
@@ -221,6 +292,54 @@ export interface PaginatedResponse<T> {
 export interface AuthState {
   user:  User | null;
   token: string | null;
+}
+
+// ─── Stats / Graphiques ───────────────────────────────────────────────────────
+
+export interface InscriptionMoisData {
+  mois:       string;
+  presentiel: number;
+  en_ligne:   number;
+}
+
+export interface ProfilData {
+  name:  string;
+  value: number;
+  color: string;
+}
+
+export interface StatutData {
+  statut: string;
+  count:  number;
+}
+
+export interface MessageSemaineData {
+  semaine: string;
+  count:   number;
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+export type AuditAction =
+  | 'creation'
+  | 'modification'
+  | 'suppression'
+  | 'changement_statut'
+  | 'assignation_referent'
+  | 'checklist_cochee';
+
+export interface AuditLog {
+  id:              string;
+  entite:          string;
+  entite_id:       string;
+  action:          AuditAction;
+  champ?:          string | null;
+  ancienne_valeur?: string | null;
+  nouvelle_valeur?: string | null;
+  description:     string;
+  auteur_id:       string;
+  auteur:          { id: string; prenom: string; nom: string; role: Role };
+  created_at:      string;
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

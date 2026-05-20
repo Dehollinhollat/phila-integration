@@ -4,6 +4,8 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { sendWhatsAppBulk } from '../lib/twilio';
+import { buildDestinataireWhere, buildFiltresWhere } from './messages.controller';
 
 // GET /api/evenements
 export async function listEvenements(req: Request, res: Response): Promise<void> {
@@ -75,6 +77,77 @@ export async function createEvenement(req: Request, res: Response): Promise<void
   });
 
   res.status(201).json(evenement);
+}
+
+// POST /api/evenements/:id/envoyer — déclenche l'envoi immédiat
+export async function envoyerEvenement(req: Request, res: Response): Promise<void> {
+  const id = req.params['id'] as string;
+
+  const ev = await prisma.evenement.findUnique({ where: { id } });
+  if (!ev) {
+    res.status(404).json({ message: 'Événement introuvable' });
+    return;
+  }
+  if (ev.statut === 'envoye') {
+    res.status(400).json({ message: 'Événement déjà envoyé' });
+    return;
+  }
+
+  const now = new Date();
+
+  const filtresJson = (ev as Record<string, unknown>).filtres_json as string | null | undefined;
+  let contactWhere: Record<string, unknown>;
+  if (filtresJson) {
+    try { contactWhere = buildFiltresWhere(JSON.parse(filtresJson)); }
+    catch { contactWhere = buildDestinataireWhere(ev.destinataires as string, ev.campus as string | null); }
+  } else {
+    contactWhere = buildDestinataireWhere(ev.destinataires as string, ev.campus as string | null);
+  }
+
+  const contacts = await prisma.contact.findMany({
+    where: contactWhere,
+    select: { id: true, prenom: true, nom: true, telephone: true, campus: true },
+  });
+
+  if (contacts.length === 0) {
+    const updated = await prisma.evenement.update({
+      where: { id },
+      data: { statut: 'envoye', envoye_le: now },
+      include: { createur: { select: { id: true, prenom: true, nom: true } }, _count: { select: { messages: true } } },
+    });
+    res.json({ evenement: updated, sent: 0, failed: 0, total: 0 });
+    return;
+  }
+
+  const dateStr = ev.date_evenement.toLocaleDateString('fr-FR');
+  const results = await sendWhatsAppBulk(
+    contacts,
+    ev.message_template
+      .replace(/\[Date\]/g, dateStr)
+      .replace(/\[Campus\]/g, ev.campus ?? 'Phila'),
+  );
+
+  await prisma.message.createMany({
+    data: results.map(r => ({
+      contact_id:   r.id,
+      evenement_id: id,
+      type:         'evenement',
+      contenu:      ev.message_template,
+      statut:       r.error ? 'echoue' : 'envoye',
+      twilio_sid:   r.sid ?? null,
+      envoye_le:    r.error ? null : now,
+      created_by:   req.user!.id,
+    })),
+  });
+
+  const updated = await prisma.evenement.update({
+    where: { id },
+    data: { statut: 'envoye', envoye_le: now },
+    include: { createur: { select: { id: true, prenom: true, nom: true } }, _count: { select: { messages: true } } },
+  });
+
+  const failed = results.filter(r => r.error).length;
+  res.json({ evenement: updated, sent: results.length - failed, failed, total: results.length });
 }
 
 // PATCH /api/evenements/:id

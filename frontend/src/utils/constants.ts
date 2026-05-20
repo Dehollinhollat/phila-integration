@@ -1,8 +1,8 @@
 // src/utils/constants.ts
 // Constantes métier — labels, couleurs et options des enums pour l'affichage UI.
 // Source unique de vérité pour toutes les listes de sélection et badges.
+// Les couleurs des badges utilisent des CSS variables pour le support light/dark.
 
-import { colors } from '../components/ui/tokens';
 import type {
   Campus, Role, StatutContact, Profil,
   Canal, EtatCivil, StatutPhila, Genre,
@@ -48,12 +48,12 @@ export const STATUT_LABELS: Record<StatutContact, string> = {
 };
 
 export const STATUT_COLORS: Record<StatutContact, { bg: string; text: string }> = {
-  nouveau:   { bg: colors.infoLight,    text: colors.info },
-  contacte:  { bg: colors.primaryLight, text: colors.primaryText },
-  en_suivi:  { bg: colors.warningLight, text: colors.secondaryText },
-  integre:   { bg: colors.successLight, text: colors.success },
-  ouvrier:   { bg: colors.primaryLight, text: colors.primary },
-  inactif:   { bg: colors.gray100,      text: colors.gray500 },
+  nouveau:  { bg: 'var(--badge-nouveau-bg)',  text: 'var(--badge-nouveau-text)' },
+  contacte: { bg: 'var(--badge-contacte-bg)', text: 'var(--badge-contacte-text)' },
+  en_suivi: { bg: 'var(--badge-ensuivi-bg)',  text: 'var(--badge-ensuivi-text)' },
+  integre:  { bg: 'var(--badge-integre-bg)',  text: 'var(--badge-integre-text)' },
+  ouvrier:  { bg: 'var(--badge-presentiel-bg)', text: 'var(--badge-presentiel-text)' },
+  inactif:  { bg: 'var(--badge-inactif-bg)',  text: 'var(--badge-inactif-text)' },
 };
 
 export const STATUT_OPTIONS = Object.entries(STATUT_LABELS).map(
@@ -63,13 +63,20 @@ export const STATUT_OPTIONS = Object.entries(STATUT_LABELS).map(
 // ─── Profils ─────────────────────────────────────────────────────────────────
 
 export const PROFIL_LABELS: Record<Profil, string> = {
-  A: 'Profil A — Croyant',
-  B: 'Profil B — Visiteur',
+  membre_phila:          'Membre Phila',
+  visiteur_sans_eglise:  'Sans église',
+  visiteur_avec_eglise:  'Avec église',
 };
 
 export const PROFIL_BADGE: Record<Profil, { bg: string; text: string }> = {
-  A: { bg: colors.primaryLight,   text: colors.primaryText },
-  B: { bg: colors.secondaryLight, text: colors.secondaryText },
+  membre_phila:         { bg: 'var(--badge-profil-a-bg)', text: 'var(--badge-profil-a-text)' },
+  visiteur_sans_eglise: { bg: 'var(--badge-profil-b-bg)', text: 'var(--badge-profil-b-text)' },
+  visiteur_avec_eglise: { bg: 'var(--badge-profil-c-bg)', text: 'var(--badge-profil-c-text)' },
+};
+
+export const CANAL_BADGE: Record<Canal, { bg: string; text: string }> = {
+  presentiel: { bg: 'var(--badge-presentiel-bg)', text: 'var(--badge-presentiel-text)' },
+  en_ligne:   { bg: 'var(--badge-enligne-bg)',    text: 'var(--badge-enligne-text)' },
 };
 
 // ─── Canal ───────────────────────────────────────────────────────────────────
@@ -188,4 +195,6 @@ export const ROLE_RANK: Record<Role, number> = {
   lecteur:              1,
 };
 
-export const API_BASE = 'http://localhost:4000/api';
+// VITE_API_URL doit inclure le chemin /api (ex: http://localhost:4000/api).
+// Pour tester sur téléphone, remplacer localhost par l'IP LAN dans frontend/.env.
+export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api';

@@ -7,27 +7,56 @@ import {
   getContact,
   createContact,
   updateContact,
+  updateContactFull,
   deleteContact,
   updateStatut,
   listCommentaires,
   createCommentaire,
   getHistorique,
   getDashboardAlerts,
+  exportContacts,
+  patchChecklist,
+  initChecklist,
+  patchReferents,
+  checkPhone,
+  countContacts,
+  getAuditLog,
 } from '../controllers/contacts.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireMinRole, requireRole } from '../middlewares/roles.middleware';
+import { verifyTurnstile } from '../middlewares/turnstile.middleware';
+import { formRateLimit } from '../middlewares/rateLimit.middleware';
+import { validate } from '../middlewares/validate.middleware';
+import { createContactSchema } from '../schemas/contacts.schema';
 
 const router = Router();
+
+// Routes publiques — avant authenticate (formulaire QR code)
+router.get('/check-phone', checkPhone);
+// validate(createContactSchema) vérifie les champs requis + format téléphone E.164
+// formRateLimit + verifyTurnstile protègent contre les soumissions automatisées
+router.post('/', formRateLimit, verifyTurnstile, validate(createContactSchema), createContact);
 
 router.use(authenticate);
 
 // Contacts
 router.get('/', requireMinRole('lecteur'), listContacts);
 router.get('/alerts', requireMinRole('admin_campus'), getDashboardAlerts);
+router.get('/export', requireMinRole('lecteur'), exportContacts);
+// /count AVANT /:id — sinon Express matche 'count' comme un id param
+router.get('/count', requireMinRole('admin_campus'), countContacts);
 router.get('/:id', requireMinRole('lecteur'), getContact);
-router.post('/', requireMinRole('referent_integration'), createContact);
+// POST '/' est déjà géré en route publique ci-dessus
 router.patch('/:id', requireMinRole('referent_integration'), updateContact);
+router.put('/:id', requireRole('super_admin', 'admin_campus'), updateContactFull);
 router.delete('/:id', requireRole('super_admin', 'admin_campus'), deleteContact);
+
+// Checklist
+router.patch('/:id/checklist', requireMinRole('referent_integration'), patchChecklist);
+router.post('/:id/checklist/init', requireMinRole('referent_integration'), initChecklist);
+
+// Référents
+router.patch('/:id/referents', requireMinRole('admin_campus'), patchReferents);
 
 // Statut
 router.patch('/:id/statut', requireMinRole('referent_integration'), updateStatut);
@@ -38,5 +67,8 @@ router.post('/:id/commentaires', requireMinRole('referent_integration'), createC
 
 // Historique
 router.get('/:id/historique', requireMinRole('referent_integration'), getHistorique);
+
+// Audit log
+router.get('/:id/audit', requireMinRole('referent_integration'), getAuditLog);
 
 export default router;
