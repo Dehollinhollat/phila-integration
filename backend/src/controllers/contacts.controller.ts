@@ -261,7 +261,7 @@ export async function createContact(req: Request, res: Response): Promise<void> 
 
 // PATCH /api/contacts/:id
 export async function updateContact(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const where = buildContactWhere(req, { id });
 
   const exists = await prisma.contact.findFirst({ where });
@@ -285,7 +285,7 @@ export async function updateContact(req: Request, res: Response): Promise<void> 
 
 // PUT /api/contacts/:id — mise à jour complète (admin_campus+), telephone modifiable avec vérification doublon
 export async function updateContactFull(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const where = buildContactWhere(req, { id });
 
   const exists = await prisma.contact.findFirst({ where });
@@ -542,7 +542,7 @@ export async function initChecklist(req: Request, res: Response): Promise<void> 
 
 // PATCH /api/contacts/:id/statut
 export async function updateStatut(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { statut, commentaire } = req.body as { statut: string; commentaire?: string };
 
   const contact = await prisma.contact.findFirst({ where: buildContactWhere(req, { id }) });
@@ -552,12 +552,12 @@ export async function updateStatut(req: Request, res: Response): Promise<void> {
   }
 
   const [updated] = await prisma.$transaction([
-    prisma.contact.update({ where: { id }, data: { statut } }),
+    prisma.contact.update({ where: { id }, data: { statut: statut as any } }),
     prisma.historiqueStatut.create({
       data: {
         contact_id: id,
         statut_avant: contact.statut,
-        statut_apres: statut,
+        statut_apres: statut as any,
         change_par_id: req.user!.id,
         commentaire,
       },
@@ -608,7 +608,7 @@ export async function listCommentaires(req: Request, res: Response): Promise<voi
 
 // POST /api/contacts/:id/commentaires
 export async function createCommentaire(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { contenu } = req.body as { contenu: string };
 
   if (!contenu?.trim()) {
@@ -646,7 +646,7 @@ export async function createCommentaire(req: Request, res: Response): Promise<vo
 
 // GET /api/contacts/:id/historique
 export async function getHistorique(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const contactExists = await prisma.contact.findFirst({ where: buildContactWhere(req, { id }) });
   if (!contactExists) {

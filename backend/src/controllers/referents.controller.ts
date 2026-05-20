@@ -40,7 +40,7 @@ export async function listReferents(req: Request, res: Response): Promise<void> 
 
 // PATCH /api/referents/contacts/:contactId/integration
 export async function assignReferentIntegration(req: Request, res: Response): Promise<void> {
-  const { contactId } = req.params;
+  const contactId = req.params.contactId as string;
   const { referentId } = req.body as { referentId: string };
 
   const contact = await prisma.contact.findUnique({ where: { id: contactId } });
@@ -84,7 +84,7 @@ export async function assignReferentIntegration(req: Request, res: Response): Pr
 
 // DELETE /api/referents/contacts/:contactId/integration
 export async function removeReferentIntegration(req: Request, res: Response): Promise<void> {
-  const { contactId } = req.params;
+  const contactId = req.params.contactId as string;
 
   const updated = await prisma.contact.update({
     where: { id: contactId },
@@ -96,7 +96,7 @@ export async function removeReferentIntegration(req: Request, res: Response): Pr
 
 // PATCH /api/referents/contacts/:contactId/eglise
 export async function assignReferentEglise(req: Request, res: Response): Promise<void> {
-  const { contactId } = req.params;
+  const contactId = req.params.contactId as string;
   const { referentId } = req.body as { referentId: string };
 
   const contact = await prisma.contact.findUnique({ where: { id: contactId } });
@@ -203,7 +203,7 @@ export async function reassignerContacts(req: Request, res: Response): Promise<v
 
 // DELETE /api/referents/contacts/:contactId/eglise
 export async function removeReferentEglise(req: Request, res: Response): Promise<void> {
-  const { contactId } = req.params;
+  const contactId = req.params.contactId as string;
 
   const updated = await prisma.contact.update({
     where: { id: contactId },

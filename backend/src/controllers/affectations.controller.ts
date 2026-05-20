@@ -69,7 +69,7 @@ export async function createAffectation(req: Request, res: Response): Promise<vo
     }
 
     const existing = await prisma.affectationPlanning.findFirst({
-      where: { planning_id, ouvrier_id, role_service },
+      where: { planning_id, ouvrier_id, role_service: role_service as any },
     });
     if (existing) {
       res.status(409).json({ message: 'Cette affectation existe déjà' });
@@ -93,7 +93,7 @@ export async function createAffectation(req: Request, res: Response): Promise<vo
 
 // PATCH /api/affectations/:id/statut — ouvrier répond à son affectation
 export async function respondToAffectation(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { statut } = req.body as { statut: 'accepte' | 'decline' };
 
   if (!['accepte', 'decline'].includes(statut)) {
@@ -146,7 +146,7 @@ export async function mesAffectations(req: Request, res: Response): Promise<void
 
 // DELETE /api/affectations/:id
 export async function deleteAffectation(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const affectation = await prisma.affectationPlanning.findUnique({ where: { id } });
   if (!affectation) {

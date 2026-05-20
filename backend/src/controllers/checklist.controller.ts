@@ -10,7 +10,7 @@ import prisma from '../lib/prisma';
 
 // GET /api/checklist/contact/:contactId
 export async function listChecklist(req: Request, res: Response): Promise<void> {
-  const { contactId } = req.params;
+  const contactId = req.params.contactId as string;
 
   const contact = await prisma.contact.findUnique({ where: { id: contactId } });
   if (!contact) {
@@ -31,13 +31,10 @@ export async function listChecklist(req: Request, res: Response): Promise<void> 
 
 // PATCH /api/checklist/:id
 export async function updateChecklistItem(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { complete, commentaire } = req.body as { complete: boolean; commentaire?: string };
 
-  const item = await prisma.checklistItem.findUnique({
-    where: { id },
-    include: { contact: { select: { id: true, prenom: true, nom: true, campus: true } } },
-  });
+  const item = await prisma.checklistItem.findUnique({ where: { id } });
 
   if (!item) {
     res.status(404).json({ message: 'Étape introuvable' });
@@ -61,6 +58,11 @@ export async function updateChecklistItem(req: Request, res: Response): Promise<
 
   // Logique métier : intégration confirmée → statut contact + notification super_admin
   if (complete && item.etape === 'integration_confirmee') {
+    const contact = await prisma.contact.findUnique({
+      where: { id: item.contact_id },
+      select: { prenom: true, nom: true, campus: true },
+    });
+
     const superAdmins = await prisma.user.findMany({
       where: { role: 'super_admin', actif: true },
       select: { id: true },
@@ -69,13 +71,13 @@ export async function updateChecklistItem(req: Request, res: Response): Promise<
     await prisma.$transaction([
       prisma.contact.update({
         where: { id: item.contact_id },
-        data: { statut: 'integre' },
+        data: { statut: 'integre' as any },
       }),
       prisma.historiqueStatut.create({
         data: {
           contact_id: item.contact_id,
-          statut_avant: item.contact.campus ? 'en_suivi' : 'nouveau',
-          statut_apres: 'integre',
+          statut_avant: (contact?.campus ? 'en_suivi' : 'nouveau') as any,
+          statut_apres: 'integre' as any,
           change_par_id: req.user!.id,
           commentaire: 'Checklist d\'intégration complétée',
         },
@@ -86,7 +88,7 @@ export async function updateChecklistItem(req: Request, res: Response): Promise<
             user_id: admin.id,
             type: 'checklist_completee',
             titre: 'Intégration confirmée',
-            message: `${item.contact.prenom} ${item.contact.nom} a complété toutes les étapes d'intégration.`,
+            message: `${contact?.prenom ?? ''} ${contact?.nom ?? ''} a complété toutes les étapes d'intégration.`,
             lien: `/contacts/${item.contact_id}`,
           },
         })

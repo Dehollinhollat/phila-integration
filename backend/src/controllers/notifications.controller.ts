@@ -29,7 +29,7 @@ export async function listNotifications(req: Request, res: Response): Promise<vo
 
 // PATCH /api/notifications/:id/lue
 export async function markAsRead(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const userId = req.user!.id;
 
   const notif = await prisma.notification.findUnique({ where: { id } });
@@ -60,7 +60,7 @@ export async function markAllAsRead(req: Request, res: Response): Promise<void> 
 
 // DELETE /api/notifications/:id
 export async function deleteNotification(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const userId = req.user!.id;
 
   const notif = await prisma.notification.findUnique({ where: { id } });

@@ -39,7 +39,8 @@
       "Skill(superpowers:executing-plans:*)",
       "Bash(node -e \"require\\('dotenv'\\); console.log\\('ok'\\)\")",
       "PowerShell(node -e \"require\\('dotenv'\\); console.log\\('ok'\\)\" 2>&1)",
-      "PowerShell(exit 0)"
+      "PowerShell(exit 0)",
+      "Bash(echo \"Exit code: $?\")"
     ]
   }
 }

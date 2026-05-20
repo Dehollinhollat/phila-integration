@@ -36,7 +36,7 @@ export async function listEvenements(req: Request, res: Response): Promise<void>
 
 // GET /api/evenements/:id
 export async function getEvenement(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const evenement = await prisma.evenement.findUnique({
     where: { id },
@@ -152,7 +152,7 @@ export async function envoyerEvenement(req: Request, res: Response): Promise<voi
 
 // PATCH /api/evenements/:id
 export async function updateEvenement(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const evenement = await prisma.evenement.findUnique({ where: { id } });
   if (!evenement) {
@@ -174,7 +174,7 @@ export async function updateEvenement(req: Request, res: Response): Promise<void
 
 // DELETE /api/evenements/:id
 export async function deleteEvenement(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const evenement = await prisma.evenement.findUnique({ where: { id } });
   if (!evenement) {
@@ -192,7 +192,7 @@ export async function deleteEvenement(req: Request, res: Response): Promise<void
 
 // POST /api/evenements/:id/planifier
 export async function planifierEvenement(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { planifie_le } = req.body as { planifie_le: string };
 
   if (!planifie_le) {
