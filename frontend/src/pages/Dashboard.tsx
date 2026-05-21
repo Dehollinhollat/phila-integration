@@ -704,13 +704,6 @@ export default function Dashboard() {
 
   // ─── Greeting ─────────────────────────────────────────────────────────────
 
-  const greeting = (() => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Bonjour';
-    if (h < 18) return 'Bon après-midi';
-    return 'Bonsoir';
-  })();
-
   // ─── Render ───────────────────────────────────────────────────────────────
 
   const campusOpts: Array<{ value: CampusFilter; label: string }> = [
@@ -734,18 +727,30 @@ export default function Dashboard() {
         marginBottom:   spacing[6],
         gap:            spacing[4],
       }}>
-        <div>
+        <div style={{ marginBottom: '8px' }}>
           <h1 style={{
-            margin:     0,
-            fontSize:   'clamp(20px, 4vw, 28px)',
-            fontWeight: typography.fontWeight.bold,
+            fontSize:   'clamp(18px, 4vw, 26px)',
+            fontWeight: 700,
             color:      'var(--text-primary)',
+            margin:     0,
           }}>
-            {greeting}, {user?.prenom} 👋
+            Bonjour, {user?.prenom} 👋
           </h1>
-          <p style={{ margin: `${spacing[1]} 0 0`, color: 'var(--text-secondary)', fontSize: typography.fontSize.base }}>
-            Vue d'ensemble de l'intégration<br />
-            {user?.campus.map(c => CAMPUS_LABELS[c]).join(' · ')}
+          <p style={{
+            color:      'var(--text-secondary)',
+            fontSize:   '12px',
+            marginTop:  '4px',
+            lineHeight: '1.5',
+          }}>
+            Vue d'ensemble de l'intégration
+          </p>
+          <p style={{
+            color:     'var(--text-secondary)',
+            fontSize:  '11px',
+            marginTop: '2px',
+            margin:    0,
+          }}>
+            {(user?.campus ?? []).map(c => CAMPUS_LABELS[c]).join(' · ')}
           </p>
         </div>
 

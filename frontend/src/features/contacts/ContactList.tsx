@@ -249,7 +249,7 @@ export default function ContactList() {
   }
 
   return (
-    <div style={{ padding: '24px 32px' }}>
+    <div style={{ padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px)' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div style={{

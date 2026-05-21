@@ -177,14 +177,14 @@ export default function OuvrierList() {
     padding: '7px 10px', borderRadius: 6,
     border: '1px solid var(--bg-card-border)',
     background: 'var(--bg-card)', color: 'var(--text-primary)',
-    fontFamily: 'inherit', fontSize: '0.8rem', cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: 16, cursor: 'pointer',
   };
 
   return (
-    <div style={{ padding: '28px 32px', fontFamily: 'inherit' }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', fontFamily: 'inherit' }}>
 
       {/* En-tête */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             Ouvriers
@@ -285,7 +285,8 @@ export default function OuvrierList() {
             Aucun ouvrier trouvé
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+          <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--bg-secondary)' }}>
                 {['', 'Nom', 'Téléphone', 'Campus', 'Services', 'Depuis', 'Statut', 'Type', ''].map((col, i) => (
@@ -395,6 +396,7 @@ export default function OuvrierList() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

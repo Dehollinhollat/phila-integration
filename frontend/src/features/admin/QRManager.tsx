@@ -325,7 +325,7 @@ export default function QRManager() {
   ];
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1000, margin: '0 auto' }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', maxWidth: 1000, margin: '0 auto' }}>
 
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px' }}>

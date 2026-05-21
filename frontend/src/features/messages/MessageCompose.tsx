@@ -251,7 +251,7 @@ export default function MessageCompose() {
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '28px 32px', fontFamily: 'inherit' }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', fontFamily: 'inherit' }}>
 
       {/* En-tête */}
       <div style={{ marginBottom: '28px' }}>

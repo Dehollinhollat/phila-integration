@@ -94,7 +94,7 @@ export default function Notifications() {
   const unreadCount  = notifications.filter(n => !n.lue).length;
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 760, margin: '0 auto' }}>
+    <div style={{ padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px)', maxWidth: 760, margin: '0 auto' }}>
 
       {/* En-tête */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>

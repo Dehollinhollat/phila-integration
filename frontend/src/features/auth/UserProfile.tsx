@@ -111,7 +111,7 @@ export default function UserProfile() {
   const initials = `${user.prenom[0]}${user.nom[0]}`.toUpperCase();
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', maxWidth: 640, margin: '0 auto' }}>
 
       <h1 style={{ margin: '0 0 28px', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>
         Mon profil

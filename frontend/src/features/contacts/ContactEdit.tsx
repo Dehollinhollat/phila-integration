@@ -273,7 +273,7 @@ export default function ContactEdit() {
   // ── Skeleton de chargement ─────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ padding: '24px 32px' }}>
+      <div style={{ padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px)' }}>
         <div style={{ height: '28px', width: '200px', background: 'var(--bg-secondary)', borderRadius: '6px', marginBottom: '24px' }} />
         {[1, 2, 3].map(i => (
           <div key={i} style={{
@@ -293,7 +293,7 @@ export default function ContactEdit() {
 
   if (!form || !contact) {
     return (
-      <div style={{ padding: '24px 32px' }}>
+      <div style={{ padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px)' }}>
         <div style={{ color: 'var(--accent-red)' }}>
           {error ?? 'Contact introuvable.'}
         </div>
@@ -304,7 +304,7 @@ export default function ContactEdit() {
   const isMembre = form.statut_phila === 'oui';
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: '1100px' }}>
+    <div style={{ padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px)', maxWidth: '1100px' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>

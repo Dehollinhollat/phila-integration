@@ -146,7 +146,7 @@ export default function EventScheduler() {
   // ─── Rendu ───────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1120 }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', maxWidth: 1120 }}>
 
       {/* Titre + bouton */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 12 }}>
@@ -203,119 +203,121 @@ export default function EventScheduler() {
       {loading ? (
         <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>Chargement…</div>
       ) : (
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)', borderRadius: 12, overflow: 'hidden', minWidth: isMobile ? undefined : 640 }}>
-
-          {/* Header */}
-          <div style={{ ...rowStyle, background: 'var(--bg-secondary)', fontWeight: 700, fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            <span style={{ flex: 3 }}>Titre</span>
-            {!isMobile && <span style={{ flex: 1 }}>Campus</span>}
-            {!isMobile && <span style={{ flex: 1 }}>Destinataires</span>}
-            {!isMobile && <span style={{ flex: 1 }}>Date événement</span>}
-            <span style={{ flex: 1, textAlign: 'center' }}>Statut</span>
-            {!isMobile && <span style={{ flex: 1 }}>Date envoi</span>}
-            {!isMobile && <span style={{ flex: '0 0 60px', textAlign: 'center' }}>Messages</span>}
-            <span style={{ flex: 2, textAlign: 'right' }}>Actions</span>
-          </div>
-
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)', borderRadius: 12, overflow: 'hidden' }}>
           {visible.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
               Aucun événement trouvé
             </div>
           ) : (
-            visible.map((ev, i) => {
-              const sc = STATUT_CFG[ev.statut];
-              return (
-                <div key={ev.id} style={{
-                  ...rowStyle,
-                  borderTop: i === 0 ? 'none' : '1px solid var(--bg-card-border)',
-                  alignItems: 'center',
-                }}>
-                  {/* Titre + créateur */}
-                  <div style={{ flex: 3, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {ev.titre}
-                    </div>
-                    {ev.createur && (
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
-                        {ev.createur.prenom} {ev.createur.nom}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Campus */}
-                  {!isMobile && (
-                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
-                      {ev.campus ? CAMPUS_LABELS[ev.campus] ?? ev.campus : 'Tous'}
-                    </span>
-                  )}
-
-                  {/* Destinataires */}
-                  {!isMobile && (
-                    <span style={{ flex: 1 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 999, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                        {DESTINATAIRE_LABELS[ev.destinataires] ?? ev.destinataires}
-                      </span>
-                    </span>
-                  )}
-
-                  {/* Date événement */}
-                  {!isMobile && (
-                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
-                      {fmtDate(ev.date_evenement)}
-                    </span>
-                  )}
-
-                  {/* Statut */}
-                  <div style={{ flex: 1, textAlign: 'center' }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: sc.bg, color: sc.text }}>
-                      {sc.label}
-                    </span>
-                  </div>
-
-                  {/* Date envoi planifié ou réel */}
-                  {!isMobile && (
-                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
-                      {ev.statut === 'envoye' ? fmtDate(ev.envoye_le) : fmtDate(ev.planifie_le)}
-                    </span>
-                  )}
-
-                  {/* Nombre messages */}
-                  {!isMobile && (
-                    <span style={{ flex: '0 0 60px', textAlign: 'center', fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
-                      {ev._count?.messages ?? 0}
-                    </span>
-                  )}
-
-                  {/* Actions */}
-                  <div style={{ flex: 2, display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                    <button onClick={() => setDetail(ev)} style={btnSmall}>Voir</button>
-
-                    {ev.statut !== 'envoye' && (
-                      <button onClick={() => navigate(`/evenements/nouveau`)} style={btnSmall}>Modifier</button>
-                    )}
-
-                    {ev.statut === 'brouillon' && (
-                      <button onClick={() => setToDelete(ev)} style={{ ...btnSmall, color: '#DC2626', borderColor: '#fca5a5' }}>
-                        Supprimer
-                      </button>
-                    )}
-
-                    {ev.statut === 'planifie' && (
-                      <button
-                        onClick={() => void handleEnvoyer(ev)}
-                        disabled={sending === ev.id}
-                        style={{ ...btnSmall, color: '#15803d', borderColor: '#86efac', fontWeight: 700 }}
-                      >
-                        {sending === ev.id ? '…' : 'Envoyer →'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+              <table style={{ minWidth: '700px', width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-secondary)' }}>
+                    {[
+                      { label: 'Titre',          hide: false,     align: 'left'   as const },
+                      { label: 'Campus',          hide: isMobile,  align: 'left'   as const },
+                      { label: 'Destinataires',   hide: isMobile,  align: 'left'   as const },
+                      { label: 'Date événement',  hide: isMobile,  align: 'left'   as const },
+                      { label: 'Statut',          hide: false,     align: 'center' as const },
+                      { label: 'Date envoi',      hide: isMobile,  align: 'left'   as const },
+                      { label: 'Msg',             hide: isMobile,  align: 'center' as const },
+                      { label: '',                hide: false,     align: 'right'  as const },
+                    ].filter(c => !c.hide).map(c => (
+                      <th key={c.label} style={{
+                        padding: '10px 14px', textAlign: c.align,
+                        fontSize: 11, fontWeight: 700,
+                        color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em',
+                        borderBottom: '1px solid var(--bg-card-border)', whiteSpace: 'nowrap',
+                      }}>
+                        {c.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map(ev => {
+                    const sc = STATUT_CFG[ev.statut];
+                    return (
+                      <tr key={ev.id} style={{ borderBottom: '1px solid var(--bg-card-border)' }}>
+                        {/* Titre */}
+                        <td style={{ padding: '11px 14px', maxWidth: 220 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {ev.titre}
+                          </div>
+                          {ev.createur && (
+                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                              {ev.createur.prenom} {ev.createur.nom}
+                            </div>
+                          )}
+                        </td>
+                        {/* Campus */}
+                        {!isMobile && (
+                          <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                            {ev.campus ? CAMPUS_LABELS[ev.campus] ?? ev.campus : 'Tous'}
+                          </td>
+                        )}
+                        {/* Destinataires */}
+                        {!isMobile && (
+                          <td style={{ padding: '11px 14px' }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 999, background: 'var(--bg-secondary)', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                              {DESTINATAIRE_LABELS[ev.destinataires] ?? ev.destinataires}
+                            </span>
+                          </td>
+                        )}
+                        {/* Date événement */}
+                        {!isMobile && (
+                          <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                            {fmtDate(ev.date_evenement)}
+                          </td>
+                        )}
+                        {/* Statut */}
+                        <td style={{ padding: '11px 14px', textAlign: 'center' }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: sc.bg, color: sc.text, whiteSpace: 'nowrap' }}>
+                            {sc.label}
+                          </span>
+                        </td>
+                        {/* Date envoi */}
+                        {!isMobile && (
+                          <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                            {ev.statut === 'envoye' ? fmtDate(ev.envoye_le) : fmtDate(ev.planifie_le)}
+                          </td>
+                        )}
+                        {/* Nb messages */}
+                        {!isMobile && (
+                          <td style={{ padding: '11px 14px', textAlign: 'center', fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
+                            {ev._count?.messages ?? 0}
+                          </td>
+                        )}
+                        {/* Actions */}
+                        <td style={{ padding: '11px 14px' }}>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                            <button onClick={() => setDetail(ev)} style={btnSmall}>Voir</button>
+                            {ev.statut !== 'envoye' && (
+                              <button onClick={() => navigate('/evenements/nouveau')} style={btnSmall}>Modifier</button>
+                            )}
+                            {ev.statut === 'brouillon' && (
+                              <button onClick={() => setToDelete(ev)} style={{ ...btnSmall, color: '#DC2626', borderColor: '#fca5a5' }}>
+                                Supprimer
+                              </button>
+                            )}
+                            {ev.statut === 'planifie' && (
+                              <button
+                                onClick={() => void handleEnvoyer(ev)}
+                                disabled={sending === ev.id}
+                                style={{ ...btnSmall, color: '#15803d', borderColor: '#86efac', fontWeight: 700 }}
+                              >
+                                {sending === ev.id ? '…' : 'Envoyer →'}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
         </div>
       )}
 

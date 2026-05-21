@@ -305,7 +305,7 @@ export default function UserManagement() {
   // ─── Rendu ──────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', maxWidth: 1100 }}>
 
       {/* Titre */}
       <div style={{ marginBottom: 24 }}>
@@ -386,13 +386,13 @@ export default function UserManagement() {
       </div>
 
       {/* Table */}
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', display: 'block' }}>
       <div style={{
         background:   'var(--bg-card)',
         border:       '1px solid var(--bg-card-border)',
         borderRadius: 12,
         overflow:     'hidden',
-        minWidth:     isMobile ? undefined : 600,
+        minWidth:     600,
       }}>
         {/* Header table */}
         <div style={{ ...tableRow, background: 'var(--bg-secondary)', fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

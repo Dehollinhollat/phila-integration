@@ -244,7 +244,7 @@ export default function MessageHistory() {
   const kpiEchoue    = messages.filter((m) => m.statut === 'echoue').length;
 
   return (
-    <div style={{ padding: '28px 32px', fontFamily: 'inherit' }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', fontFamily: 'inherit' }}>
       {/* Flash */}
       {flash && (
         <div style={{
@@ -376,8 +376,8 @@ export default function MessageHistory() {
             Aucun message trouvé
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? undefined : 600 }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', display: 'block' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
             <thead>
               <tr style={{ background: 'var(--bg-secondary)' }}>
                 {(isMobile

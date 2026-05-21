@@ -253,6 +253,13 @@ export default function ContactDetail() {
   const canEdit  = user && ROLE_RANK[user.role] >= ROLE_RANK['admin_campus'];
   const canWrite = user && ROLE_RANK[user.role] >= ROLE_RANK['referent_integration'];
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
   const fetchAll = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -400,7 +407,7 @@ export default function ContactDetail() {
   const initials       = `${contact.prenom[0]}${contact.nom[0]}`.toUpperCase();
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px)', maxWidth: 1400, margin: '0 auto' }}>
 
       {/* Back */}
       <button
@@ -414,10 +421,10 @@ export default function ContactDetail() {
         ← Retour aux contacts
       </button>
 
-      {/* 3-column grid */}
+      {/* 3-column grid — 1 colonne sur mobile */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1.4fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1.4fr 1fr',
         gap: 20,
         alignItems: 'start',
       }}>

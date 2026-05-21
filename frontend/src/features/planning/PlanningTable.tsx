@@ -77,7 +77,7 @@ function toKey(d: Date): string {
 
 function fmtDate(d: Date): string {
   return d.toLocaleDateString('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    day: 'numeric', month: 'long', year: 'numeric',
   });
 }
 
@@ -119,6 +119,12 @@ export default function PlanningTable() {
   const [creating,  setCreating]  = useState<string | null>(null);
   const [createErr, setCreateErr] = useState<string | null>(null);
   const [showPast,  setShowPast]  = useState(false);
+  const [isMobile,  setIsMobile]  = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const allSundays = generateSundays();
   const todayKey   = toKey(new Date());
@@ -241,7 +247,7 @@ export default function PlanningTable() {
   }
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1060, margin: '0 auto' }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', maxWidth: 1060, margin: '0 auto' }}>
 
       {/* En-tête */}
       <div style={{
@@ -319,15 +325,74 @@ export default function PlanningTable() {
           }} />
           <style>{`@keyframes plan-spin { to { transform: rotate(360deg); } }`}</style>
         </div>
+      ) : isMobile ? (
+        /* ── Vue cards mobile ─────────────────────────────────────────────── */
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--bg-card-border)',
+          borderRadius: 10, overflow: 'hidden',
+        }}>
+          {sundays.map(sunday => {
+            const key    = toKey(sunday);
+            const p      = planningMap.get(key);
+            const isToday = key === todayKey;
+            const isPast  = key < todayKey;
+            const counts  = p ? getRoleCounts(p) : null;
+            const complete = p ? isComplete(p) : false;
+            return (
+              <div key={key} style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid var(--bg-card-border)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+                background: isToday ? 'rgba(12,94,107,0.04)' : undefined,
+                opacity: isPast && !p ? 0.5 : 1,
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontWeight: p ? 600 : 400, fontSize: 14,
+                    color: isToday ? 'var(--accent-teal)' : p ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    textTransform: 'capitalize',
+                  }}>
+                    {fmtDate(sunday)}
+                    {isToday && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--accent-teal)' }}>● Aujourd'hui</span>}
+                  </div>
+                  {p && counts && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span>ID {counts.identification_nm} · Salle {counts.service_salle} · Prép {counts.preparation}</span>
+                      <span style={{
+                        padding: '1px 7px', borderRadius: 10, fontSize: 10, fontWeight: 600,
+                        background: complete ? '#dcfce7' : '#fef3c7',
+                        color: complete ? '#15803d' : '#b45309',
+                      }}>
+                        {complete ? 'Complet' : 'Incomplet'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  {p ? (
+                    <button onClick={() => navigate(`/planning/${p.id}`)} style={btnVoir}>Voir →</button>
+                  ) : canCreate ? (
+                    <button onClick={() => void handleCreate(sunday)} disabled={creating === key} style={btnCreer}>
+                      {creating === key ? '…' : '+ Créer'}
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>-</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        /* ── Vue tableau desktop ──────────────────────────────────────────── */
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', display: 'block' }}>
         <div style={{
           background: 'var(--bg-card)',
           border: '1px solid var(--bg-card-border)',
           borderRadius: 10, overflow: 'hidden',
           minWidth: 520,
         }}>
-
           {/* En-tête tableau */}
           <div style={{
             display: 'grid', gridTemplateColumns: COL,
@@ -358,67 +423,46 @@ export default function PlanningTable() {
             const complete = p ? isComplete(p) : false;
 
             return (
-              <div
-                key={key}
-                style={{
-                  display: 'grid', gridTemplateColumns: COL,
-                  padding: '11px 16px',
-                  borderBottom: '1px solid var(--bg-card-border)',
-                  background: isToday ? 'rgba(12,94,107,0.04)' : undefined,
-                  opacity: isPast && !p ? 0.5 : 1,
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                {/* Date */}
+              <div key={key} style={{
+                display: 'grid', gridTemplateColumns: COL,
+                padding: '11px 16px',
+                borderBottom: '1px solid var(--bg-card-border)',
+                background: isToday ? 'rgba(12,94,107,0.04)' : undefined,
+                opacity: isPast && !p ? 0.5 : 1,
+                alignItems: 'center', gap: 8,
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <span style={{
-                    fontSize: 13,
-                    fontWeight: p ? 500 : 400,
+                    fontSize: 13, fontWeight: p ? 500 : 400,
                     color: isToday ? 'var(--accent-teal)' : p ? 'var(--text-primary)' : 'var(--text-secondary)',
                     textTransform: 'capitalize',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {fmtDate(sunday)}
                   </span>
-                  {isToday && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent-teal)', flexShrink: 0 }}>
-                      ● Aujourd'hui
-                    </span>
-                  )}
+                  {isToday && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent-teal)', flexShrink: 0 }}>● Aujourd'hui</span>}
                 </div>
-
-                {/* Identification NM */}
                 <span style={{ textAlign: 'center', fontSize: 13, color: counts?.identification_nm ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                   {counts ? (counts.identification_nm > 0 ? counts.identification_nm : '-') : '-'}
                 </span>
-
-                {/* Service en salle */}
                 <span style={{ textAlign: 'center', fontSize: 13, color: counts?.service_salle ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                   {counts ? (counts.service_salle > 0 ? counts.service_salle : '-') : '-'}
                 </span>
-
-                {/* Préparation salle */}
                 <span style={{ textAlign: 'center', fontSize: 13, color: counts?.preparation ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                   {counts ? (counts.preparation > 0 ? counts.preparation : '-') : '-'}
                 </span>
-
-                {/* Service en ligne - nom de l'ouvrier */}
                 <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: counts?.service_en_ligne ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                   {counts?.service_en_ligne?.ouvrier
                     ? `${counts.service_en_ligne.ouvrier.prenom} ${counts.service_en_ligne.ouvrier.nom}`
-                    : '-'
-                  }
+                    : '-'}
                 </span>
-
-                {/* Statut */}
                 <div style={{ textAlign: 'center' }}>
                   {p ? (
                     <span style={{
                       display: 'inline-block', padding: '3px 9px', borderRadius: 20,
                       fontSize: 11, fontWeight: 600,
                       background: complete ? '#dcfce7' : '#fef3c7',
-                      color:      complete ? '#15803d' : '#b45309',
+                      color: complete ? '#15803d' : '#b45309',
                     }}>
                       {complete ? 'Complet' : 'Incomplet'}
                     </span>
@@ -426,29 +470,17 @@ export default function PlanningTable() {
                     <span style={{
                       display: 'inline-block', padding: '3px 9px', borderRadius: 20,
                       fontSize: 11, fontWeight: 600,
-                      background: 'var(--bg-secondary)',
-                      color:      'var(--text-tertiary)',
+                      background: 'var(--bg-secondary)', color: 'var(--text-tertiary)',
                     }}>
                       Non créé
                     </span>
                   )}
                 </div>
-
-                {/* Actions */}
                 <div style={{ textAlign: 'center' }}>
                   {p ? (
-                    <button
-                      onClick={() => navigate(`/planning/${p.id}`)}
-                      style={btnVoir}
-                    >
-                      Voir →
-                    </button>
+                    <button onClick={() => navigate(`/planning/${p.id}`)} style={btnVoir}>Voir →</button>
                   ) : canCreate ? (
-                    <button
-                      onClick={() => void handleCreate(sunday)}
-                      disabled={creating === key}
-                      style={btnCreer}
-                    >
+                    <button onClick={() => void handleCreate(sunday)} disabled={creating === key} style={btnCreer}>
                       {creating === key ? '…' : '+ Créer'}
                     </button>
                   ) : (

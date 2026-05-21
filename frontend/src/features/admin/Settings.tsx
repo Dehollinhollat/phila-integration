@@ -162,7 +162,7 @@ export default function Settings() {
   }
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 780 }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', maxWidth: 780 }}>
 
       {/* Titre + bouton sauvegarder */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>

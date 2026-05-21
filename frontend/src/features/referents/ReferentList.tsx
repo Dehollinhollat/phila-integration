@@ -113,7 +113,7 @@ export default function ReferentList() {
   const surcharges = allRefs.filter(r => r.count >= SEUIL);
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
+    <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', maxWidth: 1100 }}>
 
       {/* Titre */}
       <div style={{ marginBottom: 24 }}>
@@ -184,7 +184,7 @@ export default function ReferentList() {
           onClick={e => { if (e.target === e.currentTarget) setReassignTarget(null); }}
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <div style={{ background: 'var(--bg-card)', borderRadius: 14, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', position: 'relative', zIndex: 1001 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 14, width: 'min(480px, calc(100% - 20px))', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', position: 'relative', zIndex: 1001 }}>
             <form onSubmit={e => void handleReassign(e)}>
               <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--bg-card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
@@ -234,7 +234,7 @@ export default function ReferentList() {
                     required
                     value={newReferentId}
                     onChange={e => setNewReferentId(e.target.value)}
-                    style={{ padding: '8px 12px', border: '1px solid var(--bg-card-border)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 13, width: '100%', fontFamily: 'inherit' }}
+                    style={{ padding: '8px 12px', border: '1px solid var(--bg-card-border)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 16, width: '100%', fontFamily: 'inherit' }}
                   >
                     <option value="">Choisir un référent…</option>
                     {(reassignType === 'integration' ? data.integration : data.eglise)

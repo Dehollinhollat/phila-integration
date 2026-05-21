@@ -254,7 +254,7 @@ export default function OuvrierForm() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 680, margin: '0 auto' }}>
+    <div style={{ padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px)', maxWidth: 680, margin: '0 auto' }}>
 
       {/* Back */}
       <button

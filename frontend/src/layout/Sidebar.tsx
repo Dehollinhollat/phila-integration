@@ -5,6 +5,7 @@
 //             se ferme automatiquement après chaque navigation
 // Props : isOpen (mobile), onClose (fermer au clic nav ou overlay)
 
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -69,6 +70,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
   if (!user) return null;
 
   const userRank = ROLE_RANK[user.role];
@@ -102,9 +110,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         overflowY:     'auto',
       }}
     >
-      {/* Logo */}
+      {/* Logo — paddingTop sur mobile pour ne pas être couvert par l'AppBar */}
       <div style={{
         padding:      `${spacing[6]} ${spacing[4]}`,
+        paddingTop:   isMobile ? '64px' : spacing[6],
         borderBottom: '1px solid var(--sidebar-border)',
         display:      'flex',
         alignItems:   'center',

@@ -207,7 +207,7 @@ export default function ContactForm() {
   const isMembre = form.statut_phila === 'oui';
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: '1100px' }}>
+    <div style={{ padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px)', maxWidth: '1100px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
