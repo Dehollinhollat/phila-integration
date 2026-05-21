@@ -56,15 +56,6 @@ import ResetPassword     from './pages/ResetPassword';
 import NotFound          from './pages/NotFound';
 import NotificationsPage from './pages/Notifications';
 
-// Pages placeholder — remplacées au fur et à mesure du développement
-function Placeholder({ name }: { name: string }) {
-  return (
-    <div style={{ padding: '32px', fontFamily: 'system-ui, sans-serif' }}>
-      <h2 style={{ color: '#0C5E6B', margin: '0 0 8px' }}>{name}</h2>
-      <p style={{ margin: 0, color: '#6b7280' }}>Page en cours de développement.</p>
-    </div>
-  );
-}
 
 // AnimatePresence nécessite useLocation, qui exige d'être dans le contexte BrowserRouter
 function AnimatedRoutes() {
