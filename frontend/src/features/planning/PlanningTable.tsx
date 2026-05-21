@@ -33,10 +33,10 @@ async function getImageBase64(url: string): Promise<string> {
 }
 
 const ROLES_PDF: { key: RoleService; label: string }[] = [
-  { key: 'identification',    label: 'Identification NM' },
+  { key: 'identification_nm', label: 'Identification NM' },
   { key: 'service_salle',     label: 'Service en salle' },
   { key: 'preparation_salle', label: 'Préparation salle' },
-  { key: 'priere_lundi',      label: 'Prière du lundi' },
+  { key: 'service_en_ligne',  label: 'Service en ligne' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -91,16 +91,16 @@ type AffRow = {
 function getRoleCounts(p: PlanningService) {
   const aff = (p.affectations ?? []) as AffRow[];
   return {
-    identification: aff.filter(a => a.role_service === 'identification').length,
-    service_salle:  aff.filter(a => a.role_service === 'service_salle').length,
-    preparation:    aff.filter(a => a.role_service === 'preparation_salle').length,
-    priere:         aff.find(a => a.role_service === 'priere_lundi'),
+    identification_nm: aff.filter(a => a.role_service === 'identification_nm').length,
+    service_salle:     aff.filter(a => a.role_service === 'service_salle').length,
+    preparation:       aff.filter(a => a.role_service === 'preparation_salle').length,
+    service_en_ligne:  aff.find(a => a.role_service === 'service_en_ligne'),
   };
 }
 
 function isComplete(p: PlanningService): boolean {
   const c = getRoleCounts(p);
-  return c.identification >= 1 && c.service_salle >= 1 && c.preparation >= 1 && !!c.priere;
+  return c.identification_nm >= 1 && c.service_salle >= 1 && c.preparation >= 1 && !!c.service_en_ligne;
 }
 
 // ─── Composant ───────────────────────────────────────────────────────────────
@@ -387,8 +387,8 @@ export default function PlanningTable() {
                 </div>
 
                 {/* Identification NM */}
-                <span style={{ textAlign: 'center', fontSize: 13, color: counts?.identification ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                  {counts ? (counts.identification > 0 ? counts.identification : '-') : '-'}
+                <span style={{ textAlign: 'center', fontSize: 13, color: counts?.identification_nm ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                  {counts ? (counts.identification_nm > 0 ? counts.identification_nm : '-') : '-'}
                 </span>
 
                 {/* Service en salle */}
@@ -402,9 +402,9 @@ export default function PlanningTable() {
                 </span>
 
                 {/* Service en ligne - nom de l'ouvrier */}
-                <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: counts?.priere ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                  {counts?.priere?.ouvrier
-                    ? `${counts.priere.ouvrier.prenom} ${counts.priere.ouvrier.nom}`
+                <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: counts?.service_en_ligne ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                  {counts?.service_en_ligne?.ouvrier
+                    ? `${counts.service_en_ligne.ouvrier.prenom} ${counts.service_en_ligne.ouvrier.nom}`
                     : '-'
                   }
                 </span>

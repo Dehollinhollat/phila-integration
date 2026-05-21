@@ -2,7 +2,7 @@
 // Page de demande de réinitialisation de mot de passe.
 // Envoie un email avec un lien temporaire (1h) via le backend.
 
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import axios from 'axios';

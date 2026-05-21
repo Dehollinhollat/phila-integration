@@ -959,7 +959,7 @@ export default function Dashboard() {
                         outerRadius={80}
                         dataKey="value"
                         label={({ name, percent }) =>
-                          percent > 0 ? `${name} ${Math.round(percent * 100)}%` : ''
+                          (percent ?? 0) > 0 ? `${name} ${Math.round((percent ?? 0) * 100)}%` : ''
                         }
                         labelLine={false}
                       >

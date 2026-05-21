@@ -2,7 +2,7 @@
 // Formulaire de création d'un contact (admin_campus+).
 // POST /api/contacts → redirige vers /contacts/:id.
 
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { contactsEndpoints } from '../../services/endpoints';

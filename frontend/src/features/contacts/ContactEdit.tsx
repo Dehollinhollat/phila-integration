@@ -6,7 +6,7 @@
 // La logique conditionnelle membre/visiteur (champs visibles selon statut_phila)
 // est conservée côté formulaire.
 
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { contactsEndpoints } from '../../services/endpoints';
