@@ -15,6 +15,7 @@ import type {
   ChecklistItem, EtapeIntegration,
   Notification,
   InscriptionMoisData, ProfilData, StatutData, MessageSemaineData, AuditLog,
+  TauxConversionData, TempsIntegrationData, PerformanceReferentData, EvolutionHebdomadaireData,
 } from '../types';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -296,6 +297,16 @@ export const statsEndpoints = {
     api.get<StatutData[]>('/stats/statuts', { params }),
   messagesParSemaine: (params?: { semaines?: number }) =>
     api.get<MessageSemaineData[]>('/stats/messages-par-semaine', { params }),
+  tauxConversion: () =>
+    api.get<TauxConversionData[]>('/stats/taux-conversion'),
+  tempsIntegration: () =>
+    api.get<TempsIntegrationData>('/stats/temps-integration'),
+  performanceReferents: () =>
+    api.get<PerformanceReferentData[]>('/stats/performance-referents'),
+  evolutionHebdomadaire: (params?: { semaines?: number }) =>
+    api.get<EvolutionHebdomadaireData[]>('/stats/evolution-hebdomadaire', { params }),
+  rapportHebdomadaire: () =>
+    api.post<{ message: string; destinataires: number }>('/stats/rapport-hebdomadaire'),
 };
 
 // ─── Audit Log ────────────────────────────────────────────────────────────────

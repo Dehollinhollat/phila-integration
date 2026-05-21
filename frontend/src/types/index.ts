@@ -318,6 +318,38 @@ export interface MessageSemaineData {
   count:   number;
 }
 
+export interface TauxConversionData {
+  campus:   string;
+  total:    number;
+  integres: number;
+  taux:     number;
+}
+
+export interface TempsIntegrationData {
+  moyenne_jours: number;
+  median_jours:  number;
+  min_jours:     number;
+  max_jours:     number;
+}
+
+export interface PerformanceReferentData {
+  id:                string;
+  prenom:            string;
+  nom:               string;
+  contacts_total:    number;
+  contacts_integres: number;
+  contacts_actifs:   number;
+  taux_conversion:   number;
+  temps_moyen_jours: number;
+}
+
+export interface EvolutionHebdomadaireData {
+  semaine:  string;
+  nouveaux: number;
+  integres: number;
+  messages: number;
+}
+
 // ─── Audit Log ────────────────────────────────────────────────────────────────
 
 export type AuditAction =

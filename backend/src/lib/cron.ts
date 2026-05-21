@@ -17,6 +17,7 @@
 import cron from 'node-cron';
 import prisma from './prisma';
 import { sendWhatsApp, sendWhatsAppBulk } from './twilio';
+import { sendRapportHebdomadaire } from './email';
 import { applyVariables, DEFAULT_BIENVENUE_TEMPLATE, buildDestinataireWhere, buildFiltresWhere } from '../controllers/messages.controller';
 
 export function startCronJobs(): void {
@@ -384,6 +385,38 @@ export function startCronJobs(): void {
       where: { revoked: true, revoked_at: { lt: limite } },
     }).catch(() => ({ count: 0 }));
     console.log(`[CRON][CLEANUP] ${deleted.count} refresh token(s) révoqués purgés`);
+  });
+
+  // ── Tâche 8 : Rapport hebdomadaire (tous les lundis à 08h00) ─────────────────
+  // Envoie un email récapitulatif de la semaine à tous les admins actifs.
+  cron.schedule('0 8 * * 1', async () => {
+    console.log('[Cron] Envoi du rapport hebdomadaire...');
+
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [nouveaux, totalIntegres, messagesCount, ouvriersActifs, admins] = await Promise.all([
+      prisma.contact.count({ where: { date_inscription: { gte: oneWeekAgo } } }),
+      prisma.contact.count({ where: { statut: { in: ['integre', 'ouvrier'] as const } } }),
+      prisma.message.count({ where: { statut: 'envoye', envoye_le: { gte: oneWeekAgo } } }),
+      prisma.ouvrier.count({ where: { statut: true } }),
+      prisma.user.findMany({
+        where:  { actif: true, role: { in: ['super_admin', 'admin_campus'] } },
+        select: { id: true, prenom: true, email: true },
+      }),
+    ]);
+
+    const stats = {
+      nouveaux_contacts: nouveaux,
+      total_integres:    totalIntegres,
+      messages_envoyes:  messagesCount,
+      ouvriers_actifs:   ouvriersActifs,
+    };
+
+    const results = await Promise.allSettled(
+      admins.map(admin => sendRapportHebdomadaire(admin.email, admin.prenom, stats))
+    );
+    const sent = results.filter(r => r.status === 'fulfilled').length;
+    console.log(`[Cron] Rapport hebdomadaire envoyé à ${sent}/${admins.length} admin(s)`);
   });
 
   console.log('[Cron] Tâches planifiées démarrées');

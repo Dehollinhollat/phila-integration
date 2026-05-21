@@ -112,6 +112,88 @@ export async function sendEmailAssignation(
   });
 }
 
+// ─── Rapport hebdomadaire — envoyé chaque lundi aux admins ───────────────────
+// Récapitulatif : nouveaux contacts, intégrés, messages, ouvriers actifs.
+// En développement : log console uniquement.
+
+export async function sendRapportHebdomadaire(
+  email:  string,
+  prenom: string,
+  stats: {
+    nouveaux_contacts: number;
+    total_integres:    number;
+    messages_envoyes:  number;
+    ouvriers_actifs:   number;
+  },
+): Promise<void> {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=================================');
+    console.log('[DEV] Rapport hebdomadaire :');
+    console.log(`Destinataire: ${email}`);
+    console.log('Stats:', stats);
+    console.log('=================================');
+    return;
+  }
+
+  const appUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+
+  await resend.emails.send({
+    from:    'Phila Intégration <noreply@phila-integration.fr>',
+    to:      email,
+    subject: 'Rapport hebdomadaire — Phila Intégration',
+    html: `
+      <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
+        <div style="background: #1A56B0; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="margin: 0; color: #fff; font-size: 20px; font-weight: 700;">Phila Intégration</h1>
+          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.8); font-size: 14px;">Rapport de la semaine</p>
+        </div>
+        <div style="padding: 32px 28px; background: #fff; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 12px 12px;">
+          <p style="margin: 0 0 24px; line-height: 1.6;">Bonjour ${prenom},</p>
+          <p style="margin: 0 0 24px; line-height: 1.6;">Voici le résumé de la semaine écoulée :</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 28px;">
+            <tr>
+              <td style="padding: 6px;" width="50%">
+                <div style="background: #EFF6FF; border-radius: 10px; padding: 16px; text-align: center;">
+                  <p style="margin: 0; font-size: 28px; font-weight: 800; color: #1A56B0;">${stats.nouveaux_contacts}</p>
+                  <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">Nouveaux contacts</p>
+                </div>
+              </td>
+              <td style="padding: 6px;" width="50%">
+                <div style="background: #ECFDF5; border-radius: 10px; padding: 16px; text-align: center;">
+                  <p style="margin: 0; font-size: 28px; font-weight: 800; color: #059669;">${stats.total_integres}</p>
+                  <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">Total intégrés</p>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 6px;" width="50%">
+                <div style="background: #FFFBEB; border-radius: 10px; padding: 16px; text-align: center;">
+                  <p style="margin: 0; font-size: 28px; font-weight: 800; color: #D97706;">${stats.messages_envoyes}</p>
+                  <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">Messages envoyés</p>
+                </div>
+              </td>
+              <td style="padding: 6px;" width="50%">
+                <div style="background: #F5F3FF; border-radius: 10px; padding: 16px; text-align: center;">
+                  <p style="margin: 0; font-size: 28px; font-weight: 800; color: #7C3AED;">${stats.ouvriers_actifs}</p>
+                  <p style="margin: 4px 0 0; font-size: 13px; color: #6B7280;">Ouvriers actifs</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+          <div style="text-align: center; margin: 0 0 24px;">
+            <a href="${appUrl}/statistiques"
+               style="display: inline-block; background: #1A56B0; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              Voir les statistiques détaillées
+            </a>
+          </div>
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;">
+          <p style="color: #9CA3AF; font-size: 12px; margin: 0;">Phila Cité des Adorateurs</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 // ─── Email de bienvenue — envoyé à la création de compte ─────────────────────
 // Le mot de passe passé ici est le mot de passe en clair AVANT hashage.
 // Il ne transite que dans la mémoire du processus et n'est jamais persisté.
