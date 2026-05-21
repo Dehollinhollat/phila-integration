@@ -1,6 +1,10 @@
 // src/pages/Maintenance.tsx
 // Page de maintenance — affichée quand le backend renvoie { maintenance: true } sur /health.
 // Activable via la variable Railway MAINTENANCE_MODE=true.
+// Le logo est importé comme module Vite (hash de cache + chemin résolu au build)
+// plutôt qu'un chemin statique /public/ qui n'existe pas dans ce projet.
+
+import logoPhila from '../assets/images/LOGO-PHILA-BLEU.png';
 
 export default function Maintenance() {
   return (
@@ -14,7 +18,7 @@ export default function Maintenance() {
       padding:        '24px',
       textAlign:      'center',
     }}>
-      <img src="/logo-phila.png" alt="Phila" style={{ width: '80px', marginBottom: '24px' }} />
+      <img src={logoPhila} alt="Phila" style={{ width: '80px', marginBottom: '24px' }} />
       <h1 style={{ color: 'var(--text-primary)', fontSize: '28px', marginBottom: '12px' }}>
         Maintenance en cours
       </h1>
