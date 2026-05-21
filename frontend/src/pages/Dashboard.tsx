@@ -702,7 +702,47 @@ export default function Dashboard() {
       .slice(0, 10)
   ), [filteredContacts]);
 
-  // ─── Greeting ─────────────────────────────────────────────────────────────
+  // ─── Rapport mensuel ──────────────────────────────────────────────────────
+  // Génère un CSV côté client depuis les données déjà chargées (filteredContacts + kpi).
+  // Le BOM ﻿ garantit que Excel ouvre le fichier en UTF-8 sans altérer les accents.
+
+  function genererRapportMensuel() {
+    const maintenant = new Date();
+    const mois = maintenant.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+    const lignes: string[][] = [
+      [`Rapport mensuel - ${mois}`],
+      [],
+      ['Statistiques générales'],
+      ['Total inscrits',   String(kpi.total)],
+      ['Membres Phila',    String(kpi.membrePhila)],
+      ['Sans église',      String(kpi.visiteurSansEglise)],
+      ['Avec église',      String(kpi.visiteurAvecEglise)],
+      ['Intégrés ce mois', String(kpi.byStatut['integre'] ?? 0)],
+      ['Messages envoyés', String(msgCount)],
+      [],
+      ['Liste des contacts'],
+      ['Prénom', 'Nom', 'Téléphone', 'Profil', 'Statut', 'Campus', 'Date inscription'],
+      ...filteredContacts.map(c => [
+        c.prenom,
+        c.nom,
+        c.telephone,
+        c.profil,
+        c.statut,
+        c.campus,
+        new Date(c.date_inscription).toLocaleDateString('fr-FR'),
+      ]),
+    ];
+
+    const csvContent = lignes.map(l => l.join(',')).join('\n');
+    const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rapport-phila-${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -758,6 +798,7 @@ export default function Dashboard() {
         <div style={{ display: 'flex', gap: spacing[2], flexShrink: 0, alignItems: 'center' }}>
           {/* Rapport mensuel - bouton premium */}
           <button
+            onClick={genererRapportMensuel}
             style={{
               display:      'flex',
               alignItems:   'center',
