@@ -36,12 +36,12 @@ export async function login(req: Request, res: Response): Promise<void> {
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=user_not_found`);
+    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=user_not_found time=${new Date().toISOString()}`);
     res.status(401).json({ message: 'Identifiants invalides' });
     return;
   }
   if (!user.actif) {
-    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=compte_inactif`);
+    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=compte_inactif time=${new Date().toISOString()}`);
     await prisma.connectionLog.create({ data: { user_id: user.id, ip, user_agent: userAgent, succes: false, raison: 'compte_inactif' } });
     res.status(401).json({ message: 'Identifiants invalides' });
     return;
@@ -49,7 +49,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) {
-    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=mot_de_passe_incorrect`);
+    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=mot_de_passe_incorrect time=${new Date().toISOString()}`);
     await prisma.connectionLog.create({ data: { user_id: user.id, ip, user_agent: userAgent, succes: false, raison: 'mot_de_passe_incorrect' } });
     res.status(401).json({ message: 'Identifiants invalides' });
     return;
@@ -64,7 +64,7 @@ export async function login(req: Request, res: Response): Promise<void> {
   await prisma.refreshToken.create({ data: { token: refreshToken, user_id: user.id, expires_at: expiresAt } });
 
   await prisma.connectionLog.create({ data: { user_id: user.id, ip, user_agent: userAgent, succes: true, raison: null } });
-  console.info(`[AUTH][LOGIN_SUCCESS] user=${user.id} role=${user.role} ip=${ip}`);
+  console.info(`[AUTH][LOGIN_SUCCESS] email=${email} ip=${ip} time=${new Date().toISOString()}`);
 
   res.json({
     accessToken,
@@ -90,17 +90,22 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   }
 
   const stored = await prisma.refreshToken.findUnique({ where: { token }, include: { user: true } });
-  if (!stored || stored.expires_at < new Date()) {
-    if (stored) await prisma.refreshToken.delete({ where: { token } });
-    res.status(401).json({ message: 'Session expirée, veuillez vous reconnecter' });
+  if (!stored || stored.revoked || stored.expires_at < new Date()) {
+    // Token invalide, révoqué ou expiré — pas de suppression : le cron nettoie
+    res.status(401).json({ message: 'Session expirée ou révoquée, veuillez vous reconnecter' });
     return;
   }
 
   if (!stored.user.actif) {
-    await prisma.refreshToken.delete({ where: { token } });
     res.status(401).json({ message: 'Compte désactivé' });
     return;
   }
+
+  // Rafraîchit last_used_at → le cron de nettoyage 3 jours ne supprimera pas ce token
+  await prisma.refreshToken.update({
+    where: { token },
+    data:  { last_used_at: new Date() },
+  });
 
   const secret      = process.env.JWT_SECRET!;
   const accessToken = jwt.sign(buildJwtPayload(stored.user), secret, { expiresIn: ACCESS_TOKEN_TTL, algorithm: 'HS256' });
@@ -108,11 +113,19 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   res.json({ accessToken });
 }
 
-// POST /api/auth/logout — révoque le refresh token
+// POST /api/auth/logout — révoque toutes les sessions de l'utilisateur (blacklist)
+// On marque revoked=true au lieu de supprimer pour conserver la trace d'audit.
+// Le cron de nettoyage purge les tokens révoqués depuis > 30 jours.
 export async function logout(req: Request, res: Response): Promise<void> {
   const { refreshToken: token } = req.body as { refreshToken?: string };
   if (token) {
-    await prisma.refreshToken.deleteMany({ where: { token } }).catch(() => {});
+    const stored = await prisma.refreshToken.findUnique({ where: { token } }).catch(() => null);
+    if (stored) {
+      await prisma.refreshToken.updateMany({
+        where: { user_id: stored.user_id },
+        data:  { revoked: true, revoked_at: new Date() },
+      }).catch(() => {});
+    }
   }
   res.json({ message: 'Déconnexion réussie' });
 }

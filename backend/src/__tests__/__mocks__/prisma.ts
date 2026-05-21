@@ -72,7 +72,7 @@ const prisma = {
     create:      jest.fn(),
     update:      jest.fn(),
   },
-  $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>) => fn(prisma)),
+  $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(prisma as unknown)),
 };
 
 export default prisma;

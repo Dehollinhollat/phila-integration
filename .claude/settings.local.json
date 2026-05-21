@@ -41,7 +41,16 @@
       "PowerShell(node -e \"require\\('dotenv'\\); console.log\\('ok'\\)\" 2>&1)",
       "PowerShell(exit 0)",
       "Bash(echo \"Exit code: $?\")",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Bash(cd /mnt/c/Users/dehom/phila-integration/backend && npx prisma db push 2>&1)",
+      "Read(//mnt/c/Users/dehom/phila-integration/**)",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; $out = npx tsc --noEmit 2>&1; $out | Where-Object { $_ -notmatch \"__tests__\" -and $_ -ne \"\" })",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; $out = \\(npx tsc --noEmit 2>&1\\); $filtered = $out | Where-Object { $_ -notmatch \"src/__tests__\" }; Write-Output $filtered)",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit 2>&1 | ForEach-Object { if \\($_ -notmatch \"src/__tests__\"\\) { $_ } })",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit 2>&1 | Out-String | ForEach-Object { \\($_ -split \"`n\"\\) | Where-Object { $_ -notmatch \"__tests__\" } } | Out-String)",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; $lines = @\\(\\); npx tsc --noEmit 2>&1 | ForEach-Object { $lines += $_ }; $lines | Where-Object { $_ -notmatch \"__tests__\" })",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit > \"$env:TEMP\\\\tsc_out.txt\" 2>&1; Get-Content \"$env:TEMP\\\\tsc_out.txt\" | Where-Object { $_ -notmatch \"__tests__\" })",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit 2> \"$env:TEMP\\\\tsc_err.txt\"; Get-Content \"$env:TEMP\\\\tsc_err.txt\" | Where-Object { $_ -notmatch \"__tests__\" })"
     ]
   }
 }

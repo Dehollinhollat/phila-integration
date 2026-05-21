@@ -27,6 +27,7 @@ import affectationsRoutes from './routes/affectations.routes';
 import usersRoutes from './routes/users.routes';
 import settingsRoutes from './routes/settings.routes';
 import statsRoutes from './routes/stats.routes';
+import auditRoutes from './routes/audit.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -35,6 +36,17 @@ const PORT = process.env.PORT ?? 4000;
 // l'IP réelle depuis X-Forwarded-For plutôt que l'IP du proxy.
 // Requis pour que express-rate-limit comptabilise correctement par client.
 app.set('trust proxy', 1);
+
+// ─── Redirect HTTP → HTTPS en production ─────────────────────────────────────
+// Placé avant tout middleware — détecte le proto via l'en-tête Railway X-Forwarded-Proto.
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, 'https://' + req.headers.host + req.url);
+    }
+    next();
+  });
+}
 
 // ─── 0. Compression gzip/brotli ───────────────────────────────────────────────
 // Compresse toutes les réponses JSON > 1 Ko — réduit la bande passante de ~70%.
@@ -46,19 +58,25 @@ app.use(compression());
 app.use(morgan('combined'));
 
 // ─── 2. Headers de sécurité (helmet) ─────────────────────────────────────────
-// Ajoute automatiquement X-Content-Type-Options, X-Frame-Options, HSTS,
-// Referrer-Policy, Permissions-Policy, etc.
+// HSTS 1 an + preload → navigateurs mémorisent le HTTPS même sans visite préalable.
+// unsafe-inline requis pour les styles inline Vite en production.
 app.use(helmet({
+  hsts: {
+    maxAge:            31536000, // 1 an en secondes
+    includeSubDomains: true,
+    preload:           true,
+  },
   contentSecurityPolicy: {
     directives: {
-      defaultSrc:  ["'self'"],
-      scriptSrc:   ["'self'", 'https://challenges.cloudflare.com'],
-      frameSrc:    ['https://challenges.cloudflare.com'],
-      imgSrc:      ["'self'", 'data:', 'https:'],
-      connectSrc:  [
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'", "'unsafe-inline'", 'https://challenges.cloudflare.com'],
+      frameSrc:   ['https://challenges.cloudflare.com'],
+      imgSrc:     ["'self'", 'data:', 'https:'],
+      connectSrc: [
         "'self'",
         'http://localhost:4000',
-        ...(process.env.BACKEND_URL ? [process.env.BACKEND_URL] : []),
+        ...(process.env.BACKEND_URL  ? [process.env.BACKEND_URL]  : []),
+        ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
       ],
     },
   },
@@ -88,8 +106,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ─── 4. Parsing JSON (taille limitée) ────────────────────────────────────────
+// ─── 4. Parsing JSON + URL-encoded (taille limitée à 1 Mo) ──────────────────
+// Limite 1 Mo : protège contre les attaques par saturation mémoire (body-bomb).
 app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // ─── 5. Sanitisation XSS des corps de requête ────────────────────────────────
 // Encode les balises HTML/script dans tous les champs texte du body.
@@ -131,6 +151,7 @@ app.use('/api/affectations',  affectationsRoutes);
 app.use('/api/users',         usersRoutes);
 app.use('/api/settings',      settingsRoutes);
 app.use('/api/stats',         statsRoutes);
+app.use('/api/audit',         auditRoutes);
 
 // Health check
 app.get('/health', (_req, res) => res.json({ ok: true }));

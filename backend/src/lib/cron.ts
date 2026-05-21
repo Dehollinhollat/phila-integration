@@ -365,5 +365,26 @@ export function startCronJobs(): void {
     console.log(`[Cron] ${anniversaires.length} message(s) anniversaire traité(s)`);
   });
 
+  // ── Tâche 6 : Nettoyage sessions inactives (tous les jours à 02h00) ─────────
+  // Supprime les refresh tokens non utilisés depuis plus de 3 jours.
+  // last_used_at est mis à jour à chaque appel à POST /api/auth/refresh.
+  cron.schedule('0 2 * * *', async () => {
+    const limite = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const deleted = await prisma.refreshToken.deleteMany({
+      where: { last_used_at: { lt: limite }, revoked: false },
+    }).catch(() => ({ count: 0 }));
+    console.log(`[CRON][CLEANUP] ${deleted.count} refresh token(s) inactifs supprimés`);
+  });
+
+  // ── Tâche 7 : Purge des tokens révoqués (tous les jours à 03h00) ────────────
+  // Conserve les tokens révoqués 30 jours pour l'audit, puis les supprime.
+  cron.schedule('0 3 * * *', async () => {
+    const limite = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const deleted = await prisma.refreshToken.deleteMany({
+      where: { revoked: true, revoked_at: { lt: limite } },
+    }).catch(() => ({ count: 0 }));
+    console.log(`[CRON][CLEANUP] ${deleted.count} refresh token(s) révoqués purgés`);
+  });
+
   console.log('[Cron] Tâches planifiées démarrées');
 }

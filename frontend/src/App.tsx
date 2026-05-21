@@ -55,6 +55,7 @@ import ForgotPassword    from './pages/ForgotPassword';
 import ResetPassword     from './pages/ResetPassword';
 import NotFound          from './pages/NotFound';
 import NotificationsPage from './pages/Notifications';
+import AuditLogs        from './pages/AuditLogs';
 
 
 // AnimatePresence nécessite useLocation, qui exige d'être dans le contexte BrowserRouter
@@ -102,6 +103,7 @@ function AnimatedRoutes() {
           <Route path="/admin"              element={<UserManagement />} />
           <Route path="/parametres"         element={<Settings />} />
           <Route path="/qrcodes"            element={<QRManager />} />
+          <Route path="/audit"              element={<AuditLogs />} />
         </Route>
 
         {/* 404 — doit rester la dernière route */}
