@@ -237,7 +237,7 @@ export default function AppBar({ onMenuToggle }: AppBarProps) {
         </>
       ) : (
         /* Desktop : barre inline avec dropdown */
-        <div ref={searchRef} style={{ flex: 1, maxWidth: 420, position: 'relative' }}>
+        <div ref={searchRef} style={{ flex: 1, maxWidth: 420, position: 'relative', zIndex: 1100 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-secondary)', border: '1px solid var(--bg-card-border)', borderRadius: 8, padding: '7px 12px' }}>
             <SearchIcon size={15} />
             <input
@@ -330,17 +330,18 @@ function SearchDropdown({
   results, hasResults, onNavigate,
 }: { results: SearchResults | null; hasResults: boolean; onNavigate: (path: string) => void }) {
   const dropStyle: React.CSSProperties = {
-    position:   'absolute',
-    top:        'calc(100% + 6px)',
-    left:       0,
-    right:      0,
-    background: 'var(--bg-card)',
-    border:     '1px solid var(--bg-card-border)',
-    borderRadius: 10,
-    boxShadow:  '0 8px 32px rgba(0,0,0,0.14)',
-    zIndex:     400,
-    maxHeight:  420,
-    overflowY:  'auto',
+    position:     'absolute',
+    top:          '100%',
+    left:         0,
+    right:        0,
+    marginTop:    '4px',
+    background:   'var(--bg-card-solid, var(--bg-card))',
+    border:       '1px solid var(--bg-card-border)',
+    borderRadius: 12,
+    boxShadow:    '0 8px 32px rgba(0,0,0,0.3)',
+    zIndex:       1100,
+    maxHeight:    400,
+    overflowY:    'auto',
   };
 
   if (!hasResults) {
