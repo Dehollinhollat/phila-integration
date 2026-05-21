@@ -166,8 +166,9 @@ app.use('/api/stats',         statsRoutes);
 app.use('/api/audit',         auditRoutes);
 app.use('/api/search',        searchRoutes);
 
-// Health check
-app.get('/health', (_req, res) => res.json({ ok: true }));
+// Health check — inclut le flag maintenance pour que le frontend puisse le détecter
+// même quand le middleware 503 est actif (il laisse passer /health vers ce handler).
+app.get('/health', (_req, res) => res.json({ ok: true, maintenance: MAINTENANCE_MODE }));
 
 // ─── Gestionnaire d'erreurs global ────────────────────────────────────────────
 // En production : stack trace logguée côté serveur seulement, jamais exposée au client.

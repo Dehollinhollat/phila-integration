@@ -124,9 +124,12 @@ export default function App() {
     fetch(healthUrl)
       .then(r => r.json())
       .then((data: { maintenance?: boolean }) => {
-        if (data.maintenance) setMaintenance(true);
+        if (data.maintenance === true) setMaintenance(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        // Backend complètement indisponible → affiche la page maintenance
+        setMaintenance(true);
+      });
   }, []);
 
   return (
