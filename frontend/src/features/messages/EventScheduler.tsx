@@ -415,10 +415,6 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const rowStyle: React.CSSProperties = {
-  display: 'flex', gap: 10, padding: '11px 16px', alignItems: 'stretch',
-};
-
 const selectStyle: React.CSSProperties = {
   padding: '7px 11px', borderRadius: 8,
   border: '1px solid var(--bg-card-border)',
