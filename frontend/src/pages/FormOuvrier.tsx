@@ -121,9 +121,10 @@ const STEP_TITLES = [
 
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
-function Field({ label, required, error, children }: {
+function Field({ label, required, hint, error, children }: {
   label: string;
   required?: boolean;
+  hint?: string;
   error?: string;
   children: React.ReactNode;
 }) {
@@ -136,6 +137,7 @@ function Field({ label, required, error, children }: {
         </label>
       )}
       {children}
+      {hint && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{hint}</span>}
       {error && <span style={{ fontSize: 12, color: '#DC2626' }}>{error}</span>}
     </div>
   );

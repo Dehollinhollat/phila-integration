@@ -2,7 +2,7 @@
 // Page de définition d'un nouveau mot de passe.
 // Le token est lu depuis le paramètre d'URL ?token=... (envoyé par email).
 
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import axios from 'axios';

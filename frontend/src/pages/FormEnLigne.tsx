@@ -25,7 +25,7 @@ const TURNSTILE_SITE_KEY = (import.meta as unknown as { env: Record<string, stri
 
 type Genre              = 'homme' | 'femme';
 type EtatCivil          = 'celibataire' | 'fiance' | 'marie' | 'divorce' | 'veuf';
-type StatutPhila        = 'oui' | 'non' | 'premiere_fois';
+type StatutPhila        = 'oui' | 'non' | 'premiere_visite';
 type ExtensionPhila     = 'paris' | 'paris_nord' | 'orleans' | 'montpellier';
 type InteretCellule     = 'oui' | 'non' | 'peut_etre';
 type SouhaitEnLigne     = 'devenir_membre' | 'juste_visiter'; // 'servir' exclu du formulaire en ligne

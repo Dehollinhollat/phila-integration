@@ -3,7 +3,7 @@
 // Affiche le logo Phila, un formulaire email/mot de passe, et redirige
 // vers /dashboard après authentification réussie.
 
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
