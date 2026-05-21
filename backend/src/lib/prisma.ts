@@ -22,7 +22,14 @@ type GlobalWithPrisma = typeof globalThis & { _prisma?: PrismaClient };
 const g = globalThis as GlobalWithPrisma;
 
 function createClient(): PrismaClient {
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  // En production (Railway → Neon.tech), pg doit établir une connexion TLS.
+  // sslmode=require dans l'URL n'est pas suffisant avec toutes les versions de pg :
+  // le flag ssl explicite garantit le chiffrement et évite l'erreur ECONNREFUSED.
+  const ssl = process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : undefined;
+
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({
     adapter,

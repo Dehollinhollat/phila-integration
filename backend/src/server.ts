@@ -31,6 +31,11 @@ import statsRoutes from './routes/stats.routes';
 const app = express();
 const PORT = process.env.PORT ?? 4000;
 
+// Derrière le reverse-proxy Railway (et tout load-balancer), Express doit lire
+// l'IP réelle depuis X-Forwarded-For plutôt que l'IP du proxy.
+// Requis pour que express-rate-limit comptabilise correctement par client.
+app.set('trust proxy', 1);
+
 // ─── 0. Compression gzip/brotli ───────────────────────────────────────────────
 // Compresse toutes les réponses JSON > 1 Ko — réduit la bande passante de ~70%.
 // Placé avant tous les autres middlewares pour s'appliquer à chaque réponse.
