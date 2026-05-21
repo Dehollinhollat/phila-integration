@@ -24,7 +24,7 @@ interface SearchContact {
 }
 interface SearchOuvrier {
   id: string; prenom: string; nom: string;
-  service: string; actif: boolean;
+  services: string[]; statut: boolean;
 }
 interface SearchUser {
   id: string; prenom: string; nom: string;
@@ -374,7 +374,7 @@ function SearchDropdown({
             <ResultRow
               key={o.id}
               primary={`${o.prenom} ${o.nom}`}
-              secondary={o.service ?? '—'}
+              secondary={o.services.length > 0 ? o.services.join(', ') : '—'}
               icon="⛪"
               onClick={() => onNavigate(`/ouvriers/${o.id}/edit`)}
             />

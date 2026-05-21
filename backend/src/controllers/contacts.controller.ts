@@ -863,8 +863,10 @@ export async function getAuditLog(req: Request, res: Response): Promise<void> {
 
 // GET /api/search?q=terme — résultats groupés contacts / ouvriers / utilisateurs
 // Accessible à tous les rôles connectés. Minimum 2 caractères.
+// Ouvrier : champs réels = services (String[]) et statut (Boolean), pas service/actif.
 export async function globalSearch(req: Request, res: Response): Promise<void> {
   const q = String(req.query.q ?? '').trim();
+  console.log('[SEARCH] Query:', q);
   if (q.length < 2) {
     res.json({ contacts: [], ouvriers: [], utilisateurs: [] });
     return;
@@ -891,7 +893,7 @@ export async function globalSearch(req: Request, res: Response): Promise<void> {
           ],
         },
         take:   5,
-        select: { id: true, prenom: true, nom: true, service: true, actif: true },
+        select: { id: true, prenom: true, nom: true, services: true, statut: true },
       }),
       prisma.user.findMany({
         where: {
@@ -906,9 +908,10 @@ export async function globalSearch(req: Request, res: Response): Promise<void> {
       }),
     ]);
 
+    console.log('[SEARCH] Résultats:', contacts.length, ouvriers.length, utilisateurs.length);
     res.json({ contacts, ouvriers, utilisateurs });
   } catch (err) {
-    console.error('[globalSearch]', err);
-    res.status(500).json({ message: 'Erreur serveur' });
+    console.error('[SEARCH] Erreur:', err);
+    res.status(500).json({ error: 'Erreur recherche' });
   }
 }
