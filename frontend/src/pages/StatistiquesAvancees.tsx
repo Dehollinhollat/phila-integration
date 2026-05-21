@@ -175,12 +175,14 @@ export default function StatistiquesAvancees() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
                     <XAxis
                       dataKey="semaine"
-                      tick={{ fontSize: 12, fill: 'var(--text-secondary)' } as React.SVGProps<SVGTextElement>}
-                      axisLine={false}
-                      tickLine={false}
+                      tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
+                      interval={0}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
                     />
                     <YAxis
-                      tick={{ fontSize: 12, fill: 'var(--text-secondary)' } as React.SVGProps<SVGTextElement>}
+                      tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                       axisLine={false}
                       tickLine={false}
                     />
