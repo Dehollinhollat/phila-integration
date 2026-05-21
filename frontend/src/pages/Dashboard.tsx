@@ -737,15 +737,15 @@ export default function Dashboard() {
         <div>
           <h1 style={{
             margin:     0,
-            fontSize:   typography.fontSize['2xl'],
+            fontSize:   'clamp(20px, 4vw, 28px)',
             fontWeight: typography.fontWeight.bold,
             color:      'var(--text-primary)',
           }}>
             {greeting}, {user?.prenom} 👋
           </h1>
           <p style={{ margin: `${spacing[1]} 0 0`, color: 'var(--text-secondary)', fontSize: typography.fontSize.base }}>
-            Vue d'ensemble de l'intégration
-            {user?.campus.map(c => ` · ${CAMPUS_LABELS[c]}`).join('')}
+            Vue d'ensemble de l'intégration<br />
+            {user?.campus.map(c => CAMPUS_LABELS[c]).join(' · ')}
           </p>
         </div>
 

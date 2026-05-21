@@ -185,6 +185,13 @@ export default function MessageHistory() {
     if (selected) document.dispatchEvent(new CustomEvent('modal-opened'));
   }, [selected]);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
   // Flash succès (depuis MessageCompose)
   const [flash, setFlash] = useState('');
 
@@ -369,10 +376,14 @@ export default function MessageHistory() {
             Aucun message trouvé
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: isMobile ? undefined : 600 }}>
             <thead>
               <tr style={{ background: 'var(--bg-secondary)' }}>
-                {['Type', 'Destinataire', 'Contenu', 'Canal', 'Statut', 'Date', ''].map((col) => (
+                {(isMobile
+                  ? ['Destinataire', 'Contenu', 'Statut', '']
+                  : ['Type', 'Destinataire', 'Contenu', 'Canal', 'Statut', 'Date', '']
+                ).map((col) => (
                   <th
                     key={col}
                     style={{
@@ -395,18 +406,20 @@ export default function MessageHistory() {
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-secondary)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                 >
-                  <td style={tdStyle}><TypeBadge type={msg.type} /></td>
+                  {!isMobile && <td style={tdStyle}><TypeBadge type={msg.type} /></td>}
                   <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-primary)' }}>
                     {msg.contact ? `${msg.contact.prenom} ${msg.contact.nom}` : 'Broadcast'}
                   </td>
-                  <td style={{ ...tdStyle, color: 'var(--text-secondary)', maxWidth: '260px' }}>
-                    {truncate(msg.contenu, 80)}
+                  <td style={{ ...tdStyle, color: 'var(--text-secondary)', maxWidth: isMobile ? '160px' : '260px' }}>
+                    {truncate(msg.contenu, isMobile ? 30 : 80)}
                   </td>
-                  <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>WhatsApp</td>
+                  {!isMobile && <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>WhatsApp</td>}
                   <td style={tdStyle}><StatutBadge statut={msg.statut} /></td>
-                  <td style={{ ...tdStyle, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                    {formatDate(msg.created_at as unknown as string)}
-                  </td>
+                  {!isMobile && (
+                    <td style={{ ...tdStyle, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                      {formatDate(msg.created_at as unknown as string)}
+                    </td>
+                  )}
                   <td style={tdStyle}>
                     <button
                       onClick={() => setSelected(msg)}
@@ -424,6 +437,7 @@ export default function MessageHistory() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

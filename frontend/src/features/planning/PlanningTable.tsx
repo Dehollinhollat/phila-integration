@@ -320,10 +320,12 @@ export default function PlanningTable() {
           <style>{`@keyframes plan-spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       ) : (
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div style={{
           background: 'var(--bg-card)',
           border: '1px solid var(--bg-card-border)',
           borderRadius: 10, overflow: 'hidden',
+          minWidth: 520,
         }}>
 
           {/* En-tête tableau */}
@@ -456,6 +458,7 @@ export default function PlanningTable() {
               </div>
             );
           })}
+        </div>
         </div>
       )}
     </div>

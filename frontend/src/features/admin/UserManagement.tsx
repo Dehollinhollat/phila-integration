@@ -109,6 +109,13 @@ export default function UserManagement() {
   const [deleteConflict, setDeleteConflict] = useState<DeleteConflict | null>(null);
   const [deleting,       setDeleting]       = useState(false);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
   const emailTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Signale l'ouverture d'un modal pour fermer le panneau notifications
@@ -379,20 +386,22 @@ export default function UserManagement() {
       </div>
 
       {/* Table */}
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div style={{
         background:   'var(--bg-card)',
         border:       '1px solid var(--bg-card-border)',
         borderRadius: 12,
         overflow:     'hidden',
+        minWidth:     isMobile ? undefined : 600,
       }}>
         {/* Header table */}
         <div style={{ ...tableRow, background: 'var(--bg-secondary)', fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <div style={{ flex: '0 0 36px' }} />
           <div style={{ flex: 3 }}>Utilisateur</div>
           <div style={{ flex: 2 }}>Rôle</div>
-          <div style={{ flex: 2 }}>Campus</div>
+          {!isMobile && <div style={{ flex: 2 }}>Campus</div>}
           <div style={{ flex: 1, textAlign: 'center' }}>Statut</div>
-          <div style={{ flex: 2 }}>Créé le</div>
+          {!isMobile && <div style={{ flex: 2 }}>Créé le</div>}
           <div style={{ flex: 2, textAlign: 'right' }}>Actions</div>
         </div>
 
@@ -421,23 +430,27 @@ export default function UserManagement() {
                 </div>
               </div>
               <div style={{ flex: 2 }}><RoleBadge role={u.role} /></div>
-              <div style={{ flex: 2, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {u.campus.map(c => (
-                  <span key={c} style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                    {CAMPUS_LABELS[c]}
-                  </span>
-                ))}
-                {u.campus.length === 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>-</span>}
-              </div>
+              {!isMobile && (
+                <div style={{ flex: 2, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {u.campus.map(c => (
+                    <span key={c} style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                      {CAMPUS_LABELS[c]}
+                    </span>
+                  ))}
+                  {u.campus.length === 0 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>-</span>}
+                </div>
+              )}
               <div style={{ flex: 1, textAlign: 'center' }}>
                 <span style={{
                   display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
                   background: u.actif ? 'var(--accent-teal)' : 'var(--text-tertiary)',
                 }} title={u.actif ? 'Actif' : 'Inactif'} />
               </div>
-              <div style={{ flex: 2, fontSize: 12, color: 'var(--text-secondary)' }}>
-                {new Date(u.created_at).toLocaleDateString('fr-FR')}
-              </div>
+              {!isMobile && (
+                <div style={{ flex: 2, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  {new Date(u.created_at).toLocaleDateString('fr-FR')}
+                </div>
+              )}
               <div style={{ flex: 2, display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                 {/* Un admin_campus ne peut pas gérer les comptes super_admin */}
                 {!(isAdminCampus && u.role === 'super_admin') ? (
@@ -466,6 +479,7 @@ export default function UserManagement() {
             </div>
           ))
         )}
+      </div>
       </div>
 
       {/* ── Modals ── */}

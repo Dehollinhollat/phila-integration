@@ -75,6 +75,13 @@ export default function EventScheduler() {
   const [deleting,  setDeleting]  = useState(false);
   const [toast,     setToast]     = useState<string | null>(null);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     evenementsEndpoints.list()
@@ -196,17 +203,18 @@ export default function EventScheduler() {
       {loading ? (
         <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>Chargement…</div>
       ) : (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)', borderRadius: 12, overflow: 'hidden', minWidth: isMobile ? undefined : 640 }}>
 
           {/* Header */}
           <div style={{ ...rowStyle, background: 'var(--bg-secondary)', fontWeight: 700, fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             <span style={{ flex: 3 }}>Titre</span>
-            <span style={{ flex: 1 }}>Campus</span>
-            <span style={{ flex: 1 }}>Destinataires</span>
-            <span style={{ flex: 1 }}>Date événement</span>
+            {!isMobile && <span style={{ flex: 1 }}>Campus</span>}
+            {!isMobile && <span style={{ flex: 1 }}>Destinataires</span>}
+            {!isMobile && <span style={{ flex: 1 }}>Date événement</span>}
             <span style={{ flex: 1, textAlign: 'center' }}>Statut</span>
-            <span style={{ flex: 1 }}>Date envoi</span>
-            <span style={{ flex: '0 0 60px', textAlign: 'center' }}>Messages</span>
+            {!isMobile && <span style={{ flex: 1 }}>Date envoi</span>}
+            {!isMobile && <span style={{ flex: '0 0 60px', textAlign: 'center' }}>Messages</span>}
             <span style={{ flex: 2, textAlign: 'right' }}>Actions</span>
           </div>
 
@@ -236,21 +244,27 @@ export default function EventScheduler() {
                   </div>
 
                   {/* Campus */}
-                  <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {ev.campus ? CAMPUS_LABELS[ev.campus] ?? ev.campus : 'Tous'}
-                  </span>
+                  {!isMobile && (
+                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
+                      {ev.campus ? CAMPUS_LABELS[ev.campus] ?? ev.campus : 'Tous'}
+                    </span>
+                  )}
 
                   {/* Destinataires */}
-                  <span style={{ flex: 1 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 999, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                      {DESTINATAIRE_LABELS[ev.destinataires] ?? ev.destinataires}
+                  {!isMobile && (
+                    <span style={{ flex: 1 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 999, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                        {DESTINATAIRE_LABELS[ev.destinataires] ?? ev.destinataires}
+                      </span>
                     </span>
-                  </span>
+                  )}
 
                   {/* Date événement */}
-                  <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {fmtDate(ev.date_evenement)}
-                  </span>
+                  {!isMobile && (
+                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
+                      {fmtDate(ev.date_evenement)}
+                    </span>
+                  )}
 
                   {/* Statut */}
                   <div style={{ flex: 1, textAlign: 'center' }}>
@@ -260,14 +274,18 @@ export default function EventScheduler() {
                   </div>
 
                   {/* Date envoi planifié ou réel */}
-                  <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {ev.statut === 'envoye' ? fmtDate(ev.envoye_le) : fmtDate(ev.planifie_le)}
-                  </span>
+                  {!isMobile && (
+                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>
+                      {ev.statut === 'envoye' ? fmtDate(ev.envoye_le) : fmtDate(ev.planifie_le)}
+                    </span>
+                  )}
 
                   {/* Nombre messages */}
-                  <span style={{ flex: '0 0 60px', textAlign: 'center', fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {ev._count?.messages ?? 0}
-                  </span>
+                  {!isMobile && (
+                    <span style={{ flex: '0 0 60px', textAlign: 'center', fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}>
+                      {ev._count?.messages ?? 0}
+                    </span>
+                  )}
 
                   {/* Actions */}
                   <div style={{ flex: 2, display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -297,6 +315,7 @@ export default function EventScheduler() {
               );
             })
           )}
+        </div>
         </div>
       )}
 

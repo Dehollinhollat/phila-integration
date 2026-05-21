@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { typography, spacing } from '../components/ui/tokens';
 import { ROLE_LABELS, ROLE_RANK } from '../utils/constants';
-import Logo from '../components/ui/Logo';
+import logoPhila from '../assets/images/LOGO-PHILA-BLEU.png';
 import type { Role } from '../types';
 
 // ─── Structure de navigation ──────────────────────────────────────────────────
@@ -110,7 +110,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         alignItems:   'center',
         gap:          spacing[3],
       }}>
-        <Logo width={36} height={36} />
+        <img src={logoPhila} alt="Phila" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
         <div>
           <div style={{
             color:         'var(--text-on-sidebar)',
