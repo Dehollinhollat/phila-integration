@@ -148,15 +148,17 @@ export async function getChargeReferents(req: Request, res: Response): Promise<v
 
   const contactSelect = { id: true, prenom: true, nom: true, statut: true, campus: true } as const;
 
+  type ReferentRow = { id: string; prenom: string; nom: string; email: string; role: string; campus: string[] };
+
   const [integrationCharge, egliseCharge] = await Promise.all([
-    Promise.all(integrationUsers.map(async r => {
+    Promise.all(integrationUsers.map(async (r: ReferentRow) => {
       const [count, contacts] = await Promise.all([
         prisma.contact.count({ where: { referent_integration_id: r.id } }),
         prisma.contact.findMany({ where: { referent_integration_id: r.id }, select: contactSelect, take: 5, orderBy: { date_inscription: 'desc' } }),
       ]);
       return { ...r, count, contacts };
     })),
-    Promise.all(egliseUsers.map(async r => {
+    Promise.all(egliseUsers.map(async (r: ReferentRow) => {
       const [count, contacts] = await Promise.all([
         prisma.contact.count({ where: { referent_eglise_id: r.id } }),
         prisma.contact.findMany({ where: { referent_eglise_id: r.id }, select: contactSelect, take: 5, orderBy: { date_inscription: 'desc' } }),

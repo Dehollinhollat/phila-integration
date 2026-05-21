@@ -82,7 +82,7 @@ export async function updateChecklistItem(req: Request, res: Response): Promise<
           commentaire: 'Checklist d\'intégration complétée',
         },
       }),
-      ...superAdmins.map((admin) =>
+      ...superAdmins.map((admin: { id: string }) =>
         prisma.notification.create({
           data: {
             user_id: admin.id,

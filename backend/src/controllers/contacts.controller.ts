@@ -8,6 +8,7 @@
 // - admin_campus / super_admin : accès complet sur leur(s) campus
 
 import { Request, Response } from 'express';
+import { Prisma } from '../../generated/prisma/client';
 import prisma from '../lib/prisma';
 import { cache, withCache } from '../lib/cache';
 import { logAudit } from '../lib/audit';
@@ -336,7 +337,7 @@ export async function deleteContact(req: Request, res: Response): Promise<void> 
   }
 
   // Supprime les enregistrements liés avant le contact (évite les violations FK)
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.message.deleteMany({ where: { contact_id: id } });
     await tx.commentaire.deleteMany({ where: { contact_id: id } });
     await tx.checklistItem.deleteMany({ where: { contact_id: id } });
@@ -413,7 +414,7 @@ export async function patchChecklist(req: Request, res: Response): Promise<void>
           commentaire: "Checklist d'intégration complétée",
         },
       }),
-      ...superAdmins.map((admin) =>
+      ...superAdmins.map((admin: { id: string }) =>
         prisma.notification.create({
           data: {
             user_id: admin.id,
@@ -519,7 +520,7 @@ export async function initChecklist(req: Request, res: Response): Promise<void> 
     select: { etape: true },
   });
 
-  const existingEtapes = existing.map((e) => e.etape as string);
+  const existingEtapes = existing.map((e: { etape: string }) => e.etape);
   const missing = ETAPES_INTEGRATION.filter((e) => !existingEtapes.includes(e));
 
   if (missing.length > 0) {
@@ -788,7 +789,7 @@ export async function exportContacts(req: Request, res: Response): Promise<void>
     'Canal', 'Campus', 'Référent Intégration', 'Date Inscription',
   ].map(escape).join(',');
 
-  const rows = contacts.map(c => [
+  const rows = contacts.map((c: any) => [
     c.prenom,
     c.nom,
     c.telephone,

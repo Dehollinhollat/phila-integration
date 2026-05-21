@@ -205,7 +205,7 @@ export function startCronJobs(): void {
       // Filtre les contacts relevant du campus de cet admin (super_admin voit tout)
       const contactsConcernes = admin.role === 'super_admin'
         ? contactsSansReferent
-        : contactsSansReferent.filter((c) => admin.campus.includes(c.campus));
+        : contactsSansReferent.filter((c: { id: string; prenom: string; nom: string; campus: string }) => admin.campus.includes(c.campus as any));
 
       if (contactsConcernes.length === 0) continue;
 
@@ -331,7 +331,7 @@ export function startCronJobs(): void {
       select: { id: true, prenom: true, telephone: true, date_naissance: true },
     });
 
-    const anniversaires = contacts.filter(c => {
+    const anniversaires = contacts.filter((c: { id: string; prenom: string; telephone: string; date_naissance: Date | null }) => {
       const dn = new Date(c.date_naissance!);
       return dn.getMonth() + 1 === todayMonth && dn.getDate() === todayDay;
     });

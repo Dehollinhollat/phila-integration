@@ -405,7 +405,7 @@ export async function candidatureOuvrier(req: Request, res: Response): Promise<v
 
     if (admins.length > 0) {
       await prisma.notification.createMany({
-        data: admins.map(a => ({
+        data: admins.map((a: { id: string }) => ({
           user_id: a.id,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           type:    'nouvelle_candidature_ouvrier' as any,

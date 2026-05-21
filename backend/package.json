@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "tsc --project tsconfig.build.json",
+    "build": "prisma generate && tsc --project tsconfig.build.json",
     "start:prod": "node dist/src/server.js",
     "seed": "tsx scripts/seed.ts",
     "reset-checklist": "tsx scripts/reset-checklist.ts",
