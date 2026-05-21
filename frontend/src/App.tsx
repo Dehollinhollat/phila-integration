@@ -19,10 +19,12 @@
 //   /admin                 → gestion des utilisateurs           [admin+]
 //   *                      → page 404
 
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { API_BASE } from './utils/constants';
 import ProtectedLayout   from './layout/ProtectedLayout';
 import Login             from './pages/Login';
 import FormPresentiel    from './pages/FormPresentiel';
@@ -56,6 +58,7 @@ import ResetPassword     from './pages/ResetPassword';
 import NotFound          from './pages/NotFound';
 import NotificationsPage from './pages/Notifications';
 import AuditLogs        from './pages/AuditLogs';
+import Maintenance      from './pages/Maintenance';
 
 
 // AnimatePresence nécessite useLocation, qui exige d'être dans le contexte BrowserRouter
@@ -114,12 +117,28 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
+  const [maintenance, setMaintenance] = useState(false);
+
+  useEffect(() => {
+    const healthUrl = API_BASE.replace(/\/api$/, '') + '/health';
+    fetch(healthUrl)
+      .then(r => r.json())
+      .then((data: { maintenance?: boolean }) => {
+        if (data.maintenance) setMaintenance(true);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <AnimatedRoutes />
-        </BrowserRouter>
+        {maintenance ? (
+          <Maintenance />
+        ) : (
+          <BrowserRouter>
+            <AnimatedRoutes />
+          </BrowserRouter>
+        )}
       </AuthProvider>
     </ThemeProvider>
   );

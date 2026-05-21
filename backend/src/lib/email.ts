@@ -54,6 +54,64 @@ export async function sendPasswordResetEmail(
   });
 }
 
+// ─── Email d'assignation référent ────────────────────────────────────────────
+// Envoyé au référent intégration dès qu'un contact lui est assigné.
+// En développement : log console uniquement, aucun envoi réel.
+
+export async function sendEmailAssignation(
+  emailReferent:     string,
+  prenomReferent:    string,
+  prenomContact:     string,
+  nomContact:        string,
+  telephoneContact:  string,
+  profilContact:     string,
+  campusContact:     string,
+): Promise<void> {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=================================');
+    console.log('[DEV] Email assignation référent :');
+    console.log(`Destinataire: ${emailReferent}`);
+    console.log(`Nouveau contact: ${prenomContact} ${nomContact}`);
+    console.log('=================================');
+    return;
+  }
+
+  await resend.emails.send({
+    from:    'Phila Intégration <noreply@phila-integration.fr>',
+    to:      emailReferent,
+    subject: `Nouveau contact assigné — ${prenomContact} ${nomContact}`,
+    html: `
+      <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
+        <div style="background: #1A56B0; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="margin: 0; color: #fff; font-size: 20px; font-weight: 700;">Phila Intégration</h1>
+        </div>
+        <div style="padding: 32px 28px; background: #fff; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 12px 12px;">
+          <h2 style="margin: 0 0 16px; color: #1A56B0; font-size: 18px;">Nouveau contact assigné</h2>
+          <p style="margin: 0 0 12px; line-height: 1.6;">Bonjour ${prenomReferent},</p>
+          <p style="margin: 0 0 20px; line-height: 1.6;">Un nouveau contact vous a été assigné sur Phila Intégration :</p>
+          <div style="background: #F3F4F6; border-radius: 8px; padding: 16px; margin: 0 0 24px;">
+            <p style="margin: 0 0 8px;"><strong>Nom :</strong> ${prenomContact} ${nomContact}</p>
+            <p style="margin: 0 0 8px;"><strong>Téléphone :</strong> ${telephoneContact}</p>
+            <p style="margin: 0 0 8px;"><strong>Profil :</strong> ${profilContact}</p>
+            <p style="margin: 0;"><strong>Campus :</strong> ${campusContact}</p>
+          </div>
+          <div style="text-align: center; margin: 0 0 24px;">
+            <a href="${process.env.FRONTEND_URL ?? 'http://localhost:5173'}/contacts"
+               style="display: inline-block; background: #1A56B0; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              Voir mes contacts
+            </a>
+          </div>
+          <p style="color: #6B7280; font-size: 13px; line-height: 1.6;">
+            Vous recevez cet email car vous êtes référent d'intégration sur Phila Intégration.
+          </p>
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;">
+          <p style="color: #9CA3AF; font-size: 12px; margin: 0;">Phila Cité des Adorateurs</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 // ─── Email de bienvenue — envoyé à la création de compte ─────────────────────
 // Le mot de passe passé ici est le mot de passe en clair AVANT hashage.
 // Il ne transite que dans la mémoire du processus et n'est jamais persisté.

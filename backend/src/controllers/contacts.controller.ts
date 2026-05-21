@@ -12,6 +12,13 @@ import { Prisma } from '../../generated/prisma/client';
 import prisma from '../lib/prisma';
 import { cache, withCache } from '../lib/cache';
 import { logAudit } from '../lib/audit';
+import { sendEmailAssignation } from '../lib/email';
+
+const PROFIL_LABELS: Record<string, string> = {
+  membre_phila:          'Membre Phila',
+  visiteur_sans_eglise:  'Visiteur sans église',
+  visiteur_avec_eglise:  'Visiteur avec église',
+};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -483,6 +490,23 @@ export async function patchReferents(req: Request, res: Response): Promise<void>
     });
   }
 
+  // Email au nouveau référent (hors changement à null, fire-and-forget)
+  if (
+    referent_integration_id &&
+    referent_integration_id !== contact.referent_integration_id &&
+    updated.referent_integration?.email
+  ) {
+    void sendEmailAssignation(
+      updated.referent_integration.email,
+      updated.referent_integration.prenom,
+      contact.prenom,
+      contact.nom,
+      contact.telephone,
+      PROFIL_LABELS[contact.profil] ?? contact.profil,
+      contact.campus,
+    ).catch(err => console.error('[EMAIL] Erreur assignation:', err));
+  }
+
   if (referent_integration_id !== undefined) {
     const refNom = updated.referent_integration
       ? `${updated.referent_integration.prenom} ${updated.referent_integration.nom}`
@@ -833,4 +857,58 @@ export async function getAuditLog(req: Request, res: Response): Promise<void> {
   });
 
   res.json(logs);
+}
+
+// ─── Recherche globale ───────────────────────────────────────────────────────
+
+// GET /api/search?q=terme — résultats groupés contacts / ouvriers / utilisateurs
+// Accessible à tous les rôles connectés. Minimum 2 caractères.
+export async function globalSearch(req: Request, res: Response): Promise<void> {
+  const q = String(req.query.q ?? '').trim();
+  if (q.length < 2) {
+    res.json({ contacts: [], ouvriers: [], utilisateurs: [] });
+    return;
+  }
+
+  try {
+    const [contacts, ouvriers, utilisateurs] = await Promise.all([
+      prisma.contact.findMany({
+        where: {
+          OR: [
+            { prenom: { contains: q, mode: 'insensitive' } },
+            { nom:    { contains: q, mode: 'insensitive' } },
+            { telephone: { contains: q } },
+          ],
+        },
+        take:   5,
+        select: { id: true, prenom: true, nom: true, telephone: true, profil: true, statut: true },
+      }),
+      prisma.ouvrier.findMany({
+        where: {
+          OR: [
+            { prenom: { contains: q, mode: 'insensitive' } },
+            { nom:    { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        take:   5,
+        select: { id: true, prenom: true, nom: true, service: true, actif: true },
+      }),
+      prisma.user.findMany({
+        where: {
+          OR: [
+            { prenom: { contains: q, mode: 'insensitive' } },
+            { nom:    { contains: q, mode: 'insensitive' } },
+            { email:  { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        take:   3,
+        select: { id: true, prenom: true, nom: true, email: true, role: true },
+      }),
+    ]);
+
+    res.json({ contacts, ouvriers, utilisateurs });
+  } catch (err) {
+    console.error('[globalSearch]', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
 }

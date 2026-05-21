@@ -28,6 +28,7 @@ import usersRoutes from './routes/users.routes';
 import settingsRoutes from './routes/settings.routes';
 import statsRoutes from './routes/stats.routes';
 import auditRoutes from './routes/audit.routes';
+import searchRoutes from './routes/search.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -133,6 +134,17 @@ app.use((req, _res, next) => {
 // ─── 6. Rate limiting global ──────────────────────────────────────────────────
 app.use(globalRateLimit);
 
+// ─── 7. Mode maintenance ──────────────────────────────────────────────────────
+// Activé via Railway → Variables → MAINTENANCE_MODE=true.
+// Toutes les requêtes renvoient 503 sauf /health (utilisé par le frontend pour détecter le mode).
+const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true';
+if (MAINTENANCE_MODE) {
+  app.use((req, res, next) => {
+    if (req.path === '/health') return next();
+    res.status(503).json({ maintenance: true, message: 'Application en maintenance' });
+  });
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // Routes publiques
@@ -152,6 +164,7 @@ app.use('/api/users',         usersRoutes);
 app.use('/api/settings',      settingsRoutes);
 app.use('/api/stats',         statsRoutes);
 app.use('/api/audit',         auditRoutes);
+app.use('/api/search',        searchRoutes);
 
 // Health check
 app.get('/health', (_req, res) => res.json({ ok: true }));

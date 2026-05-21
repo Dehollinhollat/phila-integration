@@ -6,10 +6,12 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { contactsEndpoints, messagesEndpoints, statsEndpoints } from '../services/endpoints';
 import api from '../services/api';
 import { typography, spacing, radius, layout } from '../components/ui/tokens';
+import { useCountUp } from '../hooks/useCountUp';
 import {
   STATUT_LABELS, STATUT_COLORS, CAMPUS_LABELS, PROFIL_BADGE, PROFIL_LABELS, CANAL_BADGE,
 } from '../utils/constants';
@@ -80,15 +82,32 @@ function FilterBtn({
 }
 
 // KPI simple - valeur + icône + label
+// Count-up animé sur les valeurs numériques. Lift au survol via framer-motion.
 function KpiSimple({
   label, value, icon, accentVar, sub, onClick,
 }: {
   label: string; value: number | string; icon: string; accentVar: string;
   sub?: string; onClick?: () => void;
 }) {
+  const numericTarget = typeof value === 'number' ? value : 0;
+  const animated      = useCountUp(numericTarget);
+  const displayValue  = typeof value === 'number' ? animated : value;
+
   return (
-    <Card style={{ cursor: onClick ? 'pointer' : 'default' }}>
-      <div onClick={onClick} style={{ userSelect: 'none' }}>
+    <motion.div
+      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      style={{
+        background:   'var(--bg-card)',
+        border:       '1px solid var(--bg-card-border)',
+        borderRadius: 'var(--border-radius-lg)',
+        padding:      spacing[5],
+        boxShadow:    'var(--shadow-card)',
+        cursor:       onClick ? 'pointer' : 'default',
+      }}
+      onClick={onClick}
+    >
+      <div style={{ userSelect: 'none' }}>
         <div style={{
           display:        'flex',
           alignItems:     'center',
@@ -126,7 +145,7 @@ function KpiSimple({
           color:      `var(${accentVar})`,
           lineHeight: 1,
         }}>
-          {value}
+          {displayValue}
         </div>
         {sub && (
           <div style={{ fontSize: typography.fontSize.xs, color: 'var(--text-tertiary)', marginTop: spacing[1] }}>
@@ -134,18 +153,26 @@ function KpiSimple({
           </div>
         )}
       </div>
-    </Card>
+    </motion.div>
   );
 }
 
 
 // KPI alerte - sans référent
 function KpiAlert({ value, label }: { value: number; label: string }) {
+  const animated = useCountUp(value);
   return (
-    <Card style={{
-      background:  'var(--bg-card-alert)',
-      borderColor: 'var(--bg-card-alert-border)',
-    }}>
+    <motion.div
+      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      style={{
+        background:   'var(--bg-card-alert)',
+        border:       '1px solid var(--bg-card-alert-border)',
+        borderRadius: 'var(--border-radius-lg)',
+        padding:      spacing[5],
+        boxShadow:    'var(--shadow-card)',
+      }}
+    >
       <div style={{
         display:        'flex',
         alignItems:     'center',
@@ -170,12 +197,12 @@ function KpiAlert({ value, label }: { value: number; label: string }) {
         color:      'var(--accent-red)',
         lineHeight: 1,
       }}>
-        {value}
+        {animated}
       </div>
       <div style={{ fontSize: typography.fontSize.xs, color: 'var(--text-tertiary)', marginTop: spacing[1] }}>
         {value === 0 ? 'Tous les contacts ont un référent' : 'nécessitent un référent'}
       </div>
-    </Card>
+    </motion.div>
   );
 }
 
@@ -797,7 +824,8 @@ export default function Dashboard() {
         {/* Actions */}
         <div style={{ display: 'flex', gap: spacing[2], flexShrink: 0, alignItems: 'center' }}>
           {/* Rapport mensuel - bouton premium */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.97 }}
             onClick={genererRapportMensuel}
             style={{
               display:      'flex',
@@ -821,10 +849,11 @@ export default function Dashboard() {
               <rect x="11" y="1"  width="3" height="14" rx="1" fill="currentColor"/>
             </svg>
             Rapport mensuel
-          </button>
+          </motion.button>
 
           {/* Exporter CSV - bouton premium */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.97 }}
             onClick={handleExportCsv}
             disabled={exporting}
             style={{
@@ -849,7 +878,7 @@ export default function Dashboard() {
               <path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
             {exporting ? 'Export…' : 'Exporter CSV'}
-          </button>
+          </motion.button>
         </div>
       </div>
 
