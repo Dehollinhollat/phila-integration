@@ -21,6 +21,7 @@ import {
   checkPhone,
   countContacts,
   getAuditLog,
+  getMesContacts,
 } from '../controllers/contacts.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireMinRole, requireRole } from '../middlewares/roles.middleware';
@@ -43,8 +44,9 @@ router.use(authenticate);
 router.get('/', requireMinRole('lecteur'), listContacts);
 router.get('/alerts', requireMinRole('admin_campus'), getDashboardAlerts);
 router.get('/export', requireMinRole('lecteur'), exportContacts);
-// /count AVANT /:id — sinon Express matche 'count' comme un id param
-router.get('/count', requireMinRole('admin_campus'), countContacts);
+// /count et /mes-contacts AVANT /:id — sinon Express matche ces segments comme un id param
+router.get('/count',        requireMinRole('admin_campus'),         countContacts);
+router.get('/mes-contacts', requireMinRole('referent_integration'), getMesContacts);
 router.get('/:id', requireMinRole('lecteur'), getContact);
 // POST '/' est déjà géré en route publique ci-dessus
 router.patch('/:id', requireMinRole('referent_integration'), updateContact);

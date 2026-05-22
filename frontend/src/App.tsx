@@ -60,6 +60,7 @@ import NotificationsPage from './pages/Notifications';
 import AuditLogs        from './pages/AuditLogs';
 import Maintenance          from './pages/Maintenance';
 import StatistiquesAvancees from './pages/StatistiquesAvancees';
+import MonTableauDeBord    from './pages/MonTableauDeBord';
 
 
 // AnimatePresence nécessite useLocation, qui exige d'être dans le contexte BrowserRouter
@@ -86,7 +87,8 @@ function AnimatedRoutes() {
         {/* Routes protégées — imbriquées sous ProtectedLayout */}
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard"      element={<Dashboard />} />
-          <Route path="/statistiques"   element={<StatistiquesAvancees />} />
+          <Route path="/statistiques"        element={<StatistiquesAvancees />} />
+          <Route path="/mon-tableau-de-bord" element={<MonTableauDeBord />} />
           <Route path="/contacts"           element={<ContactList />} />
           <Route path="/contacts/nouveau"   element={<ContactForm />} />
           <Route path="/contacts/:id/edit"  element={<ContactEdit />} />

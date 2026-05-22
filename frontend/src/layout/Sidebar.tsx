@@ -32,8 +32,9 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Principal',
     items: [
-      { to: '/dashboard',    label: 'Tableau de bord',  icon: '📊', minRole: 'lecteur' },
-      { to: '/statistiques', label: 'Statistiques',     icon: '📈', minRole: 'admin_campus' },
+      { to: '/dashboard',          label: 'Tableau de bord',  icon: '📊', minRole: 'lecteur' },
+      { to: '/mon-tableau-de-bord', label: 'Mon tableau',      icon: '🏠', minRole: 'referent_integration' },
+      { to: '/statistiques',        label: 'Statistiques',     icon: '📈', minRole: 'admin_campus' },
       { to: '/contacts',   label: 'Contacts',         icon: '👥', minRole: 'lecteur' },
       { to: '/referents',  label: 'Référents',         icon: '🤝', minRole: 'admin_campus' },
       { to: '/messagerie',     label: 'Messagerie',     icon: '💬', minRole: 'referent_integration' },

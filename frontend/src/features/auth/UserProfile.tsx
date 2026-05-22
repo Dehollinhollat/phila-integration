@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { profileEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import type { ThemePreference } from '../../context/ThemeContext';
 import { ROLE_LABELS, CAMPUS_LABELS } from '../../utils/constants';
 import type { User } from '../../types';
 
@@ -38,7 +39,7 @@ function strengthLabel(score: number): { label: string; color: string } {
 
 export default function UserProfile() {
   const { user, updateUser } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themePreference, setThemePreference } = useTheme();
 
   // ── Section 1 : infos personnelles ──────────────────────────────────────────
   const [prenom,      setPrenom]      = useState(user?.prenom ?? '');
@@ -261,13 +262,31 @@ export default function UserProfile() {
       <Section title="Préférences">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-          <ToggleRow
-            label="Thème de l'interface"
-            description={theme === 'light' ? 'Mode clair activé' : 'Mode sombre activé'}
-            icon={theme === 'light' ? '🌙' : '☀️'}
-            checked={theme === 'dark'}
-            onChange={toggleTheme}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0' }}>
+            <span style={{ fontSize: 20, width: 28, textAlign: 'center', flexShrink: 0 }}>
+              {theme === 'dark' ? '🌙' : themePreference === 'auto' ? '🔄' : '☀️'}
+            </span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Thème de l'interface</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>
+                {themePreference === 'auto' ? 'Suit le thème système' : themePreference === 'dark' ? 'Mode sombre' : 'Mode clair'}
+              </div>
+            </div>
+            <select
+              value={themePreference}
+              onChange={e => setThemePreference(e.target.value as ThemePreference)}
+              style={{
+                padding: '6px 10px', borderRadius: 8,
+                border: '1px solid var(--bg-card-border)',
+                background: 'var(--bg-primary)', color: 'var(--text-primary)',
+                fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <option value="auto">Automatique</option>
+              <option value="light">Clair</option>
+              <option value="dark">Sombre</option>
+            </select>
+          </div>
 
           <div style={{ height: 1, background: 'var(--bg-card-border)', margin: '4px 0' }} />
 

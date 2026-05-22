@@ -859,6 +859,63 @@ export async function getAuditLog(req: Request, res: Response): Promise<void> {
   res.json(logs);
 }
 
+// ─── Tableau de bord référent ────────────────────────────────────────────────
+
+// GET /api/contacts/mes-contacts — contacts assignés au référent connecté avec badge d'urgence
+export async function getMesContacts(req: Request, res: Response): Promise<void> {
+  try {
+    const { id: userId } = req.user!;
+    const now     = new Date();
+    const limit14 = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const limit3  = new Date(now.getTime() -  3 * 24 * 60 * 60 * 1000);
+
+    const contacts = await prisma.contact.findMany({
+      where: {
+        OR: [
+          { referent_integration_id: userId },
+          { referent_eglise_id: userId },
+        ],
+      },
+      orderBy: { date_inscription: 'desc' },
+      select: {
+        id:                      true,
+        prenom:                  true,
+        nom:                     true,
+        telephone:               true,
+        campus:                  true,
+        statut:                  true,
+        profil:                  true,
+        date_inscription:        true,
+        derniere_interaction:    true,
+        referent_integration_id: true,
+        referent_eglise_id:      true,
+      },
+    });
+
+    const activeStatuts = ['nouveau', 'contacte', 'en_suivi'];
+
+    const withBadge = contacts.map(c => {
+      const refDate = new Date(c.derniere_interaction ?? c.date_inscription);
+      let badge: 'en_retard' | 'a_contacter' | 'a_jour';
+
+      if (activeStatuts.includes(c.statut) && refDate < limit14) {
+        badge = 'en_retard';
+      } else if (c.statut === 'nouveau' && new Date(c.date_inscription) < limit3) {
+        badge = 'a_contacter';
+      } else {
+        badge = 'a_jour';
+      }
+
+      return { ...c, badge };
+    });
+
+    res.json(withBadge);
+  } catch (err) {
+    console.error('[getMesContacts]', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+}
+
 // ─── Recherche globale ───────────────────────────────────────────────────────
 
 // GET /api/search?q=terme — résultats groupés contacts / ouvriers / utilisateurs

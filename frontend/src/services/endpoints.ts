@@ -16,6 +16,7 @@ import type {
   Notification,
   InscriptionMoisData, ProfilData, StatutData, MessageSemaineData, AuditLog,
   TauxConversionData, TempsIntegrationData, PerformanceReferentData, EvolutionHebdomadaireData,
+  ContactAvecBadge,
 } from '../types';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -80,6 +81,7 @@ export const contactsEndpoints = {
     api.get<{ count: number }>('/contacts/count', { params }),
   checkPhone:       (phone: string, excludeId?: string) =>
     api.get<{ exists: boolean; id: string | null }>('/contacts/check-phone', { params: { phone, excludeId } }),
+  mesContacts:      () => api.get<ContactAvecBadge[]>('/contacts/mes-contacts'),
 };
 
 // ─── Checklist ────────────────────────────────────────────────────────────────

@@ -350,6 +350,25 @@ export interface EvolutionHebdomadaireData {
   messages: number;
 }
 
+// ─── Tableau de bord référent ────────────────────────────────────────────────
+
+export type ContactBadge = 'en_retard' | 'a_contacter' | 'a_jour';
+
+export interface ContactAvecBadge {
+  id:                      string;
+  prenom:                  string;
+  nom:                     string;
+  telephone:               string | null;
+  campus:                  Campus;
+  statut:                  StatutContact;
+  profil:                  Profil;
+  date_inscription:        string;
+  derniere_interaction:    string | null;
+  referent_integration_id: string | null;
+  referent_eglise_id:      string | null;
+  badge:                   ContactBadge;
+}
+
 // ─── Audit Log ────────────────────────────────────────────────────────────────
 
 export type AuditAction =
