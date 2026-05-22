@@ -141,6 +141,14 @@ export default function Login() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
+//
+// Les couleurs de texte et de fond des inputs sont intentionnellement hardcodées
+// en hex plutôt qu'en tokens ou CSS variables. Sur mobile (WebKit / Safari iOS),
+// la page de login s'affiche en dehors du ProtectedLayout et peut ne pas hériter
+// correctement du thème ; les CSS variables non résolues donnent du texte blanc
+// sur fond blanc, rendant les champs invisibles en mode clair.
+// Les valeurs hardcodées garantissent la lisibilité quelle que soit la résolution
+// des variables CSS sur la plateforme cible.
 
 const S = {
   page: {
@@ -170,16 +178,18 @@ const S = {
     marginBottom: spacing[8],
   },
   title: {
-    margin:      0,
-    fontSize:    typography.fontSize['2xl'],
-    fontWeight:  typography.fontWeight.bold,
-    color:       colors.primary,
+    margin:        0,
+    // Hardcodé : les tokens primary peuvent résoudre en couleur sombre illisible sur certains
+    // rendus mobiles ; #0F172A (slate-900) est toujours lisible sur fond blanc.
+    fontSize:      '24px',
+    fontWeight:    700,
+    color:         '#0F172A',
     letterSpacing: '-0.5px',
   },
   subtitle: {
-    margin:    `${spacing[1]} 0 0`,
-    fontSize:  typography.fontSize.sm,
-    color:     colors.gray500,
+    margin:   `${spacing[1]} 0 0`,
+    fontSize: '14px',
+    color:    '#475569', // slate-600 — contraste suffisant sur fond blanc (WCAG AA)
   },
   form: {
     display:       'flex',
@@ -200,34 +210,38 @@ const S = {
     gap:           spacing[1],
   },
   label: {
-    fontSize:   typography.fontSize.sm,
-    fontWeight: typography.fontWeight.medium,
-    color:      colors.gray700,
+    display:      'block',
+    marginBottom: '6px',
+    fontSize:     '14px',
+    fontWeight:   600,
+    color:        '#1E293B', // slate-800 — lisible sur fond blanc sans dépendre des variables
   },
   input: {
-    padding:      `${spacing[3]} ${spacing[4]}`,
-    border:       `1px solid ${colors.gray300}`,
-    borderRadius: radius.md,
-    fontSize:     typography.fontSize.base,
-    color:        colors.gray900,
-    background:   colors.white,
+    // Fond et texte hardcodés : évite le fond blanc + texte blanc sur mobile mode clair
+    // quand les CSS variables --bg-input / --text-primary ne sont pas encore résolues.
+    width:        '100%',
+    padding:      '14px 16px',
+    borderRadius: '8px',
+    border:       '1.5px solid #CBD5E1', // slate-300 — visible sur #F8FAFC
+    background:   '#F8FAFC',             // slate-50 — fond légèrement grisé, distinct du blanc pur
+    color:        '#0F172A',             // slate-900 — texte très sombre, contraste élevé
+    fontSize:     '16px',               // 16px minimum évite le zoom automatique iOS
     outline:      'none',
     transition:   transitions.fast,
-    width:        '100%',
     boxSizing:    'border-box' as const,
   },
   eyeBtn: {
-    position:  'absolute' as const,
-    right:     '12px',
-    top:       '50%',
-    transform: 'translateY(-50%)',
-    background:'none',
-    border:    'none',
-    cursor:    'pointer',
-    color:     colors.gray500,
-    padding:   '4px',
-    display:   'flex',
-    alignItems:'center',
+    position:   'absolute' as const,
+    right:      '12px',
+    top:        '50%',
+    transform:  'translateY(-50%)',
+    background: 'none',
+    border:     'none',
+    cursor:     'pointer',
+    color:      colors.gray500,
+    padding:    '4px',
+    display:    'flex',
+    alignItems: 'center',
     lineHeight: 1,
   },
   submitBtn: {
@@ -247,9 +261,9 @@ const S = {
     textDecoration: 'none',
   },
   footer: {
-    marginTop:  spacing[6],
-    textAlign:  'center' as const,
-    fontSize:   '12px',
-    color:      'var(--text-secondary)',
+    marginTop: spacing[6],
+    textAlign: 'center' as const,
+    fontSize:  '12px',
+    color:     '#64748B', // slate-500 — note de bas de page, contraste suffisant sur fond blanc
   },
 } as const;

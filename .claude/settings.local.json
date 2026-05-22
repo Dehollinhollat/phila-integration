@@ -50,7 +50,8 @@
       "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit 2>&1 | Out-String | ForEach-Object { \\($_ -split \"`n\"\\) | Where-Object { $_ -notmatch \"__tests__\" } } | Out-String)",
       "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; $lines = @\\(\\); npx tsc --noEmit 2>&1 | ForEach-Object { $lines += $_ }; $lines | Where-Object { $_ -notmatch \"__tests__\" })",
       "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit > \"$env:TEMP\\\\tsc_out.txt\" 2>&1; Get-Content \"$env:TEMP\\\\tsc_out.txt\" | Where-Object { $_ -notmatch \"__tests__\" })",
-      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit 2> \"$env:TEMP\\\\tsc_err.txt\"; Get-Content \"$env:TEMP\\\\tsc_err.txt\" | Where-Object { $_ -notmatch \"__tests__\" })"
+      "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit 2> \"$env:TEMP\\\\tsc_err.txt\"; Get-Content \"$env:TEMP\\\\tsc_err.txt\" | Where-Object { $_ -notmatch \"__tests__\" })",
+      "Bash(node scripts/generate-icons.mjs)"
     ]
   }
 }

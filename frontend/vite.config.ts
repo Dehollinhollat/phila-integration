@@ -19,7 +19,7 @@ export default defineConfig({
 
       manifest: {
         name:             'Phila Integration',
-        short_name:       'Phila',
+        short_name:       'Phila Integration',
         description:      "Application de gestion de l'intégration - Phila Cité des Adorateurs",
         theme_color:      '#1A56B0',
         background_color: '#ffffff',
