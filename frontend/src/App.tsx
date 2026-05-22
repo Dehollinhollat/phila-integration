@@ -61,6 +61,7 @@ import AuditLogs        from './pages/AuditLogs';
 import Maintenance          from './pages/Maintenance';
 import StatistiquesAvancees from './pages/StatistiquesAvancees';
 import MonTableauDeBord    from './pages/MonTableauDeBord';
+import { InstallPWA }      from './components/common/InstallPWA';
 
 
 // AnimatePresence nécessite useLocation, qui exige d'être dans le contexte BrowserRouter
@@ -144,6 +145,7 @@ export default function App() {
         ) : (
           <BrowserRouter>
             <AnimatedRoutes />
+            <InstallPWA />
           </BrowserRouter>
         )}
       </AuthProvider>
