@@ -859,6 +859,42 @@ export async function getAuditLog(req: Request, res: Response): Promise<void> {
   res.json(logs);
 }
 
+// ─── Suggestion de référent ──────────────────────────────────────────────────
+
+// GET /api/contacts/:id/suggerer-referent
+// Retourne le référent intégration actif du même campus avec le moins de contacts actifs.
+export async function suggererReferent(req: Request, res: Response): Promise<void> {
+  const { id } = req.params as { id: string };
+
+  const contact = await prisma.contact.findUnique({ where: { id } });
+  if (!contact) { res.status(404).json({ error: 'Contact non trouvé' }); return; }
+
+  const referents = await prisma.user.findMany({
+    where: {
+      role:  'referent_integration',
+      actif: true,
+      campus: { has: contact.campus },
+    },
+    select: { id: true, prenom: true, nom: true, campus: true },
+  });
+
+  const charges = await Promise.all(
+    referents.map(async r => {
+      const nb_contacts = await prisma.contact.count({
+        where: { referent_integration_id: r.id, statut: { not: 'inactif' } },
+      });
+      return { ...r, nb_contacts };
+    })
+  );
+
+  charges.sort((a, b) => a.nb_contacts - b.nb_contacts);
+
+  res.json({
+    suggestion:          charges[0] ?? null,
+    tous_les_referents:  charges,
+  });
+}
+
 // ─── Tableau de bord référent ────────────────────────────────────────────────
 
 // GET /api/contacts/mes-contacts — contacts assignés au référent connecté avec badge d'urgence

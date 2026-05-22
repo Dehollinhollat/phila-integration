@@ -22,6 +22,7 @@ import {
   countContacts,
   getAuditLog,
   getMesContacts,
+  suggererReferent,
 } from '../controllers/contacts.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireMinRole, requireRole } from '../middlewares/roles.middleware';
@@ -68,7 +69,10 @@ router.get('/:id/commentaires', requireMinRole('referent_integration'), listComm
 router.post('/:id/commentaires', requireMinRole('referent_integration'), createCommentaire);
 
 // Historique
-router.get('/:id/historique', requireMinRole('referent_integration'), getHistorique);
+router.get('/:id/historique',         requireMinRole('referent_integration'), getHistorique);
+
+// Suggestion de référent (charge la plus faible sur le même campus)
+router.get('/:id/suggerer-referent',  requireMinRole('admin_campus'),         suggererReferent);
 
 // Audit log
 router.get('/:id/audit', requireMinRole('referent_integration'), getAuditLog);

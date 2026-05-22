@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { contactsEndpoints, checklistEndpoints, messagesEndpoints, referentsEndpoints, ouvriersEndpoints, auditEndpoints } from '../../services/endpoints';
 import type {
   Contact, Commentaire, HistoriqueStatut, Message,
-  ChecklistItem, EtapeIntegration, StatutContact, User, AuditLog, AuditAction,
+  ChecklistItem, EtapeIntegration, StatutContact, User, AuditLog, AuditAction, SuggestionReferent,
 } from '../../types';
 import {
   ROLE_RANK,
@@ -236,6 +236,8 @@ export default function ContactDetail() {
   const [statutSaving, setStatutSaving]   = useState(false);
   const [refIntSaving, setRefIntSaving]   = useState(false);
   const [refEglSaving, setRefEglSaving]   = useState(false);
+  const [suggestion,   setSuggestion]     = useState<SuggestionReferent | null>(null);
+  const [suggLoading,  setSuggLoading]    = useState(false);
 
   // Promotion ouvrier
   const [isOuvrier,        setIsOuvrier]        = useState(false);
@@ -725,6 +727,57 @@ export default function ContactDetail() {
                 saving={refIntSaving}
                 onChange={handleRefIntChange}
               />
+
+              {/* Suggestion automatique — visible aux admins uniquement */}
+              {canEdit && (
+                <div>
+                  <button
+                    onClick={async () => {
+                      setSuggLoading(true);
+                      try {
+                        const res = await contactsEndpoints.suggererReferent(contact.id);
+                        setSuggestion(res.data.suggestion);
+                      } catch { /* silent */ } finally { setSuggLoading(false); }
+                    }}
+                    disabled={suggLoading}
+                    style={{
+                      padding: '5px 12px', fontSize: 12, fontWeight: 600,
+                      borderRadius: 6, border: '1px solid var(--bg-card-border)',
+                      background: 'none', color: 'var(--text-secondary)',
+                      cursor: suggLoading ? 'default' : 'pointer',
+                      opacity: suggLoading ? 0.6 : 1, fontFamily: 'inherit',
+                    }}
+                  >
+                    {suggLoading ? '…' : '💡 Suggérer un référent'}
+                  </button>
+
+                  {suggestion && (
+                    <div style={{
+                      background: 'var(--bg-card)', marginTop: 8, padding: 12,
+                      borderRadius: 8, border: '1px solid var(--accent-teal)',
+                    }}>
+                      <p style={{ margin: '0 0 8px', fontSize: 13 }}>
+                        <strong>Suggestion :</strong>{' '}
+                        {suggestion.prenom} {suggestion.nom}
+                        <span style={{ color: 'var(--text-secondary)', marginLeft: 8 }}>
+                          ({suggestion.nb_contacts} contact{suggestion.nb_contacts !== 1 ? 's' : ''} assigné{suggestion.nb_contacts !== 1 ? 's' : ''})
+                        </span>
+                      </p>
+                      <button
+                        onClick={() => { handleRefIntChange(suggestion.id); setSuggestion(null); }}
+                        style={{
+                          padding: '5px 12px', fontSize: 12, fontWeight: 600,
+                          borderRadius: 6, border: 'none',
+                          background: 'var(--accent-teal)', color: '#fff',
+                          cursor: 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        Assigner ce référent
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <ReferentField
                 label="Référent église"
                 current={contact.referent_eglise ?? null}

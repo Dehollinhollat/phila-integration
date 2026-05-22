@@ -170,6 +170,7 @@ enum TypeNotification {
   rappel_evenement              // rappel avant un événement planifié
   checklist_completee           // super_admin notifié quand intégration_confirmee coché
   nouvelle_candidature_ouvrier  // admins notifiés quand un ouvrier soumet une candidature publique
+  alerte_risque                 // contacts sans référent J+2 ou nouveaux en retard J+7
 }
 
 /// Rôle de service d'un ouvrier dans un planning dominical

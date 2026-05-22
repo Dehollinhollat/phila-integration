@@ -419,5 +419,83 @@ export function startCronJobs(): void {
     console.log(`[Cron] Rapport hebdomadaire envoyé à ${sent}/${admins.length} admin(s)`);
   });
 
+  // ── Tâche 9 : Détection contacts à risque (tous les jours à 08h30) ───────────
+  // Contacts sans référent depuis >2j et contacts 'nouveau' depuis >7j.
+  // Notifie les admins globalement + chaque référent pour ses propres contacts.
+  cron.schedule('30 8 * * *', async () => {
+    const il_y_a_7_jours = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000);
+    const il_y_a_2_jours = new Date(Date.now() -  2 * 24 * 60 * 60 * 1000);
+
+    const [sansReferent, nouveauxEnRetard] = await Promise.all([
+      prisma.contact.findMany({
+        where: {
+          referent_integration_id: null,
+          statut: { not: 'inactif' },
+          date_inscription: { lt: il_y_a_2_jours },
+        },
+        select: { id: true, prenom: true, nom: true, campus: true },
+      }),
+      prisma.contact.findMany({
+        where: {
+          statut: 'nouveau',
+          date_inscription: { lt: il_y_a_7_jours },
+        },
+        select: { id: true, prenom: true, nom: true, campus: true, referent_integration_id: true },
+      }),
+    ]);
+
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ['super_admin', 'admin_campus'] }, actif: true },
+    });
+
+    for (const admin of admins) {
+      if (sansReferent.length > 0) {
+        await prisma.notification.create({
+          data: {
+            user_id: admin.id,
+            type:    'alerte_risque',
+            titre:   `${sansReferent.length} contact(s) sans référent`,
+            message: `${sansReferent.length} contact(s) n'ont pas de référent depuis plus de 2 jours`,
+            lien:    '/contacts?sans_referent=true',
+          },
+        });
+      }
+      if (nouveauxEnRetard.length > 0) {
+        await prisma.notification.create({
+          data: {
+            user_id: admin.id,
+            type:    'alerte_risque',
+            titre:   `${nouveauxEnRetard.length} nouveau(x) contact(s) en retard`,
+            message: `${nouveauxEnRetard.length} contact(s) ont le statut Nouveau depuis plus de 7 jours`,
+            lien:    '/contacts?statut=nouveau',
+          },
+        });
+      }
+    }
+
+    const referents = await prisma.user.findMany({
+      where: { role: 'referent_integration', actif: true },
+    });
+
+    for (const referent of referents) {
+      const mesContactsEnRetard = nouveauxEnRetard.filter(
+        c => c.referent_integration_id === referent.id
+      );
+      if (mesContactsEnRetard.length > 0) {
+        await prisma.notification.create({
+          data: {
+            user_id: referent.id,
+            type:    'alerte_risque',
+            titre:   'Contacts nécessitant votre attention',
+            message: `${mesContactsEnRetard.length} de vos contacts n'ont pas évolué depuis plus de 7 jours`,
+            lien:    '/mon-tableau-de-bord',
+          },
+        });
+      }
+    }
+
+    console.log(`[CRON][RISQUE] ${sansReferent.length} sans référent, ${nouveauxEnRetard.length} en retard`);
+  });
+
   console.log('[Cron] Tâches planifiées démarrées');
 }

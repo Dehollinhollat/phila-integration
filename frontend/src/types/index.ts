@@ -58,7 +58,8 @@ export type TypeNotification =
   | 'planning_non_confirme'
   | 'rappel_evenement'
   | 'checklist_completee'
-  | 'nouvelle_candidature_ouvrier';
+  | 'nouvelle_candidature_ouvrier'
+  | 'alerte_risque';
 
 export interface Notification {
   id:         string;
@@ -348,6 +349,16 @@ export interface EvolutionHebdomadaireData {
   nouveaux: number;
   integres: number;
   messages: number;
+}
+
+// ─── Suggestion de référent ───────────────────────────────────────────────────
+
+export interface SuggestionReferent {
+  id:          string;
+  prenom:      string;
+  nom:         string;
+  campus:      Campus[];
+  nb_contacts: number;
 }
 
 // ─── Tableau de bord référent ────────────────────────────────────────────────
