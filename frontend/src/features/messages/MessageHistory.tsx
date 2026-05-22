@@ -195,7 +195,9 @@ export default function MessageHistory() {
   // Flash succès (depuis MessageCompose)
   const [flash, setFlash] = useState('');
 
-  const isAdmin = user ? ROLE_RANK[user.role] >= ROLE_RANK['admin_campus'] : false;
+  const isAdmin     = user ? ROLE_RANK[user.role] >= ROLE_RANK['admin_campus'] : false;
+  // Envoi restreint aux super_admin et admin_campus — les référents voient uniquement l'historique
+  const peutEnvoyer = user?.role === 'super_admin' || user?.role === 'admin_campus';
 
   useEffect(() => {
     const msg = localStorage.getItem('compose_success');
@@ -266,7 +268,7 @@ export default function MessageHistory() {
             {total} message{total !== 1 ? 's' : ''} au total
           </p>
         </div>
-        {isAdmin && (
+        {peutEnvoyer && (
           <button
             onClick={() => navigate('/messagerie/nouveau')}
             style={{

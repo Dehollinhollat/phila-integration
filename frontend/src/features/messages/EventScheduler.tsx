@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { evenementsEndpoints } from '../../services/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import type { Evenement, Campus, StatutEvenement, DestinataireEvenement } from '../../types';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -61,6 +62,9 @@ function isInPeriod(ev: Evenement, periode: string): boolean {
 
 export default function EventScheduler() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  // Création/modification réservée aux super_admin et admin_campus
+  const peutEnvoyer = user?.role === 'super_admin' || user?.role === 'admin_campus';
 
   const [evenements, setEvenements] = useState<Evenement[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -156,9 +160,11 @@ export default function EventScheduler() {
             Envois groupés WhatsApp planifiés ou immédiats.
           </p>
         </div>
-        <button onClick={() => navigate('/evenements/nouveau')} style={btnPrimary}>
-          + Nouvel événement
-        </button>
+        {peutEnvoyer && (
+          <button onClick={() => navigate('/evenements/nouveau')} style={btnPrimary}>
+            + Nouvel événement
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -292,7 +298,7 @@ export default function EventScheduler() {
                         <td style={{ padding: '11px 14px' }}>
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
                             <button onClick={() => setDetail(ev)} style={btnSmall}>Voir</button>
-                            {ev.statut !== 'envoye' && (
+                            {peutEnvoyer && ev.statut !== 'envoye' && (
                               <button onClick={() => navigate('/evenements/nouveau')} style={btnSmall}>Modifier</button>
                             )}
                             {ev.statut === 'brouillon' && (

@@ -38,7 +38,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: '/contacts',   label: 'Contacts',         icon: '👥', minRole: 'lecteur' },
       { to: '/referents',  label: 'Référents',         icon: '🤝', minRole: 'admin_campus' },
       { to: '/messagerie',     label: 'Messagerie',     icon: '💬', minRole: 'referent_integration' },
-      { to: '/evenements',     label: 'Événements',     icon: '📅', minRole: 'admin_campus' },
+      { to: '/evenements',     label: 'Événements',     icon: '📅', minRole: 'referent_integration' },
       { to: '/notifications',  label: 'Notifications',  icon: '🔔', minRole: 'lecteur' },
     ],
   },

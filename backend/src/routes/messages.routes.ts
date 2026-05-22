@@ -20,7 +20,8 @@ router.post('/webhook/twilio', twilioWebhook);
 
 router.use(authenticate);
 
-router.get('/',                              requireMinRole('admin_campus'),        listMessages);
+// Lecture : référents + admins peuvent consulter l'historique
+router.get('/',                              requireMinRole('referent_integration'), listMessages);
 router.get('/contact/:contactId',            requireMinRole('referent_integration'), getMessagesByContact);
 
 // POST /evenement AVANT /:id pour éviter qu'Express matche "evenement" comme un id param
@@ -29,6 +30,6 @@ router.post('/evenement',                    requireMinRole('admin_campus'),    
 // Envoi manuel du message de bienvenue (si le cron ne l'a pas encore déclenché)
 router.post('/bienvenue/:contactId',         requireRole('super_admin', 'admin_campus'), sendBienvenue);
 
-router.get('/:id',                           requireMinRole('admin_campus'),        getMessage);
+router.get('/:id',                           requireMinRole('referent_integration'), getMessage);
 
 export default router;
