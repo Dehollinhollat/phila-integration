@@ -15,6 +15,7 @@ const TYPE_CONFIG: Record<TypeNotification, { color: string; label: string; icon
   rappel_evenement:             { color: '#8B5CF6', label: 'Événement',       icon: '📅' },
   checklist_completee:          { color: '#10B981', label: 'Intégration',     icon: '✅' },
   nouvelle_candidature_ouvrier: { color: '#8B5CF6', label: 'Candidature',    icon: '⛪' },
+  alerte_risque:                { color: '#EF4444', label: 'Alerte risque',  icon: '⚠️' },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
