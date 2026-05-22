@@ -6,17 +6,20 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, type Transition } from 'framer-motion';
+import { motion, AnimatePresence, type Transition, type Variants } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { profileEndpoints } from '../../services/endpoints';
 import type { Role } from '../../types';
 
 // ─── Variants d'animation ─────────────────────────────────────────────────────
 
-const stepVariants = {
-  enter:   (dir: number) => ({ x: dir > 0 ? 48 : -48, opacity: 0 }),
-  center:  { x: 0, opacity: 1, transition: { duration: 0.22, ease: 'easeOut' } },
-  exit:    (dir: number) => ({ x: dir > 0 ? -48 : 48, opacity: 0, transition: { duration: 0.18, ease: 'easeIn' } }),
+const tweenOut: Transition = { duration: 0.2, ease: 'easeIn' };
+const tweenIn:  Transition = { duration: 0.3, ease: 'easeOut' };
+
+const slideVariants: Variants = {
+  enter: (dir: number) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit:  (dir: number) => ({ x: dir < 0 ? 300 : -300, opacity: 0 }),
 };
 
 const springTransition: Transition = {
@@ -233,7 +236,8 @@ export default function Onboarding() {
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.22, ease: 'easeOut' }}
+        exit={{ opacity: 0, scale: 0.96, transition: tweenOut }}
+        transition={tweenIn}
         style={{
           width:         '100%',
           maxWidth:      600,
@@ -296,10 +300,11 @@ export default function Onboarding() {
             <motion.div
               key={current.id}
               custom={direction}
-              variants={stepVariants}
+              variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
+              transition={tweenIn}
             >
               {/* Icône avec ressort si l'étape en a une */}
               {current.icon && (
