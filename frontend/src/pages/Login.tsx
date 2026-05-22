@@ -43,6 +43,11 @@ export default function Login() {
   }
 
   return (
+    <>
+    <style>{`
+      .login-input::placeholder { color: #64748B !important; }
+      .login-input { color: #0F172A !important; background: #F1F5F9 !important; border: 2px solid #94A3B8 !important; }
+    `}</style>
     <div style={S.page}>
       <div style={S.inner}>
       <div style={S.card}>
@@ -72,6 +77,7 @@ export default function Login() {
               autoFocus
               autoComplete="email"
               placeholder="votre@email.com"
+              className="login-input"
               style={S.input}
             />
           </div>
@@ -87,6 +93,7 @@ export default function Login() {
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
+                className="login-input"
                 style={{ ...S.input, paddingRight: '44px' }}
               />
               <button
@@ -137,6 +144,7 @@ export default function Login() {
       </div>
       <Footer />
     </div>
+    </>
   );
 }
 
@@ -222,8 +230,8 @@ const S = {
     width:        '100%',
     padding:      '14px 16px',
     borderRadius: '8px',
-    border:       '1.5px solid #CBD5E1', // slate-300 — visible sur #F8FAFC
-    background:   '#F8FAFC',             // slate-50 — fond légèrement grisé, distinct du blanc pur
+    border:       '2px solid #94A3B8',   // slate-400 — bordure plus visible sur mobile
+    background:   '#F1F5F9',             // slate-100 — fond clairement distinct du blanc pur
     color:        '#0F172A',             // slate-900 — texte très sombre, contraste élevé
     fontSize:     '16px',               // 16px minimum évite le zoom automatique iOS
     outline:      'none',
