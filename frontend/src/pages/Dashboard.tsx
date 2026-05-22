@@ -17,6 +17,8 @@ import {
 } from '../utils/constants';
 import type { ContactRow, Campus, InscriptionMoisData, ProfilData, StatutData, MessageSemaineData } from '../types';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
@@ -729,46 +731,95 @@ export default function Dashboard() {
       .slice(0, 10)
   ), [filteredContacts]);
 
-  // ─── Rapport mensuel ──────────────────────────────────────────────────────
-  // Génère un CSV côté client depuis les données déjà chargées (filteredContacts + kpi).
-  // Le BOM ﻿ garantit que Excel ouvre le fichier en UTF-8 sans altérer les accents.
+  // ─── Rapport mensuel PDF ──────────────────────────────────────────────────
+  // Génère un PDF côté client depuis les données déjà chargées (filteredContacts + kpi).
+  // jsPDF + jspdf-autotable : aucun appel réseau, tout est calculé en mémoire.
 
   function genererRapportMensuel() {
+    const doc = new jsPDF();
     const maintenant = new Date();
     const mois = maintenant.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
-    const lignes: string[][] = [
-      [`Rapport mensuel - ${mois}`],
-      [],
-      ['Statistiques générales'],
-      ['Total inscrits',   String(kpi.total)],
-      ['Membres Phila',    String(kpi.membrePhila)],
-      ['Sans église',      String(kpi.visiteurSansEglise)],
-      ['Avec église',      String(kpi.visiteurAvecEglise)],
-      ['Intégrés ce mois', String(kpi.byStatut['integre'] ?? 0)],
-      ['Messages envoyés', String(msgCount)],
-      [],
-      ['Liste des contacts'],
-      ['Prénom', 'Nom', 'Téléphone', 'Profil', 'Statut', 'Campus', 'Date inscription'],
-      ...filteredContacts.map(c => [
-        c.prenom,
-        c.nom,
-        c.telephone,
-        c.profil,
-        c.statut,
-        c.campus,
-        new Date(c.date_inscription).toLocaleDateString('fr-FR'),
-      ]),
+    // ── En-tête coloré ──────────────────────────────────────────────────────
+    doc.setFillColor(26, 86, 176);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Phila Cite des Adorateurs', 20, 18);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Rapport mensuel - ${mois.charAt(0).toUpperCase() + mois.slice(1)}`, 20, 30);
+
+    // ── Date de génération ──────────────────────────────────────────────────
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.text(
+      `Genere le ${maintenant.toLocaleDateString('fr-FR')} a ${maintenant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
+      20, 50,
+    );
+
+    // ── Section KPIs ────────────────────────────────────────────────────────
+    doc.setTextColor(26, 86, 176);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Vue d'ensemble", 20, 65);
+
+    const kpis: Array<{ label: string; value: string; color: [number, number, number] }> = [
+      { label: 'Total inscrits',  value: String(kpi.total),              color: [26,  86,  176] },
+      { label: 'Membres Phila',   value: String(kpi.membrePhila),        color: [20,  184, 166] },
+      { label: 'Sans eglise',     value: String(kpi.visiteurSansEglise), color: [212, 162, 78]  },
+      { label: 'Avec eglise',     value: String(kpi.visiteurAvecEglise), color: [139, 92,  246] },
     ];
 
-    const csvContent = lignes.map(l => l.join(',')).join('\n');
-    const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `rapport-phila-${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    kpis.forEach((k, i) => {
+      const x = 20 + (i % 2) * 90;
+      const y = 72 + Math.floor(i / 2) * 25;
+      doc.setFillColor(...k.color);
+      doc.roundedRect(x, y, 80, 18, 3, 3, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(k.label, x + 4, y + 7);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(k.value, x + 4, y + 15);
+    });
+
+    // ── Tableau des contacts ─────────────────────────────────────────────────
+    doc.setTextColor(26, 86, 176);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Contacts du mois', 20, 130);
+
+    autoTable(doc, {
+      startY: 135,
+      head: [['Prenom', 'Nom', 'Profil', 'Statut', 'Campus', 'Date inscription']],
+      body: filteredContacts.map(c => [
+        c.prenom,
+        c.nom,
+        PROFIL_LABELS[c.profil] || c.profil,
+        STATUT_LABELS[c.statut] || c.statut,
+        c.campus === 'paris' ? 'Paris' : 'Paris Nord',
+        new Date(c.date_inscription).toLocaleDateString('fr-FR'),
+      ]),
+      styles:              { fontSize: 9, cellPadding: 3 },
+      headStyles:          { fillColor: [26, 86, 176], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles:  { fillColor: [245, 247, 250] },
+      margin:              { left: 20, right: 20 },
+    });
+
+    // ── Pied de page ────────────────────────────────────────────────────────
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Phila Integration - Document confidentiel', 20, 290);
+      doc.text(`Page ${i} / ${pageCount}`, 180, 290);
+    }
+
+    doc.save(`rapport-phila-${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}.pdf`);
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
