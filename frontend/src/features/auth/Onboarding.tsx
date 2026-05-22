@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Transition } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { profileEndpoints } from '../../services/endpoints';
 import type { Role } from '../../types';
@@ -19,10 +19,10 @@ const stepVariants = {
   exit:    (dir: number) => ({ x: dir > 0 ? -48 : 48, opacity: 0, transition: { duration: 0.18, ease: 'easeIn' } }),
 };
 
-const iconSpring = {
+const springTransition: Transition = {
   type:      'spring',
-  stiffness: 400,
-  damping:   20,
+  stiffness: 200,
+  damping:   15,
 };
 
 // ─── Définition des étapes ────────────────────────────────────────────────────
@@ -307,7 +307,7 @@ export default function Onboarding() {
                   key={`${current.id}-icon`}
                   initial={{ scale: 0.4, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  transition={iconSpring}
+                  transition={springTransition}
                   style={{ fontSize: 64, textAlign: 'center', marginBottom: 20 }}
                 >
                   {current.icon}
