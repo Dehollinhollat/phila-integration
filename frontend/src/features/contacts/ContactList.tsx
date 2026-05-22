@@ -8,10 +8,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { contactsEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
-import type { ContactRow, Canal, StatutContact, Campus, Profil } from '../../types';
+import type { ContactRow, Canal, StatutContact, Campus, Profil, Intention } from '../../types';
 import {
   CAMPUS_LABELS, STATUT_LABELS, STATUT_COLORS,
   CANAL_LABELS, CANAL_BADGE, PROFIL_BADGE, PROFIL_LABELS, ROLE_RANK,
+  INTENTION_LABELS, INTENTION_COLORS,
 } from '../../utils/constants';
 
 const PAGE_SIZE = 15;
@@ -149,13 +150,14 @@ export default function ContactList() {
   const { user } = useAuth();
   const canModify = !!user && ROLE_RANK[user.role] >= ROLE_RANK['admin_campus'];
 
-  const [search, setSearch]             = useState('');
-  const [debouncedSearch, setDebounced] = useState('');
-  const [filterCampus, setCampus]       = useState<Campus | ''>('');
-  const [filterProfil, setProfil]       = useState<Profil | ''>('');
-  const [filterStatut, setStatut]       = useState<StatutContact | ''>('');
-  const [filterCanal, setCanal]         = useState<Canal | ''>('');
-  const [page, setPage]                 = useState(1);
+  const [search, setSearch]                 = useState('');
+  const [debouncedSearch, setDebounced]     = useState('');
+  const [filterCampus, setCampus]           = useState<Campus | ''>('');
+  const [filterProfil, setProfil]           = useState<Profil | ''>('');
+  const [filterStatut, setStatut]           = useState<StatutContact | ''>('');
+  const [filterCanal, setCanal]             = useState<Canal | ''>('');
+  const [filterIntention, setIntention]     = useState<Intention | ''>('');
+  const [page, setPage]                     = useState(1);
 
   const [contacts, setContacts]   = useState<ContactRow[]>([]);
   const [total, setTotal]         = useState(0);
@@ -184,12 +186,13 @@ export default function ContactList() {
     setError(null);
     try {
       const params: Record<string, unknown> = { page, limit: PAGE_SIZE };
-      if (debouncedSearch) params.search      = debouncedSearch;
-      if (filterCampus)    params.campus      = filterCampus;
-      if (filterProfil)    params.profil      = filterProfil;
-      if (filterStatut)    params.statut      = filterStatut;
-      if (filterCanal)     params.canal       = filterCanal;
-      if (referentId)      params.referent_id = referentId;
+      if (debouncedSearch)  params.search      = debouncedSearch;
+      if (filterCampus)     params.campus      = filterCampus;
+      if (filterProfil)     params.profil      = filterProfil;
+      if (filterStatut)     params.statut      = filterStatut;
+      if (filterCanal)      params.canal       = filterCanal;
+      if (filterIntention)  params.intention   = filterIntention;
+      if (referentId)       params.referent_id = referentId;
 
       const { data } = await contactsEndpoints.list(
         params as Parameters<typeof contactsEndpoints.list>[0],
@@ -201,13 +204,13 @@ export default function ContactList() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, filterCampus, filterProfil, filterStatut, filterCanal, referentId]);
+  }, [page, debouncedSearch, filterCampus, filterProfil, filterStatut, filterCanal, filterIntention, referentId]);
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
   function resetFilters() {
     setSearch(''); setDebounced('');
-    setCampus(''); setProfil(''); setStatut(''); setCanal('');
+    setCampus(''); setProfil(''); setStatut(''); setCanal(''); setIntention('');
     setPage(1);
   }
 
@@ -234,7 +237,7 @@ export default function ContactList() {
     }
   }
 
-  const hasFilters  = debouncedSearch || filterCampus || filterProfil || filterStatut || filterCanal;
+  const hasFilters  = debouncedSearch || filterCampus || filterProfil || filterStatut || filterCanal || filterIntention;
   const totalPages  = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const colCount    = canModify ? 10 : 9;
 
@@ -339,6 +342,13 @@ export default function ContactList() {
           <option value="en_ligne">En ligne</option>
         </select>
 
+        <select value={filterIntention} onChange={(e) => { setIntention(e.target.value as Intention | ''); setPage(1); }} style={S.sel}>
+          <option value="">Toutes les intentions</option>
+          {(Object.keys(INTENTION_LABELS) as Intention[]).map(k => (
+            <option key={k} value={k}>{INTENTION_LABELS[k]}</option>
+          ))}
+        </select>
+
         {hasFilters && (
           <button onClick={resetFilters} style={S.resetBtn}>✕ Réinitialiser</button>
         )}
@@ -403,6 +413,20 @@ export default function ContactList() {
                   }}>
                     {STATUT_LABELS[c.statut]}
                   </span>
+                  {c.intention && c.intention !== 'souhaite_integrer' && (
+                    <span style={{
+                      fontSize: '0.65rem', fontWeight: 500,
+                      color: INTENTION_COLORS[c.intention],
+                      display: 'flex', alignItems: 'center', gap: 3,
+                    }}>
+                      <span style={{
+                        width: 5, height: 5, borderRadius: '50%',
+                        background: INTENTION_COLORS[c.intention],
+                        flexShrink: 0,
+                      }} />
+                      {INTENTION_LABELS[c.intention]}
+                    </span>
+                  )}
                   {c.referent_integration ? (
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                       {c.referent_integration.prenom} {c.referent_integration.nom}
@@ -560,14 +584,30 @@ export default function ContactList() {
                       </span>
                     </td>
 
-                    {/* Statut */}
+                    {/* Statut + Intention */}
                     <td style={{ padding: '10px 16px' }}>
-                      <span style={{
-                        padding: '2px 9px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 500,
-                        background: STATUT_COLORS[c.statut].bg, color: STATUT_COLORS[c.statut].text,
-                      }}>
-                        {STATUT_LABELS[c.statut]}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{
+                          padding: '2px 9px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 500,
+                          background: STATUT_COLORS[c.statut].bg, color: STATUT_COLORS[c.statut].text,
+                        }}>
+                          {STATUT_LABELS[c.statut]}
+                        </span>
+                        {c.intention && c.intention !== 'souhaite_integrer' && (
+                          <span style={{
+                            fontSize: '0.65rem', fontWeight: 500,
+                            color: INTENTION_COLORS[c.intention],
+                            display: 'flex', alignItems: 'center', gap: 3,
+                          }}>
+                            <span style={{
+                              width: 6, height: 6, borderRadius: '50%',
+                              background: INTENTION_COLORS[c.intention],
+                              flexShrink: 0,
+                            }} />
+                            {INTENTION_LABELS[c.intention]}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Référent */}

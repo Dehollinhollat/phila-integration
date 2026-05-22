@@ -23,6 +23,13 @@ export type StatutContact =
   | 'ouvrier'
   | 'inactif';
 
+export type Intention =
+  | 'souhaite_integrer'
+  | 'en_reflexion'
+  | 'visite_occasionnelle'
+  | 'ne_souhaite_pas_integrer'
+  | 'transfere';
+
 export type Campus = 'paris' | 'paris_nord';
 
 export type Role =
@@ -141,6 +148,8 @@ export interface Contact {
   rdv_pasteur:          boolean;
   don?:                 boolean;
   disponibilite_suivi?: DisponibiliteSuivi;
+  // Intention pastorale — renseignée par le référent
+  intention?:           Intention;
   // Référents
   referent_integration_id?:  string;
   referent_integration?:     UserSummary;
@@ -165,6 +174,7 @@ export type ContactRow = Pick<
   | 'id' | 'genre' | 'prenom' | 'nom' | 'telephone'
   | 'ville' | 'profil' | 'statut' | 'campus' | 'canal'
   | 'date_inscription' | 'derniere_interaction'
+  | 'intention'
 > & {
   referent_integration?: UserSummary;
   referent_eglise?:      UserSummary;

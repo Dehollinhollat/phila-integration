@@ -33,13 +33,14 @@ export const authEndpoints = {
 // ─── Contacts ─────────────────────────────────────────────────────────────────
 
 export interface ContactFilters {
-  campus?:  Campus;
-  profil?:  string;
-  statut?:  StatutContact;
-  canal?:   Canal;
-  search?:  string;
-  page?:    number;
-  limit?:   number;
+  campus?:    Campus;
+  profil?:    string;
+  statut?:    StatutContact;
+  canal?:     Canal;
+  intention?: string;
+  search?:    string;
+  page?:      number;
+  limit?:     number;
 }
 
 // Filtres de ciblage avancé — utilisés pour le compteur temps réel (MessageCompose)

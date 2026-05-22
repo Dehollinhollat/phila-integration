@@ -88,13 +88,14 @@ export async function checkPhone(req: Request, res: Response): Promise<void> {
 
 // GET /api/contacts
 export async function listContacts(req: Request, res: Response): Promise<void> {
-  const { campus, profil, statut, canal, search, page = '1', limit = '50' } = req.query;
+  const { campus, profil, statut, canal, intention, search, page = '1', limit = '50' } = req.query;
 
   const extra: Record<string, unknown> = {};
-  if (campus) extra.campus = campus;
-  if (profil) extra.profil = profil;
-  if (statut) extra.statut = statut;
-  if (canal) extra.canal = canal;
+  if (campus)    extra.campus    = campus;
+  if (profil)    extra.profil    = profil;
+  if (statut)    extra.statut    = statut;
+  if (canal)     extra.canal     = canal;
+  if (intention) extra.intention = intention;
   if (search) {
     extra.OR = [
       { prenom: { contains: search as string, mode: 'insensitive' } },
@@ -119,6 +120,7 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
         select: {
           id: true, genre: true, prenom: true, nom: true,
           telephone: true, ville: true, profil: true, statut: true,
+          intention: true,
           campus: true, canal: true, date_inscription: true,
           referent_integration: { select: { id: true, prenom: true, nom: true } },
           referent_eglise: { select: { id: true, prenom: true, nom: true } },

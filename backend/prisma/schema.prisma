@@ -208,6 +208,16 @@ enum DestinataireEvenement {
   campus_paris_nord       // uniquement le campus Paris Nord
 }
 
+/// Intention du contact vis-à-vis de l'intégration — renseigné par le référent depuis la fiche contact
+/// Exclut du suivi actif les contacts dont l'intention est occasionnelle, négative, ou transférée
+enum Intention {
+  souhaite_integrer         // contact souhaite activement s'intégrer dans l'église
+  en_reflexion              // contact réfléchit encore à sa décision
+  visite_occasionnelle      // contact préfère venir ponctuellement sans s'intégrer
+  ne_souhaite_pas_integrer  // contact ne souhaite pas s'intégrer
+  transfere                 // contact transféré vers une autre église
+}
+
 // ─────────────────────────────────────────
 // USER
 // Comptes des membres du département et référents
@@ -272,6 +282,7 @@ model Contact {
   extension_phila       Extension?                   // renseigné uniquement si statut_phila = oui
   profil                Profil                       // calculé automatiquement à l'inscription et à chaque mise à jour
   statut                StatutContact       @default(nouveau)  // progression dans le parcours d'intégration
+  intention             Intention?          @default(souhaite_integrer) // intention du contact vis-à-vis de l'intégration
   campus                Campus                       // campus de suivi (Paris ou Paris Nord)
 
   // ── Canal & saisie ────────────────────

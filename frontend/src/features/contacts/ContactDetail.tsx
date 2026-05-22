@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { contactsEndpoints, checklistEndpoints, messagesEndpoints, referentsEndpoints, ouvriersEndpoints, auditEndpoints } from '../../services/endpoints';
 import type {
   Contact, Commentaire, HistoriqueStatut, Message,
-  ChecklistItem, EtapeIntegration, StatutContact, User, AuditLog, AuditAction, SuggestionReferent,
+  ChecklistItem, EtapeIntegration, StatutContact, User, AuditLog, AuditAction, SuggestionReferent, Intention,
 } from '../../types';
 import {
   ROLE_RANK,
@@ -24,6 +24,8 @@ import {
   SOUHAIT_LABELS,
   INTERET_CELLULE_LABELS,
   GENRE_LABELS,
+  INTENTION_LABELS,
+  INTENTION_COLORS,
 } from '../../utils/constants';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -513,6 +515,32 @@ export default function ContactDetail() {
                   >
                     {STATUT_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {canWrite && (
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+                    Intention
+                  </label>
+                  <select
+                    value={contact.intention ?? 'souhaite_integrer'}
+                    onChange={async e => {
+                      const intention = e.target.value as Intention;
+                      await contactsEndpoints.update(contact.id, { intention });
+                      setContact(prev => prev ? { ...prev, intention } : prev);
+                    }}
+                    style={{
+                      width: '100%', padding: '6px 8px', borderRadius: 6,
+                      border: `2px solid ${INTENTION_COLORS[contact.intention ?? 'souhaite_integrer']}`,
+                      background: 'var(--bg-card)', color: 'var(--text-primary)',
+                      fontSize: 13,
+                    }}
+                  >
+                    {(Object.keys(INTENTION_LABELS) as Intention[]).map(key => (
+                      <option key={key} value={key}>{INTENTION_LABELS[key]}</option>
                     ))}
                   </select>
                 </div>

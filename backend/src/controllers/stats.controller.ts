@@ -197,10 +197,16 @@ export async function tauxConversion(req: Request, res: Response): Promise<void>
       ? ['paris', 'paris_nord']
       : (req.user!.campus as string[]);
 
+    const INTENTIONS_EXCLUES = ['visite_occasionnelle', 'ne_souhaite_pas_integrer', 'transfere'];
+
     const results = await Promise.all(campuses.map(async (campus) => {
       const [total, integres] = await Promise.all([
-        prisma.contact.count({ where: { campus } as any }),
-        prisma.contact.count({ where: { campus, statut: { in: ['integre', 'ouvrier'] as const } } as any }),
+        prisma.contact.count({
+          where: { campus, intention: { notIn: INTENTIONS_EXCLUES as any } } as any,
+        }),
+        prisma.contact.count({
+          where: { campus, statut: { in: ['integre', 'ouvrier'] as const } } as any,
+        }),
       ]);
       return { campus, total, integres, taux: total > 0 ? Math.round((integres / total) * 100) : 0 };
     }));

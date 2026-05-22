@@ -9,6 +9,7 @@ import type {
   Souhait, BesoinSpirituel, InteretCellule,
   DisponibiliteSuivi, Extension,
   StatutMessage, TypeMessage, StatutEvenement,
+  Intention,
 } from '../types';
 
 // ─── Campus ──────────────────────────────────────────────────────────────────
@@ -183,6 +184,24 @@ export const STATUT_EVENEMENT_LABELS: Record<StatutEvenement, string> = {
   brouillon: 'Brouillon',
   planifie:  'Planifié',
   envoye:    'Envoyé',
+};
+
+// ─── Intention ───────────────────────────────────────────────────────────────
+
+export const INTENTION_LABELS: Record<Intention, string> = {
+  souhaite_integrer:        "Souhaite s'intégrer",
+  en_reflexion:             'En réflexion',
+  visite_occasionnelle:     'Visite occasionnelle',
+  ne_souhaite_pas_integrer: 'Ne souhaite pas s\'intégrer',
+  transfere:                'Transféré(e)',
+};
+
+export const INTENTION_COLORS: Record<Intention, string> = {
+  souhaite_integrer:        '#10B981',
+  en_reflexion:             '#D4A24E',
+  visite_occasionnelle:     '#6B7280',
+  ne_souhaite_pas_integrer: '#EF4444',
+  transfere:                '#8B5CF6',
 };
 
 // ─── Rang des rôles (hiérarchie) ─────────────────────────────────────────────

@@ -439,6 +439,7 @@ export function startCronJobs(): void {
         where: {
           statut: 'nouveau',
           date_inscription: { lt: il_y_a_7_jours },
+          intention: { notIn: ['visite_occasionnelle', 'ne_souhaite_pas_integrer', 'transfere'] as any },
         },
         select: { id: true, prenom: true, nom: true, campus: true, referent_integration_id: true },
       }),
