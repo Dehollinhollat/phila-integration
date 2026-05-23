@@ -413,6 +413,7 @@ model Ouvrier {
   campus               Campus
   services             String[]  // ex: ["accueil", "prière", "technique", "médias"]
   date_debut_service   DateTime?
+  date_naissance       DateTime?
   statut               Boolean   @default(true)    // true = actif, false = inactif
   inscription_directe  Boolean   @default(false)   // true = ouvrier existant ajouté manuellement
   notes                String?                     // JSON : données complémentaires candidature (motivation, expérience…)

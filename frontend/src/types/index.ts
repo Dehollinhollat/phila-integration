@@ -213,6 +213,7 @@ export interface Ouvrier {
   campus:              Campus;
   services:            string[];
   date_debut_service?: string;
+  date_naissance?:     string;
   statut:              boolean;
   inscription_directe: boolean;
   created_at:          string;

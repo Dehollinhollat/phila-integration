@@ -165,7 +165,8 @@ export default function OuvrierForm() {
   const [email,        setEmail]        = useState('');
   const [campus,       setCampus]       = useState('paris');
   const [services,     setServices]     = useState<string[]>([]);
-  const [dateDebut,    setDateDebut]    = useState('');
+  const [dateDebut,       setDateDebut]       = useState('');
+  const [dateNaissance,   setDateNaissance]   = useState('');
 
   // Load existing data in edit mode
   useEffect(() => {
@@ -184,6 +185,11 @@ export default function OuvrierForm() {
         setDateDebut(
           o.date_debut_service
             ? new Date(o.date_debut_service).toISOString().slice(0, 10)
+            : ''
+        );
+        setDateNaissance(
+          o.date_naissance
+            ? new Date(o.date_naissance).toISOString().slice(0, 10)
             : ''
         );
       })
@@ -217,7 +223,8 @@ export default function OuvrierForm() {
           email:               email.trim() || undefined,
           campus:              campus as 'paris' | 'paris_nord',
           services,
-          date_debut_service:  dateDebut || undefined,
+          date_debut_service:  dateDebut     || undefined,
+          date_naissance:      dateNaissance || undefined,
         });
       } else {
         await ouvriersEndpoints.create({
@@ -227,7 +234,8 @@ export default function OuvrierForm() {
           email:               email.trim() || undefined,
           campus,
           services,
-          date_debut_service:  dateDebut || undefined,
+          date_debut_service:  dateDebut     || undefined,
+          date_naissance:      dateNaissance || undefined,
           inscription_directe: true,
         });
       }
@@ -391,15 +399,24 @@ export default function OuvrierForm() {
             )}
           </div>
 
-          {/* Date de début */}
-          <div>
-            <FieldLabel>Date de début de service</FieldLabel>
-            <Input
-              type="date"
-              value={dateDebut}
-              onChange={e => setDateDebut(e.target.value)}
-              style={{ maxWidth: 220 }}
-            />
+          {/* Date de début / Date de naissance */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <FieldLabel>Date de début de service</FieldLabel>
+              <Input
+                type="date"
+                value={dateDebut}
+                onChange={e => setDateDebut(e.target.value)}
+              />
+            </div>
+            <div>
+              <FieldLabel>Date de naissance</FieldLabel>
+              <Input
+                type="date"
+                value={dateNaissance}
+                onChange={e => setDateNaissance(e.target.value)}
+              />
+            </div>
           </div>
 
         </div>

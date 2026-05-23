@@ -289,7 +289,7 @@ export default function OuvrierList() {
           <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--bg-secondary)' }}>
-                {['', 'Nom', 'Téléphone', 'Campus', 'Services', 'Depuis', 'Statut', 'Type', ''].map((col, i) => (
+                {['', 'Nom', 'Téléphone', 'Campus', 'Services', 'Depuis', 'Né le', 'Statut', 'Type', ''].map((col, i) => (
                   <th key={i} style={{
                     padding: '10px 14px', textAlign: 'left',
                     fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
@@ -344,6 +344,11 @@ export default function OuvrierList() {
                   {/* Date début */}
                   <td style={{ padding: '11px 14px', color: 'var(--text-secondary)', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                     {formatDate(o.date_debut_service)}
+                  </td>
+
+                  {/* Date de naissance */}
+                  <td style={{ padding: '11px 14px', color: 'var(--text-secondary)', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+                    {formatDate(o.date_naissance)}
                   </td>
 
                   {/* Statut */}

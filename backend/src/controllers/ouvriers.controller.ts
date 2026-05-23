@@ -117,7 +117,7 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
     const {
       contact_id,
       prenom, nom, telephone, email,
-      campus, services, date_debut_service,
+      campus, services, date_debut_service, date_naissance,
     } = req.body as {
       contact_id?:          string;
       prenom:               string;
@@ -127,6 +127,7 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
       campus:               string;
       services?:            string[];
       date_debut_service?:  string;
+      date_naissance?:      string;
     };
 
     if (!prenom || !nom || !telephone || !campus) {
@@ -134,7 +135,8 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const dateDebut = date_debut_service ? new Date(date_debut_service) : null;
+    const dateDebut      = date_debut_service ? new Date(date_debut_service) : null;
+    const dateNaissance  = date_naissance     ? new Date(date_naissance)     : null;
 
     // ── Mode promotion : contact_id fourni ──────────────────────────────────
     if (contact_id) {
@@ -162,6 +164,7 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
             campus:              contact.campus as any,
             services:            services ?? [],
             date_debut_service:  dateDebut,
+            date_naissance:      dateNaissance,
             inscription_directe: false,
           },
         }),
@@ -193,6 +196,7 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
         campus:              campus as any,
         services:            services ?? [],
         date_debut_service:  dateDebut,
+        date_naissance:      dateNaissance,
         inscription_directe: true,
       },
     });
@@ -212,7 +216,7 @@ export async function updateOuvrier(req: Request, res: Response): Promise<void> 
     const id = req.params['id'] as string;
     const {
       prenom, nom, telephone, email,
-      campus, services, date_debut_service,
+      campus, services, date_debut_service, date_naissance,
     } = req.body as {
       prenom?:              string;
       nom?:                 string;
@@ -221,6 +225,7 @@ export async function updateOuvrier(req: Request, res: Response): Promise<void> 
       campus?:              string;
       services?:            string[];
       date_debut_service?:  string | null;
+      date_naissance?:      string | null;
     };
 
     const exists = await prisma.ouvrier.findUnique({ where: { id } });
@@ -238,6 +243,9 @@ export async function updateOuvrier(req: Request, res: Response): Promise<void> 
     if (services           !== undefined) data.services          = services;
     if (date_debut_service !== undefined) {
       data.date_debut_service = date_debut_service ? new Date(date_debut_service) : null;
+    }
+    if (date_naissance !== undefined) {
+      data.date_naissance = date_naissance ? new Date(date_naissance) : null;
     }
 
     const ouvrier = await prisma.ouvrier.update({ where: { id }, data });

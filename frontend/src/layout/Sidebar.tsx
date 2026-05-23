@@ -55,7 +55,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Admin',
     items: [
       { to: '/admin',      label: 'Comptes',    icon: '👤', minRole: 'admin_campus' },
-      { to: '/feedback-resultats', label: 'Satisfaction', icon: '📊', minRole: 'admin_campus' },
+      { to: '/feedback-resultats', label: 'Satisfaction', icon: '⭐', minRole: 'referent_integration' },
       { to: '/parametres', label: 'Paramètres', icon: '⚙️', minRole: 'super_admin' },
       { to: '/audit',      label: 'Audit',      icon: '🗒️', minRole: 'super_admin' },
     ],

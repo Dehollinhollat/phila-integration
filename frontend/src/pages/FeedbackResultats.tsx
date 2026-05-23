@@ -63,7 +63,10 @@ function QuestionChart({ title, data, qKey }: { title: string; data: Record<stri
         <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 40, left: 0 }}>
           <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} angle={-30} textAnchor="end" interval={0} />
           <YAxis tick={{ fontSize: 11, fill: '#64748B' }} allowDecimals={false} />
-          <Tooltip formatter={(v: number) => [`${v} réponse(s)`, 'Nombre']} />
+          <Tooltip formatter={(v) => {
+            const num = typeof v === 'number' ? v : 0;
+            return [`${num}`, 'Réponses'];
+          }} />
           <Bar dataKey="count" radius={[4, 4, 0, 0]}>
             {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
           </Bar>

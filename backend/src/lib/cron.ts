@@ -375,24 +375,18 @@ export function startCronJobs(): void {
 
     // ── Ouvriers anniversaire ──────────────────────────────────────────────────
     const ouvriers = await prisma.ouvrier.findMany({
-      where:  { date_naissance: { not: null }, statut: true },
-      select: { id: true, prenom: true, telephone: true, date_naissance: true },
+      where: { date_naissance: { not: null } },
     });
-
     const ouvriersAujourdHui = ouvriers.filter(o => {
       if (!o.date_naissance) return false;
       const d = new Date(o.date_naissance);
       return d.getDate() === todayDay && (d.getMonth() + 1) === todayMonth;
     });
-
     console.log(`[Cron] ${ouvriersAujourdHui.length} anniversaire(s) ouvrier(s) aujourd'hui`);
-
     for (const ouvrier of ouvriersAujourdHui) {
-      const contenu = template.replace(/\[Prenom\]/gi, ouvrier.prenom);
-      const { error } = await sendWhatsApp(ouvrier.telephone, contenu);
-      if (error) {
-        console.error(`[ANNIVERSAIRE] Erreur ouvrier ${ouvrier.prenom}:`, error);
-      }
+      const message = template.replace(/\[Prenom\]/g, ouvrier.prenom);
+      const { error } = await sendWhatsApp(ouvrier.telephone, message);
+      if (error) console.error(`[ANNIVERSAIRE] Erreur ouvrier ${ouvrier.prenom}:`, error);
     }
     console.log(`[Cron] ${ouvriersAujourdHui.length} message(s) anniversaire ouvrier(s) traité(s)`);
   });
@@ -539,11 +533,11 @@ export function startCronJobs(): void {
 
     const [contacts, ouvriers] = await Promise.all([
       prisma.contact.findMany({
-        where:  { statut: { not: 'inactif' } },
+        where:  {},
         select: { prenom: true, telephone: true },
       }),
       prisma.ouvrier.findMany({
-        where:  { statut: true },
+        where:  {},
         select: { prenom: true, telephone: true },
       }),
     ]);
