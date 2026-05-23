@@ -143,6 +143,24 @@ export default function Settings() {
   }
 
   const [values,  setValues]  = useState<Record<string, string>>({});
+
+  function computeApercu(key: string, raw: string): string {
+    const adresse = values['adresse_eglise']  || '8 rue Saint-Claude, 77340 Pontault-Combault';
+    const tel     = values['telephone_eglise'] || '+33 1 23 45 67 89';
+    const base = raw
+      .replace(/\[Pr[eé]nom\]/gi,          'Marie')
+      .replace(/\[Date\]/gi,               '29 juin 2026')
+      .replace(/\[Campus\]/gi,             'Paris')
+      .replace(/\[Telephone_Eglise\]/gi,   tel)
+      .replace(/\[Telephone_Referent\]/gi, '+33 6 12 34 56 78')
+      .replace(/\[Referent\]/gi,           'Jean Dupont');
+    if (key === 'template_evenement') {
+      return base
+        .replace(/\[Theme\]/gi,   'La grâce de Dieu')
+        .replace(/\[Adresse\]/gi, adresse);
+    }
+    return base;
+  }
   const [saved,   setSaved]   = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
@@ -280,36 +298,7 @@ export default function Settings() {
                           whiteSpace:   'pre-wrap',
                         }}>
                           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, color: 'var(--text-tertiary)', fontFamily: 'inherit' }}>Aperçu</div>
-                          {(() => {
-                            const raw = values[def.key] || '';
-                            const adresse  = values['adresse_eglise']  || '8 rue Saint-Claude, 77340 Pontault-Combault';
-                            const tel      = values['telephone_eglise'] || '+33 1 23 45 67 89';
-                            if (def.key === 'template_evenement') {
-                              return raw
-                                .replace(/\[Prenom\]/gi,             'Marie')
-                                .replace(/\[Date\]/gi,               '29 juin 2026')
-                                .replace(/\[Theme\]/gi,              'La grâce de Dieu')
-                                .replace(/\[Adresse\]/gi,            adresse)
-                                .replace(/\[Campus\]/gi,             'Paris')
-                                .replace(/\[Telephone_Eglise\]/gi,   tel)
-                                .replace(/\[Telephone_Referent\]/gi, '+33 6 12 34 56 78')
-                                .replace(/\[Referent\]/gi,           'Jean Dupont');
-                            }
-                            if (
-                              def.key === 'template_anniversaire' ||
-                              def.key === 'message_bienvenue'     ||
-                              def.key === 'template_nouvel_an'
-                            ) {
-                              return raw
-                                .replace(/\[Prenom\]/gi,             'Marie')
-                                .replace(/\[Referent\]/gi,           'Jean Martin')
-                                .replace(/\[Telephone_Referent\]/gi, '+33 6 12 34 56 78')
-                                .replace(/\[Telephone_Eglise\]/gi,   tel)
-                                .replace(/\[Campus\]/gi,             'Paris')
-                                .replace(/\[Date\]/gi,               new Date().toLocaleDateString('fr-FR'));
-                            }
-                            return raw;
-                          })()}
+                          {computeApercu(def.key, values[def.key] || '')}
                         </div>
                       )}
                     </>
