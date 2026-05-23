@@ -165,6 +165,7 @@ export const ouvriersEndpoints = {
     campus:              string;
     services?:           string[];
     date_debut_service?: string;
+    date_naissance?:     string;
     inscription_directe: boolean;
   }) => api.post<Ouvrier>('/ouvriers', data),
 
