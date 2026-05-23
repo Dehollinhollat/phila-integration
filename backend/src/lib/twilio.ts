@@ -34,11 +34,14 @@ export async function sendWhatsApp(to: string, body: string): Promise<SendResult
   const from = process.env.TWILIO_WHATSAPP_FROM;
   if (!from) throw new Error('TWILIO_WHATSAPP_FROM manquant dans .env');
 
+  // Convertit les séquences littérales \n (saisies ou stockées en base) en vrais sauts de ligne
+  const normalizedBody = body.replace(/\\n/g, '\n');
+
   try {
     const msg = await getClient().messages.create({
       from,
       to: `whatsapp:${to}`,
-      body,
+      body: normalizedBody,
     });
     return { sid: msg.sid };
   } catch (err: unknown) {

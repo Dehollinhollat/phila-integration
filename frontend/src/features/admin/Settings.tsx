@@ -264,6 +264,7 @@ export default function Settings() {
                           fontFamily:   'monospace',
                           lineHeight:   1.6,
                           borderLeft:   '3px solid var(--accent-teal)',
+                          whiteSpace:   'pre-wrap',
                         }}>
                           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, color: 'var(--text-tertiary)', fontFamily: 'inherit' }}>Aperçu</div>
                           {def.key === 'template_anniversaire' || def.key === 'message_bienvenue' || def.key === 'template_nouvel_an'
