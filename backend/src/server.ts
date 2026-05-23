@@ -29,6 +29,7 @@ import settingsRoutes from './routes/settings.routes';
 import statsRoutes from './routes/stats.routes';
 import auditRoutes from './routes/audit.routes';
 import searchRoutes from './routes/search.routes';
+import feedbackRoutes from './routes/feedback.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -165,6 +166,7 @@ app.use('/api/settings',      settingsRoutes);
 app.use('/api/stats',         statsRoutes);
 app.use('/api/audit',         auditRoutes);
 app.use('/api/search',        searchRoutes);
+app.use('/api/feedback',      feedbackRoutes);
 
 // Health check — inclut le flag maintenance pour que le frontend puisse le détecter
 // même quand le middleware 503 est actif (il laisse passer /health vers ce handler).

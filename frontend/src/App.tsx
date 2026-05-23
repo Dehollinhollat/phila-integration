@@ -62,6 +62,8 @@ import Maintenance          from './pages/Maintenance';
 import StatistiquesAvancees from './pages/StatistiquesAvancees';
 import MonTableauDeBord    from './pages/MonTableauDeBord';
 import { InstallPWA }      from './components/common/InstallPWA';
+import FormFeedback      from './pages/FormFeedback';
+import FeedbackResultats from './pages/FeedbackResultats';
 
 
 // AnimatePresence nécessite useLocation, qui exige d'être dans le contexte BrowserRouter
@@ -84,6 +86,7 @@ function AnimatedRoutes() {
         <Route path="/success-ouvrier"               element={<SuccessOuvrier />} />
         <Route path="/mentions-legales"              element={<MentionsLegales />} />
         <Route path="/politique-confidentialite"     element={<PolitiqueConfidentialite />} />
+        <Route path="/form/feedback/:token"          element={<FormFeedback />} />
 
         {/* Routes protégées — imbriquées sous ProtectedLayout */}
         <Route element={<ProtectedLayout />}>
@@ -112,6 +115,7 @@ function AnimatedRoutes() {
           <Route path="/parametres"         element={<Settings />} />
           <Route path="/qrcodes"            element={<QRManager />} />
           <Route path="/audit"              element={<AuditLogs />} />
+          <Route path="/feedback-resultats" element={<FeedbackResultats />} />
         </Route>
 
         {/* 404 — doit rester la dernière route */}

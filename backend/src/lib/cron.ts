@@ -19,6 +19,7 @@ import prisma from './prisma';
 import { sendWhatsApp, sendWhatsAppBulk } from './twilio';
 import { sendRapportHebdomadaire } from './email';
 import { applyVariables, DEFAULT_BIENVENUE_TEMPLATE, buildDestinataireWhere, buildFiltresWhere } from '../controllers/messages.controller';
+import crypto from 'crypto';
 
 export function startCronJobs(): void {
   // ── Tâche 1 : Messages de bienvenue J+3 (tous les jours à 09h00) ────────────
@@ -317,6 +318,14 @@ export function startCronJobs(): void {
       create: { key: 'telephone_eglise', value: '' },
       update: {},
     }),
+    prisma.settings.upsert({
+      where:  { key: 'template_nouvel_an' },
+      create: {
+        key:   'template_nouvel_an',
+        value: "Bonne année [Prenom] ! 🎉 Toute l'équipe de Phila Cité des Adorateurs vous souhaite une excellente année, pleine de grâce, de santé et de victoires. Que Dieu vous comble de Ses bénédictions en cette nouvelle année !",
+      },
+      update: {},
+    }),
   ]).catch(() => {/* ignore si settings non disponibles au démarrage */});
 
   // ── Tâche 5 : Messages d'anniversaire (tous les jours à 09h00) ──────────────
@@ -338,7 +347,6 @@ export function startCronJobs(): void {
     });
 
     console.log(`[Cron] ${anniversaires.length} anniversaire(s) aujourd'hui`);
-    if (anniversaires.length === 0) return;
 
     const setting  = await prisma.settings.findUnique({ where: { key: 'template_anniversaire' } });
     const template = setting?.value ?? 'Joyeux anniversaire [Prenom] ! 🎂 Que Dieu vous bénisse abondamment.';
@@ -364,6 +372,29 @@ export function startCronJobs(): void {
     }
 
     console.log(`[Cron] ${anniversaires.length} message(s) anniversaire traité(s)`);
+
+    // ── Ouvriers anniversaire ──────────────────────────────────────────────────
+    const ouvriers = await prisma.ouvrier.findMany({
+      where:  { date_naissance: { not: null }, statut: true },
+      select: { id: true, prenom: true, telephone: true, date_naissance: true },
+    });
+
+    const ouvriersAujourdHui = ouvriers.filter(o => {
+      if (!o.date_naissance) return false;
+      const d = new Date(o.date_naissance);
+      return d.getDate() === todayDay && (d.getMonth() + 1) === todayMonth;
+    });
+
+    console.log(`[Cron] ${ouvriersAujourdHui.length} anniversaire(s) ouvrier(s) aujourd'hui`);
+
+    for (const ouvrier of ouvriersAujourdHui) {
+      const contenu = template.replace(/\[Prenom\]/gi, ouvrier.prenom);
+      const { error } = await sendWhatsApp(ouvrier.telephone, contenu);
+      if (error) {
+        console.error(`[ANNIVERSAIRE] Erreur ouvrier ${ouvrier.prenom}:`, error);
+      }
+    }
+    console.log(`[Cron] ${ouvriersAujourdHui.length} message(s) anniversaire ouvrier(s) traité(s)`);
   });
 
   // ── Tâche 6 : Nettoyage sessions inactives (tous les jours à 02h00) ─────────
@@ -496,6 +527,84 @@ export function startCronJobs(): void {
     }
 
     console.log(`[CRON][RISQUE] ${sansReferent.length} sans référent, ${nouveauxEnRetard.length} en retard`);
+  });
+
+  // ── Tâche 10 : Message Nouvel An (1er janvier à 09h00) ────────────────────
+  cron.schedule('0 9 1 1 *', async () => {
+    console.log('[CRON][NOUVEL_AN] Envoi messages Nouvel An...');
+
+    const setting  = await prisma.settings.findUnique({ where: { key: 'template_nouvel_an' } });
+    const template = setting?.value
+      ?? "Bonne année [Prenom] ! 🎉 Toute l'équipe de Phila Cité des Adorateurs vous souhaite une excellente année, pleine de grâce, de santé et de victoires. Que Dieu vous comble de Ses bénédictions en cette nouvelle année !";
+
+    const [contacts, ouvriers] = await Promise.all([
+      prisma.contact.findMany({
+        where:  { statut: { not: 'inactif' } },
+        select: { prenom: true, telephone: true },
+      }),
+      prisma.ouvrier.findMany({
+        where:  { statut: true },
+        select: { prenom: true, telephone: true },
+      }),
+    ]);
+
+    const seen = new Set<string>();
+    const destinataires = [
+      ...contacts.map(c => ({ prenom: c.prenom, telephone: c.telephone })),
+      ...ouvriers.map(o => ({ prenom: o.prenom, telephone: o.telephone })),
+    ].filter(d => {
+      if (seen.has(d.telephone)) return false;
+      seen.add(d.telephone);
+      return true;
+    });
+
+    for (const dest of destinataires) {
+      const message = template.replace(/\[Prenom\]/g, dest.prenom);
+      const { error } = await sendWhatsApp(dest.telephone, message);
+      if (error) {
+        console.error(`[NOUVEL_AN] Erreur pour ${dest.telephone}:`, error);
+      }
+    }
+
+    console.log(`[CRON][NOUVEL_AN] ${destinataires.length} messages envoyés`);
+  });
+
+  // ── Tâche 11 : Liens feedback satisfaction J+14 (tous les jours à 10h00) ───
+  cron.schedule('0 10 * * *', async () => {
+    const il_y_a_14_jours = new Date();
+    il_y_a_14_jours.setDate(il_y_a_14_jours.getDate() - 14);
+
+    const debut = new Date(il_y_a_14_jours);
+    debut.setHours(0, 0, 0, 0);
+    const fin = new Date(il_y_a_14_jours);
+    fin.setHours(23, 59, 59, 999);
+
+    const contacts = await prisma.contact.findMany({
+      where: {
+        date_inscription: { gte: debut, lte: fin },
+        statut: { not: 'inactif' },
+      },
+      select: { id: true, prenom: true, telephone: true },
+    });
+
+    for (const contact of contacts) {
+      const token     = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      await prisma.feedbackToken.create({
+        data: { contact_id: contact.id, token, expires_at: expiresAt },
+      });
+
+      const lien    = `${process.env.FRONTEND_URL ?? 'http://localhost:5173'}/form/feedback/${token}`;
+      const message = `Bonjour ${contact.prenom}, nous espérons que vous vous sentez bien chez nous à Phila ! Votre avis nous est précieux. Prenez 3 minutes pour répondre à notre questionnaire de satisfaction : ${lien}`;
+
+      const { error } = await sendWhatsApp(contact.telephone, message);
+      if (error) {
+        console.error('[FEEDBACK] Erreur envoi:', error);
+      }
+    }
+
+    console.log(`[CRON][FEEDBACK] ${contacts.length} lien(s) envoyé(s)`);
   });
 
   console.log('[Cron] Tâches planifiées démarrées');

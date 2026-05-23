@@ -102,6 +102,19 @@ const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
       },
     ],
   },
+  {
+    label: 'Message Nouvel An',
+    icon:  '🎉',
+    settings: [
+      {
+        key:         'template_nouvel_an',
+        label:       'Message du Nouvel An',
+        description: 'Envoyé automatiquement le 1er janvier à 9h00 à tous les contacts et ouvriers actifs. Variable disponible : [Prenom].',
+        type:        'textarea' as const,
+        placeholder: "Bonne année [Prenom] ! 🎉 Toute l'équipe de Phila Cité des Adorateurs vous souhaite une excellente année...",
+      },
+    ],
+  },
 ];
 
 // ─── Composant ────────────────────────────────────────────────────────────────
@@ -253,7 +266,7 @@ export default function Settings() {
                           borderLeft:   '3px solid var(--accent-teal)',
                         }}>
                           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, color: 'var(--text-tertiary)', fontFamily: 'inherit' }}>Aperçu</div>
-                          {def.key === 'template_anniversaire' || def.key === 'message_bienvenue'
+                          {def.key === 'template_anniversaire' || def.key === 'message_bienvenue' || def.key === 'template_nouvel_an'
                             ? values[def.key]
                                 .replace(/\[Prenom\]/gi,             'Marie')
                                 .replace(/\[Referent\]/gi,           'Jean Martin')

@@ -333,6 +333,7 @@ model Contact {
   messages              Message[]
   ouvrier               Ouvrier?            // relation 1-1 si le contact devient ouvrier
   checklist             ChecklistItem[]     // 6 étapes générées automatiquement à l'inscription
+  feedback_tokens       FeedbackToken[]
 
   @@index([telephone])
   @@index([campus])
@@ -671,4 +672,37 @@ model AuditLog {
   @@index([entite, entite_id])
   @@index([auteur_id])
   @@index([created_at])
+}
+
+// ─────────────────────────────────────────
+// FEEDBACK TOKEN
+// Token à usage unique envoyé par WhatsApp 14 jours après inscription.
+// Expire 7 jours après l'envoi. Marqué 'used' après soumission du formulaire.
+// ─────────────────────────────────────────
+
+model FeedbackToken {
+  id         String   @id @default(cuid())
+  contact_id String
+  contact    Contact  @relation(fields: [contact_id], references: [id], onDelete: Cascade)
+  token      String   @unique
+  used       Boolean  @default(false)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  @@index([token])
+}
+
+// ─────────────────────────────────────────
+// FEEDBACK
+// Réponses au questionnaire de satisfaction envoyé à J+14.
+// Stocké en JSON pour flexibilité (12 questions de types variés).
+// contact_id optionnel : le formulaire est volontairement anonyme.
+// ─────────────────────────────────────────
+
+model Feedback {
+  id         String   @id @default(cuid())
+  contact_id String?
+  token      String?
+  reponses   Json
+  created_at DateTime @default(now())
 }
