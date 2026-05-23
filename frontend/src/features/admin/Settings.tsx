@@ -115,6 +115,19 @@ const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
       },
     ],
   },
+  {
+    label: 'Template Événement',
+    icon:  '📅',
+    settings: [
+      {
+        key:         'template_evenement',
+        label:       'Message d\'invitation à un événement',
+        description: 'Envoyé lors de la création d\'un événement. Variables : [Prenom], [Date], [Theme], [Adresse], [Telephone_Eglise].',
+        type:        'textarea' as const,
+        placeholder: 'Bonjour [Prenom] ! 🙏 Nous vous invitons à notre événement "[Theme]" le [Date].\n\n📍 [Adresse]\n📞 [Telephone_Eglise]',
+      },
+    ],
+  },
 ];
 
 // ─── Composant ────────────────────────────────────────────────────────────────
@@ -267,15 +280,33 @@ export default function Settings() {
                           whiteSpace:   'pre-wrap',
                         }}>
                           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, color: 'var(--text-tertiary)', fontFamily: 'inherit' }}>Aperçu</div>
-                          {def.key === 'template_anniversaire' || def.key === 'message_bienvenue' || def.key === 'template_nouvel_an'
-                            ? values[def.key]
+                          {(() => {
+                            const raw = values[def.key] || '';
+                            const adresse  = values['adresse_eglise']  || '8 rue Saint-Claude, 77340 Pontault-Combault';
+                            const tel      = values['telephone_eglise'] || '+33 1 23 45 67 89';
+                            if (def.key === 'template_evenement') {
+                              return raw
+                                .replace(/\[Prenom\]/gi,          'Marie')
+                                .replace(/\[Date\]/gi,            '29 juin 2026')
+                                .replace(/\[Theme\]/gi,           'La grâce de Dieu')
+                                .replace(/\[Adresse\]/gi,         adresse)
+                                .replace(/\[Telephone_Eglise\]/gi, tel);
+                            }
+                            if (
+                              def.key === 'template_anniversaire' ||
+                              def.key === 'message_bienvenue'     ||
+                              def.key === 'template_nouvel_an'
+                            ) {
+                              return raw
                                 .replace(/\[Prenom\]/gi,             'Marie')
                                 .replace(/\[Referent\]/gi,           'Jean Martin')
                                 .replace(/\[Telephone_Referent\]/gi, '+33 6 12 34 56 78')
-                                .replace(/\[Telephone_Eglise\]/gi,   '+33 1 23 45 67 89')
+                                .replace(/\[Telephone_Eglise\]/gi,   tel)
                                 .replace(/\[Campus\]/gi,             'Paris')
-                                .replace(/\[Date\]/gi,               new Date().toLocaleDateString('fr-FR'))
-                            : values[def.key]}
+                                .replace(/\[Date\]/gi,               new Date().toLocaleDateString('fr-FR'));
+                            }
+                            return raw;
+                          })()}
                         </div>
                       )}
                     </>
