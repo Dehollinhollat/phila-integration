@@ -133,7 +133,7 @@ export default function FeedbackResultats() {
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>Satisfaction</h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
-            Résultats du questionnaire : {total} réponse(s)
+            Résultats du questionnaire : {total} réponse(s)Résultats du questionnaire : {total} réponse{total > 1 ? 's' : ''}
           </p>
         </div>
         <button
