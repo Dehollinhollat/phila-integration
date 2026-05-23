@@ -94,6 +94,10 @@ function buildSteps(role: Role): Step[] {
           <InfoBlock icon="👥" text="Vos contacts assignés apparaissent dans la section Contacts." />
           <InfoBlock icon="✅" text="Cliquez sur un contact pour voir sa fiche et cocher les étapes de son parcours d'intégration." />
           <InfoBlock icon="🔔" text="Vous recevrez une notification à chaque nouveau contact qui vous est assigné." />
+          <InfoBlock icon="💬" text="Vous pouvez voir l'historique des messages envoyés à vos contacts dans la section Messagerie." />
+          <InfoBlock icon="⭐" text="Un questionnaire de satisfaction est envoyé automatiquement à vos contacts 14 jours après leur inscription." />
+          <InfoBlock icon="🏠" text="Votre tableau de bord personnel affiche vos contacts avec des badges : En retard, À contacter, À jour." />
+          <InfoBlock icon="🤝" text="Une suggestion de référent aide les admins à vous assigner des contacts selon votre charge de travail actuelle." />
         </div>
       ),
     },
@@ -104,7 +108,8 @@ function buildSteps(role: Role): Step[] {
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <InfoBlock icon="📋" text="Vous pouvez consulter les notes des référents d'intégration et ajouter vos propres notes pastorales." />
-          <InfoBlock icon="🔒" text="Vos notes sont confidentielles et non visibles par les référents d'intégration." />
+          <InfoBlock icon="🔒" text="Vos notes pastorales sont confidentielles et non visibles par les référents d'intégration." />
+          <InfoBlock icon="⭐" text="Vous pouvez consulter les résultats du questionnaire de satisfaction dans la section Satisfaction." />
         </div>
       ),
     },
@@ -115,8 +120,14 @@ function buildSteps(role: Role): Step[] {
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <InfoBlock icon="🏛️" text="Vous gérez les contacts, les référents et les plannings de votre campus." />
-          <InfoBlock icon="📊" text="Le dashboard vous donne une vue complète des statistiques et des alertes." />
-          <InfoBlock icon="🔑" text="Pensez à changer votre mot de passe depuis votre profil si c'est votre première connexion." />
+          <InfoBlock icon="📊" text="Le tableau de bord vous donne une vue complète des statistiques et des alertes." />
+          <InfoBlock icon="📈" text="Le module Statistiques affiche le taux de conversion, le temps moyen d'intégration et la performance par référent." />
+          <InfoBlock icon="📧" text="Un rapport hebdomadaire est envoyé automatiquement chaque lundi à 8h00 à tous les administrateurs." />
+          <InfoBlock icon="⭐" text="La page Satisfaction affiche les résultats du questionnaire envoyé aux contacts à J+14." />
+          <InfoBlock icon="⚠️" text="La détection de contacts à risque envoie des alertes automatiques chaque jour à 8h30." />
+          <InfoBlock icon="🎉" text="Les messages de vœux du Nouvel An sont envoyés automatiquement le 1er janvier à tous les contacts et ouvriers." />
+          <InfoBlock icon="🗒️" text="La page Audit trace toutes les actions importantes effectuées dans l'application." />
+          <InfoBlock icon="🔧" text="Le mode maintenance est activable depuis Railway en ajoutant la variable MAINTENANCE_MODE=true." />
         </div>
       ),
     },
@@ -140,20 +151,31 @@ function buildSteps(role: Role): Step[] {
 }
 
 function getSectionsByRole(role: Role) {
-  const all = [
-    { icon: '📊', label: 'Dashboard',    desc: 'Vue d\'ensemble et KPIs' },
-    { icon: '👥', label: 'Contacts',     desc: 'Suivi des nouveaux membres' },
-    { icon: '📋', label: 'Checklist',    desc: 'Parcours d\'intégration' },
-    { icon: '🔔', label: 'Notifications', desc: 'Alertes et rappels' },
+  const isReferent   = role === 'referent_integration' || role === 'referent_eglise';
+  const isAdmin      = role === 'admin_campus'         || role === 'super_admin';
+  const isSuperAdmin = role === 'super_admin';
+
+  return [
+    { icon: '📊', label: 'Tableau de bord',     desc: 'Vue d\'ensemble et indicateurs clés' },
+    ...(isReferent || isAdmin ? [{ icon: '🏠', label: 'Mon tableau de bord', desc: 'Vos contacts assignés et indicateurs personnels' }] : []),
+    { icon: '👥', label: 'Contacts',             desc: 'Suivi des nouveaux membres et visiteurs' },
+    ...(isAdmin    ? [{ icon: '🤝', label: 'Référents', desc: 'Gestion et assignation des référents' }] : []),
+    { icon: '💬', label: 'Messagerie',           desc: isReferent ? 'Historique des messages (lecture)' : 'Envoi et historique des messages WhatsApp' },
+    { icon: '📅', label: 'Événements',           desc: isReferent ? 'Événements planifiés (lecture)' : 'Création d\'envois groupés' },
+    { icon: '🔔', label: 'Notifications',        desc: 'Alertes et rappels automatiques' },
+    { icon: '⭐', label: 'Satisfaction',         desc: 'Résultats du questionnaire de satisfaction J+14' },
+    ...(isAdmin    ? [{ icon: '📈', label: 'Statistiques', desc: 'Taux de conversion, temps d\'intégration, performance par référent' }] : []),
+    { icon: '🗓️', label: 'Planning',             desc: 'Planning dominical des services' },
+    { icon: '⛪', label: 'Ouvriers',             desc: 'Membres actifs dans les équipes de service' },
+    ...(isAdmin ? [
+      { icon: '📱', label: 'QR Codes', desc: 'Génération de QR codes d\'inscription rapide' },
+      { icon: '👤', label: 'Comptes',  desc: 'Gestion des comptes utilisateurs' },
+    ] : []),
+    ...(isSuperAdmin ? [
+      { icon: '⚙️', label: 'Paramètres', desc: 'Configuration système et templates messages' },
+      { icon: '🗒️', label: 'Audit',      desc: 'Journal de toutes les actions importantes' },
+    ] : []),
   ];
-  const admin = [
-    { icon: '👤', label: 'Référents',   desc: 'Gestion des référents' },
-    { icon: '📅', label: 'Planning',    desc: 'Planning dominical' },
-    { icon: '💬', label: 'Messagerie',  desc: 'Messages WhatsApp' },
-    { icon: '⚙️', label: 'Admin',       desc: 'Gestion des comptes' },
-  ];
-  if (role === 'super_admin' || role === 'admin_campus') return [...all, ...admin];
-  return all;
 }
 
 function InfoBlock({ icon, text }: { icon: string; text: string }) {

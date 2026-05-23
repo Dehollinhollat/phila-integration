@@ -226,7 +226,7 @@ export default function FormFeedback() {
 
         {/* Introduction -section 1 uniquement */}
         {step === 0 && (
-          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '14px 16px', marginBottom: 24, fontSize: 13, color: '#166534', lineHeight: 1.6 }}>
+          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '14px 16px', marginBottom: 24, fontSize: 13, color: '#166534', lineHeight: 1.6, textAlign: 'justify' }}>
             Dans le cadre de notre démarche d'amélioration continue, nous souhaitons mieux comprendre votre vécu lors de nos cultes. Ce questionnaire est entièrement anonyme et ne prend que 3 à 5 minutes. Vos réponses sincères sont précieuses pour nous aider à grandir ensemble. Merci de votre participation !
           </div>
         )}
