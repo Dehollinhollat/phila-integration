@@ -24,7 +24,7 @@ export default defineConfig({
         theme_color:      '#1A56B0',
         background_color: '#ffffff',
         display:          'standalone',   // lance sans la barre d'adresse du navigateur
-        orientation:      'portrait',
+        orientation:      'any',       // autorise portrait et paysage
         scope:            '/',
         start_url:        '/',
         lang:             'fr',
