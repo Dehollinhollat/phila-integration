@@ -1,5 +1,5 @@
 // src/pages/StatistiquesAvancees.tsx
-// Page de statistiques avancées — taux de conversion, temps d'intégration,
+// Page de statistiques avancées -taux de conversion, temps d'intégration,
 // performance des référents, évolution hebdomadaire, rapport email.
 // Accessible depuis la sidebar aux rôles admin_campus et super_admin.
 

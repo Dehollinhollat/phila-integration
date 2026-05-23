@@ -1,5 +1,5 @@
 // src/pages/AuditLogs.tsx
-// Journal d'audit — super_admin uniquement.
+// Journal d'audit -super_admin uniquement.
 // Tableau paginé (50/page) avec filtres action, période, auteur.
 // Export CSV des entrées affichées.
 
@@ -77,7 +77,7 @@ export default function AuditLogs() {
       setTotal(data.total);
       setPage(data.page);
       setPages(data.pages);
-    } catch { /* silencieux — le backend renvoie 403 si non super_admin */ }
+    } catch { /* silencieux -le backend renvoie 403 si non super_admin */ }
     finally { setLoading(false); }
   }, [action, dateDebut, dateFin]);
 
@@ -85,7 +85,7 @@ export default function AuditLogs() {
     if (user?.role === 'super_admin') void load(1);
   }, [load, user]);
 
-  // Guard rendu — après tous les hooks
+  // Guard rendu -après tous les hooks
   if (!user) return null;
   if (user.role !== 'super_admin') {
     navigate('/dashboard', { replace: true });

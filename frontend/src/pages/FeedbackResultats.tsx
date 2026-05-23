@@ -1,5 +1,5 @@
 // src/pages/FeedbackResultats.tsx
-// Résultats du questionnaire de satisfaction — admin_campus+.
+// Résultats du questionnaire de satisfaction -admin_campus+.
 // Nombre total, moyennes Q4/Q5, graphiques Recharts, commentaires Q12, export CSV.
 
 import { useState, useEffect } from 'react';
@@ -133,7 +133,7 @@ export default function FeedbackResultats() {
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>Satisfaction</h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
-            Résultats du questionnaire — {total} réponse(s)
+            Résultats du questionnaire -{total} réponse(s)
           </p>
         </div>
         <button
@@ -171,24 +171,24 @@ export default function FeedbackResultats() {
 
           {/* Graphiques */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 28 }}>
-            <QuestionChart title="Q1 — Profil dans l'assemblée"    data={s.q1}  qKey="q1" />
-            <QuestionChart title="Q2 — Fréquence de venue"          data={s.q2}  qKey="q2" />
-            <QuestionChart title="Q3 — Découverte (checkboxes)"     data={s.q3}  qKey="q3" />
-            <QuestionChart title="Q4 — Évaluation générale (dist.)" data={s.q4}  qKey="q4" />
-            <QuestionChart title="Q5 — Accueil (distribution)"      data={s.q5}  qKey="q5" />
-            <QuestionChart title="Q6 — Éléments appréciés"          data={s.q6}  qKey="q6" />
-            <QuestionChart title="Q7 — Axes d'amélioration"         data={s.q7}  qKey="q7" />
-            <QuestionChart title="Q8 — Durée préférée"              data={s.q8}  qKey="q8" />
-            <QuestionChart title="Q9 — Échanges après culte"        data={s.q9}  qKey="q9" />
-            <QuestionChart title="Q10 — Intention de revenir"       data={s.q10} qKey="q10" />
-            <QuestionChart title="Q11 — Recommandation"             data={s.q11} qKey="q11" />
+            <QuestionChart title="Q1 -Profil dans l'assemblée"    data={s.q1}  qKey="q1" />
+            <QuestionChart title="Q2 -Fréquence de venue"          data={s.q2}  qKey="q2" />
+            <QuestionChart title="Q3 -Découverte (checkboxes)"     data={s.q3}  qKey="q3" />
+            <QuestionChart title="Q4 -Évaluation générale (dist.)" data={s.q4}  qKey="q4" />
+            <QuestionChart title="Q5 -Accueil (distribution)"      data={s.q5}  qKey="q5" />
+            <QuestionChart title="Q6 -Éléments appréciés"          data={s.q6}  qKey="q6" />
+            <QuestionChart title="Q7 -Axes d'amélioration"         data={s.q7}  qKey="q7" />
+            <QuestionChart title="Q8 -Durée préférée"              data={s.q8}  qKey="q8" />
+            <QuestionChart title="Q9 -Échanges après culte"        data={s.q9}  qKey="q9" />
+            <QuestionChart title="Q10 -Intention de revenir"       data={s.q10} qKey="q10" />
+            <QuestionChart title="Q11 -Recommandation"             data={s.q11} qKey="q11" />
           </div>
 
           {/* Commentaires Q12 */}
           {commentaires.length > 0 && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)', borderRadius: 12, padding: 20 }}>
               <h3 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-                Q12 — Commentaires libres ({commentaires.length})
+                Q12 -Commentaires libres ({commentaires.length})
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {commentaires.map((c, i) => (

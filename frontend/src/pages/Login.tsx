@@ -197,7 +197,7 @@ const S = {
   subtitle: {
     margin:   `${spacing[1]} 0 0`,
     fontSize: '14px',
-    color:    '#475569', // slate-600 — contraste suffisant sur fond blanc (WCAG AA)
+    color:    '#475569', // slate-600 -contraste suffisant sur fond blanc (WCAG AA)
   },
   form: {
     display:       'flex',
@@ -222,7 +222,7 @@ const S = {
     marginBottom: '6px',
     fontSize:     '14px',
     fontWeight:   600,
-    color:        '#1E293B', // slate-800 — lisible sur fond blanc sans dépendre des variables
+    color:        '#1E293B', // slate-800 -lisible sur fond blanc sans dépendre des variables
   },
   input: {
     // Fond et texte hardcodés : évite le fond blanc + texte blanc sur mobile mode clair
@@ -230,9 +230,9 @@ const S = {
     width:        '100%',
     padding:      '14px 16px',
     borderRadius: '8px',
-    border:       '2px solid #94A3B8',   // slate-400 — bordure plus visible sur mobile
-    background:   '#F1F5F9',             // slate-100 — fond clairement distinct du blanc pur
-    color:        '#0F172A',             // slate-900 — texte très sombre, contraste élevé
+    border:       '2px solid #94A3B8',   // slate-400 -bordure plus visible sur mobile
+    background:   '#F1F5F9',             // slate-100 -fond clairement distinct du blanc pur
+    color:        '#0F172A',             // slate-900 -texte très sombre, contraste élevé
     fontSize:     '16px',               // 16px minimum évite le zoom automatique iOS
     outline:      'none',
     transition:   transitions.fast,
@@ -272,6 +272,6 @@ const S = {
     marginTop: spacing[6],
     textAlign: 'center' as const,
     fontSize:  '12px',
-    color:     '#64748B', // slate-500 — note de bas de page, contraste suffisant sur fond blanc
+    color:     '#64748B', // slate-500 -note de bas de page, contraste suffisant sur fond blanc
   },
 } as const;

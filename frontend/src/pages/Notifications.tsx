@@ -1,5 +1,5 @@
 // src/pages/Notifications.tsx
-// Page complète des notifications — liste paginée, filtre lu/non lu, marquage groupé.
+// Page complète des notifications -liste paginée, filtre lu/non lu, marquage groupé.
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';

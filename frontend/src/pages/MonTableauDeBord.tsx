@@ -1,9 +1,9 @@
 // src/pages/MonTableauDeBord.tsx
 // Tableau de bord personnalisé pour les référents d'intégration et d'église.
 // Affiche les contacts assignés avec un badge d'urgence calculé côté serveur :
-//   en_retard   — contact actif sans interaction depuis >14 jours
-//   a_contacter — statut nouveau depuis >3 jours
-//   a_jour      — tout va bien
+//   en_retard   -contact actif sans interaction depuis >14 jours
+//   a_contacter -statut nouveau depuis >3 jours
+//   a_jour      -tout va bien
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
