@@ -203,10 +203,11 @@ export async function sendBienvenue(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Charge le template et le téléphone d'église depuis les settings
-    const [settingTemplate, settingTelEglise] = await Promise.all([
+    // Charge le template et les settings de l'église
+    const [settingTemplate, settingTelEglise, settingAdresse] = await Promise.all([
       prisma.settings.findUnique({ where: { key: 'message_bienvenue' } }),
       prisma.settings.findUnique({ where: { key: 'telephone_eglise' } }),
+      prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }),
     ]);
 
     const contenu = buildBienvenueMessage(
@@ -214,6 +215,7 @@ export async function sendBienvenue(req: Request, res: Response): Promise<void> 
       referent,
       settingTelEglise?.value ?? '',
       settingTemplate?.value  ?? undefined,
+      settingAdresse?.value   ?? '',
     );
 
     const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
@@ -302,10 +304,12 @@ export async function createEvenement(req: Request, res: Response): Promise<void
     });
 
     if (envoyer_maintenant) {
-      const dateStr = new Date(date_evenement).toLocaleDateString('fr-FR');
+      const dateStr       = new Date(date_evenement).toLocaleDateString('fr-FR');
+      const adresseEglise = (await prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }))?.value ?? '';
       const msgText = message_template
-        .replace(/\[Date\]/g, dateStr)
-        .replace(/\[Campus\]/g, filtres.campus ?? filtres_ouvriers.campus ?? 'Phila');
+        .replace(/\[Date\]/g,    dateStr)
+        .replace(/\[Campus\]/g,  filtres.campus ?? filtres_ouvriers.campus ?? 'Phila')
+        .replace(/\[Adresse\]/g, adresseEglise);
 
       // ── Envoi aux contacts ────────────────────────────────────────────────
       if (dest_type === 'contacts' || dest_type === 'tous') {
@@ -417,6 +421,7 @@ export function applyVariables(
     referentNom?:        string;
     referentTelephone?:  string;
     telephoneEglise?:    string;
+    adresseEglise?:      string;
     campus?:             string;
     date?:               string;
     theme?:              string;
@@ -427,6 +432,7 @@ export function applyVariables(
     .replace(/\[Referent\]/gi,           vars.referentNom       ?? '')
     .replace(/\[Telephone_Referent\]/gi, vars.referentTelephone ?? '')
     .replace(/\[Telephone_Eglise\]/gi,   vars.telephoneEglise   ?? '')
+    .replace(/\[Adresse\]/gi,            vars.adresseEglise     ?? '')
     .replace(/\[Campus\]/gi,             vars.campus            ?? '')
     .replace(/\[Date\]/gi,               vars.date              ?? new Date().toLocaleDateString('fr-FR'))
     .replace(/\[Theme\]/gi,              vars.theme             ?? '')
@@ -439,11 +445,13 @@ export function buildBienvenueMessage(
   referent?: { prenom: string; nom: string; telephone?: string | null } | null,
   telephoneEglise?: string,
   templateOverride?: string,
+  adresseEglise?: string,
 ): string {
   return applyVariables(templateOverride ?? DEFAULT_BIENVENUE_TEMPLATE, {
     prenom,
     referentNom:       referent ? `${referent.prenom} ${referent.nom}` : '',
     referentTelephone: referent?.telephone ?? '',
-    telephoneEglise:   telephoneEglise     ?? '',
+    telephoneEglise:   telephoneEglise ?? '',
+    adresseEglise:     adresseEglise   ?? '',
   });
 }

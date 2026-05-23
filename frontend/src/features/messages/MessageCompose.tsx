@@ -24,6 +24,7 @@ const VARIABLES: Array<{ label: string; value: string }> = [
   { label: 'Référent',     value: '[Référent]'          },
   { label: 'Tél. Référent', value: '[Telephone_Referent]' },
   { label: 'Tél. Église',   value: '[Telephone_Eglise]'   },
+  { label: 'Adresse',       value: '[Adresse]'             },
 ];
 
 const VARIABLE_EXAMPLES: Record<string, string> = {
@@ -37,6 +38,7 @@ const VARIABLE_EXAMPLES: Record<string, string> = {
   '[Référent]':            'Jean Martin',
   '[Telephone_Referent]':  '+33 6 12 34 56 78',
   '[Telephone_Eglise]':    '+33 1 23 45 67 89',
+  '[Adresse]':             '12 rue de l\'Exemple, Paris',
 };
 
 // ─── Helper : conversion période → bornes de dates ───────────────────────────
