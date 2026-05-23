@@ -286,11 +286,14 @@ export default function Settings() {
                             const tel      = values['telephone_eglise'] || '+33 1 23 45 67 89';
                             if (def.key === 'template_evenement') {
                               return raw
-                                .replace(/\[Prenom\]/gi,          'Marie')
-                                .replace(/\[Date\]/gi,            '29 juin 2026')
-                                .replace(/\[Theme\]/gi,           'La grâce de Dieu')
-                                .replace(/\[Adresse\]/gi,         adresse)
-                                .replace(/\[Telephone_Eglise\]/gi, tel);
+                                .replace(/\[Prenom\]/gi,             'Marie')
+                                .replace(/\[Date\]/gi,               '29 juin 2026')
+                                .replace(/\[Theme\]/gi,              'La grâce de Dieu')
+                                .replace(/\[Adresse\]/gi,            adresse)
+                                .replace(/\[Campus\]/gi,             'Paris')
+                                .replace(/\[Telephone_Eglise\]/gi,   tel)
+                                .replace(/\[Telephone_Referent\]/gi, '+33 6 12 34 56 78')
+                                .replace(/\[Referent\]/gi,           'Jean Dupont');
                             }
                             if (
                               def.key === 'template_anniversaire' ||
