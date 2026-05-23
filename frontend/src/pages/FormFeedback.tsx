@@ -251,7 +251,7 @@ export default function FormFeedback() {
         {step === 0 && (
           <div style={S.section}>
             <div style={S.question}>
-              <label style={S.label}>Q1 -Comment vous définissez-vous au sein de l'assemblée ?</label>
+              <label style={S.label}>Q1 : Comment vous définissez-vous au sein de l'assemblée ?</label>
               <RadioGroup value={reponses.q1} onChange={v => set('q1', v)} options={[
                 { value: 'nouveau_visiteur', label: 'Nouveau visiteur (moins de 3 mois)' },
                 { value: 'membre_regulier',  label: 'Membre régulier' },
@@ -259,7 +259,7 @@ export default function FormFeedback() {
               ]} />
             </div>
             <div style={S.question}>
-              <label style={S.label}>Q2 -À quelle fréquence venez-vous au culte du dimanche ?</label>
+              <label style={S.label}>Q2 : À quelle fréquence venez-vous au culte du dimanche ?</label>
               <RadioGroup value={reponses.q2} onChange={v => set('q2', v)} options={[
                 { value: 'premiere_fois',      label: "C'est ma première fois" },
                 { value: 'quelques_fois',      label: 'Quelques fois seulement' },
@@ -268,7 +268,7 @@ export default function FormFeedback() {
               ]} />
             </div>
             <div style={S.question}>
-              <label style={S.label}>Q3 -Comment avez-vous découvert Phila Cité des Adorateurs ?</label>
+              <label style={S.label}>Q3 : Comment avez-vous découvert Phila Cité des Adorateurs ?</label>
               <CheckboxGroup values={reponses.q3} onChange={v => set('q3', v)} otherValue={reponses.q3_autre} onOtherChange={v => set('q3_autre', v)} options={[
                 { value: 'proche',   label: 'Par un proche / ami / famille' },
                 { value: 'reseaux',  label: 'Réseaux sociaux' },
@@ -284,11 +284,11 @@ export default function FormFeedback() {
         {step === 1 && (
           <div style={S.section}>
             <div style={S.question}>
-              <label style={S.label}>Q4 -De manière générale, comment évaluez-vous votre expérience lors du culte du dimanche ?</label>
+              <label style={S.label}>Q4 : De manière générale, comment évaluez-vous votre expérience lors du culte du dimanche ?</label>
               <StarRating value={reponses.q4} onChange={v => set('q4', v)} label1="Pas satisfait" label5="Très satisfait" />
             </div>
             <div style={S.question}>
-              <label style={S.label}>Q5 -Comment avez-vous trouvé l'accueil à votre arrivée ?</label>
+              <label style={S.label}>Q5 : Comment avez-vous trouvé l'accueil à votre arrivée ?</label>
               <StarRating value={reponses.q5} onChange={v => set('q5', v)} label1="Peu chaleureux" label5="Très chaleureux" />
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function FormFeedback() {
         {step === 2 && (
           <div style={S.section}>
             <div style={S.question}>
-              <label style={S.label}>Q6 -Parmi les éléments suivants, lesquels avez-vous particulièrement appréciés ?</label>
+              <label style={S.label}>Q6 : Parmi les éléments suivants, lesquels avez-vous particulièrement appréciés ?</label>
               <CheckboxGroup values={reponses.q6} onChange={v => set('q6', v)} otherValue={reponses.q6_autre} onOtherChange={v => set('q6_autre', v)} options={[
                 { value: 'louange',    label: "La louange et l'adoration" },
                 { value: 'predication', label: 'La prédication / le message' },
@@ -309,7 +309,7 @@ export default function FormFeedback() {
               ]} />
             </div>
             <div style={S.question}>
-              <label style={S.label}>Q7 -Y a-t-il des aspects que vous souhaiteriez voir améliorés ou renforcés ?</label>
+              <label style={S.label}>Q7 : Y a-t-il des aspects que vous souhaiteriez voir améliorés ou renforcés ?</label>
               <CheckboxGroup values={reponses.q7} onChange={v => set('q7', v)} otherValue={reponses.q7_autre} onOtherChange={v => set('q7_autre', v)} options={[
                 { value: 'accueil_nouveaux', label: "L'accueil des nouveaux arrivants" },
                 { value: 'duree_culte',      label: 'La durée globale du culte' },
@@ -322,7 +322,7 @@ export default function FormFeedback() {
               ]} />
             </div>
             <div style={S.question}>
-              <label style={S.label}>Q8 -Quelle durée de culte vous semble la plus adaptée ?</label>
+              <label style={S.label}>Q8 : Quelle durée de culte vous semble la plus adaptée ?</label>
               <RadioGroup value={reponses.q8} onChange={v => set('q8', v)} options={[
                 { value: 'moins_1h30', label: 'Moins de 1h30' },
                 { value: '1h30_2h',   label: 'Entre 1h30 et 2h' },
@@ -337,7 +337,7 @@ export default function FormFeedback() {
         {step === 3 && (
           <div style={S.section}>
             <div style={S.question}>
-              <label style={S.label}>Q9 -Après le culte, avez-vous eu l'opportunité d'échanger avec d'autres membres ?</label>
+              <label style={S.label}>Q9 : Après le culte, avez-vous eu l'opportunité d'échanger avec d'autres membres ?</label>
               <RadioGroup value={reponses.q9} onChange={v => set('q9', v)} options={[
                 { value: 'oui_facilement', label: 'Oui, facilement' },
                 { value: 'un_peu',         label: "Un peu, mais j'aurais aimé plus" },
@@ -352,7 +352,7 @@ export default function FormFeedback() {
         {step === 4 && (
           <div style={S.section}>
             <div style={S.question}>
-              <label style={S.label}>Q10 -Avez-vous l'intention de revenir au culte ?</label>
+              <label style={S.label}>Q10 : Avez-vous l'intention de revenir au culte ?</label>
               <RadioGroup value={reponses.q10} onChange={v => set('q10', v)} options={[
                 { value: 'oui_certainement', label: 'Oui, certainement' },
                 { value: 'probablement',     label: 'Probablement' },
@@ -361,7 +361,7 @@ export default function FormFeedback() {
               ]} />
             </div>
             <div style={S.question}>
-              <label style={S.label}>Q11 -Recommanderiez-vous nos cultes à quelqu'un de votre entourage ?</label>
+              <label style={S.label}>Q11 : Recommanderiez-vous nos cultes à quelqu'un de votre entourage ?</label>
               <RadioGroup value={reponses.q11} onChange={v => set('q11', v)} options={[
                 { value: 'oui_certainement', label: 'Oui, certainement' },
                 { value: 'probablement_oui', label: 'Probablement oui' },

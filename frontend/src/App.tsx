@@ -1,5 +1,5 @@
 // src/App.tsx
-// Point d'entrée React — définit le routing complet de l'application.
+// Point d'entrée React -définit le routing complet de l'application.
 //
 // Structure des routes :
 //   /                      → redirige vers /dashboard (ou /login si non auth)
@@ -88,7 +88,7 @@ function AnimatedRoutes() {
         <Route path="/politique-confidentialite"     element={<PolitiqueConfidentialite />} />
         <Route path="/form/feedback/:token"          element={<FormFeedback />} />
 
-        {/* Routes protégées — imbriquées sous ProtectedLayout */}
+        {/* Routes protégées -imbriquées sous ProtectedLayout */}
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard"      element={<Dashboard />} />
           <Route path="/statistiques"        element={<StatistiquesAvancees />} />
@@ -118,7 +118,7 @@ function AnimatedRoutes() {
           <Route path="/feedback-resultats" element={<FeedbackResultats />} />
         </Route>
 
-        {/* 404 — doit rester la dernière route */}
+        {/* 404 -doit rester la dernière route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
