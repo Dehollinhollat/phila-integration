@@ -165,7 +165,7 @@ function TxtInput({ value, onChange, placeholder, type = 'text', disabled, hasEr
         border: hasError ? '1px solid var(--accent-red)' : '1px solid var(--bg-input-border)',
         background: disabled ? 'var(--bg-secondary)' : 'var(--bg-input)',
         color: 'var(--text-primary)',
-        fontSize: 15, width: '100%', boxSizing: 'border-box',
+        fontSize: 16, width: '100%', boxSizing: 'border-box',
         fontFamily: 'inherit', outline: 'none',
       }}
     />
@@ -445,7 +445,7 @@ export default function FormOuvrier() {
                 padding: '12px 8px', borderRadius: 8,
                 border: '1px solid var(--bg-input-border)',
                 background: 'var(--bg-input)', color: 'var(--text-primary)',
-                fontSize: 13, width: 130, flexShrink: 0, fontFamily: 'inherit',
+                fontSize: 16, width: 130, flexShrink: 0, fontFamily: 'inherit',
               }}
             >
               {PREFIXES.map(p => (
@@ -511,7 +511,7 @@ export default function FormOuvrier() {
               padding: '12px 14px', borderRadius: 8,
               border: '1px solid var(--bg-input-border)',
               background: 'var(--bg-input)', color: 'var(--text-primary)',
-              fontSize: 15, width: '100%', boxSizing: 'border-box' as const,
+              fontSize: 16, width: '100%', boxSizing: 'border-box' as const,
               fontFamily: 'inherit', outline: 'none',
             }}
           />
@@ -604,7 +604,7 @@ export default function FormOuvrier() {
               padding: '12px 14px', borderRadius: 8,
               border: '1px solid var(--bg-input-border)',
               background: 'var(--bg-input)', color: 'var(--text-primary)',
-              fontSize: 15, width: '100%', boxSizing: 'border-box',
+              fontSize: 16, width: '100%', boxSizing: 'border-box',
               fontFamily: 'inherit', resize: 'vertical', outline: 'none',
               lineHeight: 1.6,
             }}
