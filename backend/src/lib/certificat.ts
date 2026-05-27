@@ -1,6 +1,6 @@
 ﻿// src/lib/certificat.ts
-// GÃ©nÃ¨re un certificat d'intÃ©gration PDF au format A4 paysage.
-// Logo encodÃ© en base64 â€” aucun accÃ¨s disque requis en production.
+// GÃ©nere un certificat d'intÃ©gration PDF au format A4 paysage.
+// Logo encodÃ© en base64 - aucun acces disque requis en production.
 
 import PDFDocument from 'pdfkit';
 
@@ -32,15 +32,15 @@ export const genererCertificat = (contact: {
     const W = doc.page.width;
     const H = doc.page.height;
 
-    // Fond bleu trÃ¨s clair
+    // Fond bleu tres clair
     doc.rect(0, 0, W, H).fill('#EEF4FF');
 
     // Bordure bleue externe
     doc.rect(20, 20, W - 40, H - 40).lineWidth(4).stroke('#1A56B0');
-    // Bordure dorÃ©e interne
+    // Bordure doree interne
     doc.rect(28, 28, W - 56, H - 56).lineWidth(1.5).stroke('#D4A24E');
 
-    // Filigrane PHILA â€” centrÃ©, sans rotation
+    // Filigrane PHILA - centre, sans rotation
     doc
       .font('Helvetica-Bold')
       .fontSize(120)
@@ -49,7 +49,7 @@ export const genererCertificat = (contact: {
       .text('PHILA', 0, H / 2 - 30, { align: 'center', width: W });
     doc.fillOpacity(1);
 
-    // Logo en haut centrÃ© â€” buffer encodÃ© en base64
+    // Logo en haut centre - buffer encode en base64
     doc.image(logoBuffer, (W - 80) / 2, 55, { width: 80 });
 
     // Titre
@@ -57,23 +57,23 @@ export const genererCertificat = (contact: {
       .fillColor('#1A56B0')
       .fontSize(36)
       .font('Helvetica-Bold')
-      .text("CERTIFICAT D'INTÃ‰GRATION", 0, 160, { align: 'center', width: W });
+      .text("CERTIFICAT D'INTEGRATION", 0, 160, { align: 'center', width: W });
 
-    // Sous-titre Ã©glise
+    // Sous-titre eglise
     doc
       .fillColor('#1A56B0')
       .fontSize(13)
       .font('Helvetica')
-      .text('Ã‰glise Phila CitÃ© des Adorateurs', 0, 204, { align: 'center', width: W });
+      .text('Eglise Phila Cite des Adorateurs', 0, 204, { align: 'center', width: W });
 
     // Texte introductif
     doc
       .fillColor('#374151')
       .fontSize(14)
       .font('Helvetica')
-      .text('Ce certificat est dÃ©cernÃ© Ã ', 0, 248, { align: 'center', width: W });
+      .text('Ce certificat est decerne a', 0, 248, { align: 'center', width: W });
 
-    // Nom du bÃ©nÃ©ficiaire
+    // Nom du beneficiaire
     doc
       .fillColor('#1A56B0')
       .fontSize(40)
@@ -90,12 +90,12 @@ export const genererCertificat = (contact: {
       .fontSize(13)
       .font('Helvetica')
       .text(
-        `en reconnaissance de son parcours d'intÃ©gration accompli avec fidÃ©litÃ© au sein de l'Ã‰glise Phila CitÃ© des Adorateurs â€” Campus de ${contact.campus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
+        `en reconnaissance de son parcours d'integration accompli avec fidelite au sein de l'Eglise Phila Cite des Adorateurs - Campus de ${contact.campus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
         80, 345, { align: 'center', width: W - 160 },
       )
-      .text(`DÃ©livrÃ© le ${dateFormatee}.`, 0, 378, { align: 'center', width: W });
+      .text(`Delivre le ${dateFormatee}.`, 0, 378, { align: 'center', width: W });
 
-    // Verset biblique â€” italique, centrÃ©, dorÃ©
+    // Verset biblique - italique, centre, dore
     if (contact.verset) {
       doc
         .font('Helvetica-Oblique')
@@ -118,12 +118,12 @@ export const genererCertificat = (contact: {
       .fillColor('#374151')
       .fontSize(11)
       .font('Helvetica-Bold')
-      .text('Pasteur', W / 2 - 220, sigY + 8, { width: sigW, align: 'center' })
+      .text('Pasteur Nomaq MUZEMBE', W / 2 - 220, sigY + 8, { width: sigW, align: 'center' })
       .font('Helvetica')
       .fontSize(10)
-      .text('Signature & Cachet', W / 2 - 220, sigY + 22, { width: sigW, align: 'center' });
+      .text('Eglise Phila Cite des Adorateurs', W / 2 - 220, sigY + 22, { width: sigW, align: 'center' });
 
-    // Signature RÃ©fÃ©rent (droite)
+    // Signature Referent (droite)
     doc
       .moveTo(W / 2 + 40, sigY)
       .lineTo(W / 2 + 40 + sigW, sigY)
@@ -133,7 +133,7 @@ export const genererCertificat = (contact: {
       .fillColor('#374151')
       .fontSize(11)
       .font('Helvetica-Bold')
-      .text("RÃ©fÃ©rent d'intÃ©gration", W / 2 + 40, sigY + 8, { width: sigW, align: 'center' })
+      .text("Referent d'integration", W / 2 + 40, sigY + 8, { width: sigW, align: 'center' })
       .font('Helvetica')
       .fontSize(10)
       .text('Signature', W / 2 + 40, sigY + 22, { width: sigW, align: 'center' });
@@ -143,7 +143,7 @@ export const genererCertificat = (contact: {
       .fillColor('#9CA3AF')
       .fontSize(9)
       .font('Helvetica')
-      .text('Phila IntÃ©gration â€” SystÃ¨me de gestion des intÃ©grations', 0, H - 55, { align: 'center', width: W });
+      .text('Phila Integration - Systeme de gestion des integrations', 0, H - 55, { align: 'center', width: W });
 
     doc.end();
   });
