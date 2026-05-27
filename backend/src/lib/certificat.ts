@@ -5,6 +5,26 @@ import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 
+// Cherche le logo une seule fois au démarrage du module
+const getLogoBuffer = (): Buffer | null => {
+  const possiblePaths = [
+    path.join(process.cwd(), 'public/icons/icon-128x128.png'),
+    path.join(process.cwd(), '../frontend/public/icons/icon-128x128.png'),
+    path.join(process.cwd(), 'src/assets/logo.png'),
+    '/app/public/icons/icon-128x128.png', // chemin Railway
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      console.log('[CERTIFICAT] Logo trouvé:', p);
+      return fs.readFileSync(p);
+    }
+  }
+  console.log('[CERTIFICAT] Logo non trouvé, chemins testés:', possiblePaths);
+  return null;
+};
+
+const logoBuffer: Buffer | null = getLogoBuffer();
+
 export const genererCertificat = (contact: {
   prenom: string;
   nom: string;
@@ -13,7 +33,13 @@ export const genererCertificat = (contact: {
   verset?: string;
 }): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 50 });
+    const doc = new PDFDocument({
+      size: 'A4',
+      layout: 'landscape',
+      margin: 50,
+      autoFirstPage: true,
+      bufferPages: false,
+    });
     const buffers: Buffer[] = [];
 
     doc.on('data', chunk => buffers.push(chunk));
@@ -31,7 +57,7 @@ export const genererCertificat = (contact: {
     // Bordure dorée interne
     doc.rect(28, 28, W - 56, H - 56).lineWidth(1.5).stroke('#D4A24E');
 
-    // Filigrane PHILA — centré, sans rotation
+    // Filigrane PHILA - centré, sans rotation
     doc
       .font('Helvetica-Bold')
       .fontSize(120)
@@ -40,15 +66,9 @@ export const genererCertificat = (contact: {
       .text('PHILA', 0, H / 2 - 60, { align: 'center', width: W });
     doc.fillOpacity(1);
 
-    // Logo en haut centré — cherche dans plusieurs emplacements
-    const logoPaths = [
-      path.join(__dirname, '../../public/icons/icon-128x128.png'),
-      path.join(__dirname, '../../../frontend/public/icons/icon-128x128.png'),
-      path.join(process.cwd(), 'public/icons/icon-128x128.png'),
-    ];
-    const logoPath = logoPaths.find(p => fs.existsSync(p));
-    if (logoPath) {
-      doc.image(logoPath, (W - 70) / 2, 25, { width: 70 });
+    // Logo en haut centré - buffer chargé une fois au démarrage
+    if (logoBuffer) {
+      doc.image(logoBuffer, (W - 70) / 2, 25, { width: 70 });
     }
 
     // Titre
@@ -103,12 +123,12 @@ export const genererCertificat = (contact: {
       .fontSize(13)
       .font('Helvetica')
       .text(
-        `en reconnaissance de son parcours d'intégration accompli avec fidélité au sein de l'Église Phila Cité des Adorateurs — Campus de ${contact.campus}`,
+        `en reconnaissance de son parcours d'intégration accompli avec fidélité au sein de l'Église Phila Cité des Adorateurs - Campus de ${contact.campus}`,
         80, 315, { align: 'center', width: W - 160 },
       )
       .text(`Délivré le ${dateFormatee}.`, 0, 348, { align: 'center', width: W });
 
-    // Verset biblique — italique, centré, doré
+    // Verset biblique - italique, centré, doré
     if (contact.verset) {
       doc
         .font('Helvetica-Oblique')
@@ -156,7 +176,7 @@ export const genererCertificat = (contact: {
       .fillColor('#9CA3AF')
       .fontSize(9)
       .font('Helvetica')
-      .text('Phila Intégration — Système de gestion des intégrations', 0, H - 55, { align: 'center', width: W });
+      .text('Phila Intégration - Système de gestion des intégrations', 0, H - 55, { align: 'center', width: W });
 
     doc.end();
   });

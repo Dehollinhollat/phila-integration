@@ -1,16 +1,16 @@
 // src/lib/cron.ts
 // Tâches planifiées avec node-cron.
 //
-// Tâche 1 — Message de bienvenue J+3
+// Tâche 1 - Message de bienvenue J+3
 //   Tous les jours à 09h00, cherche les contacts inscrits il y a exactement 3 jours
 //   avec un référent intégration assigné et aucun message de bienvenue existant.
 //   Le message est signé avec le prénom + nom du référent intégration.
 //
-// Tâche 2 — Envoi des événements planifiés
+// Tâche 2 - Envoi des événements planifiés
 //   Toutes les minutes, cherche les événements au statut 'planifie' dont
 //   planifie_le est <= maintenant et les envoie en masse via Twilio.
 //
-// Tâche 3 — Alertes contacts sans référent J+2
+// Tâche 3 - Alertes contacts sans référent J+2
 //   Tous les jours à 08h00, cherche les contacts inscrits il y a 2+ jours
 //   sans référent intégration et crée des notifications pour les admin_campus et super_admin.
 
@@ -173,7 +173,7 @@ export function startCronJobs(): void {
 
       const failed = results.filter((r) => r.error).length;
       console.log(
-        `[Cron] Événement "${ev.titre}" — ${results.length - failed}/${results.length} envois réussis`
+        `[Cron] Événement "${ev.titre}" - ${results.length - failed}/${results.length} envois réussis`
       );
     }
   });
@@ -345,7 +345,7 @@ export function startCronJobs(): void {
       update: {},
       create: {
         key:   'certificat_verset',
-        value: "\"Car je connais les projets que j'ai formés sur vous, dit l'Éternel, projets de paix et non de malheur, afin de vous donner un avenir et de l'espérance.\" — Jérémie 29:11",
+        value: "\"Car je connais les projets que j'ai formés sur vous, dit l'Éternel, projets de paix et non de malheur, afin de vous donner un avenir et de l'espérance.\" - Jérémie 29:11",
       },
     }),
   ]).catch(() => {/* ignore si settings non disponibles au démarrage */});

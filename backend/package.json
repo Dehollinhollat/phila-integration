@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "prisma generate && tsc --project tsconfig.build.json",
+    "copy-assets": "mkdir -p public/icons && cp ../frontend/public/icons/icon-128x128.png public/icons/",
+    "build": "npm run copy-assets || true && prisma generate && tsc --project tsconfig.build.json",
     "start:prod": "node dist/src/server.js",
     "seed": "tsx scripts/seed.ts",
     "reset-checklist": "tsx scripts/reset-checklist.ts",

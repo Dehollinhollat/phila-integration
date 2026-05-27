@@ -1,6 +1,6 @@
 // src/lib/audit.ts
 // Helper centralisé pour enregistrer les actions dans l'AuditLog.
-// Toutes les erreurs sont swallowées — un échec de log ne doit jamais faire échouer
+// Toutes les erreurs sont swallowées - un échec de log ne doit jamais faire échouer
 // l'action métier qui l'a déclenché.
 
 import prisma from './prisma';

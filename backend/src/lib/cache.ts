@@ -1,5 +1,5 @@
 // src/lib/cache.ts
-// Cache en mémoire partagé — TTL 5 minutes par défaut.
+// Cache en mémoire partagé - TTL 5 minutes par défaut.
 // Utilisé pour les listes lourdes (contacts, dashboard) afin d'éviter les
 // requêtes Prisma répétées entre les mutations.
 // Invalider via cache.flushAll() ou cache.del(key) après toute mutation.

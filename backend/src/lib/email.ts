@@ -28,7 +28,7 @@ export async function sendPasswordResetEmail(
   await resend.emails.send({
     from: 'Phila Intégration <noreply@phila-integration.fr>',
     to:   email,
-    subject: 'Réinitialisation de votre mot de passe — Phila Intégration',
+    subject: 'Réinitialisation de votre mot de passe - Phila Intégration',
     html: `
       <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
         <div style="background: #1A56B0; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -79,7 +79,7 @@ export async function sendEmailAssignation(
   await resend.emails.send({
     from:    'Phila Intégration <noreply@phila-integration.fr>',
     to:      emailReferent,
-    subject: `Nouveau contact assigné — ${prenomContact} ${nomContact}`,
+    subject: `Nouveau contact assigné - ${prenomContact} ${nomContact}`,
     html: `
       <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
         <div style="background: #1A56B0; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -112,7 +112,7 @@ export async function sendEmailAssignation(
   });
 }
 
-// ─── Rapport hebdomadaire — envoyé chaque lundi aux admins ───────────────────
+// ─── Rapport hebdomadaire - envoyé chaque lundi aux admins ───────────────────
 // Récapitulatif : nouveaux contacts, intégrés, messages, ouvriers actifs.
 // En développement : log console uniquement.
 
@@ -140,7 +140,7 @@ export async function sendRapportHebdomadaire(
   await resend.emails.send({
     from:    'Phila Intégration <noreply@phila-integration.fr>',
     to:      email,
-    subject: 'Rapport hebdomadaire — Phila Intégration',
+    subject: 'Rapport hebdomadaire - Phila Intégration',
     html: `
       <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
         <div style="background: #1A56B0; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -194,7 +194,7 @@ export async function sendRapportHebdomadaire(
   });
 }
 
-// ─── Email de bienvenue — envoyé à la création de compte ─────────────────────
+// ─── Email de bienvenue - envoyé à la création de compte ─────────────────────
 // Le mot de passe passé ici est le mot de passe en clair AVANT hashage.
 // Il ne transite que dans la mémoire du processus et n'est jamais persisté.
 
@@ -227,7 +227,7 @@ export async function sendWelcomeEmail(
   await resend.emails.send({
     from:    'Phila Intégration <noreply@phila-integration.fr>',
     to:      email,
-    subject: 'Bienvenue sur Phila Intégration — Vos identifiants de connexion',
+    subject: 'Bienvenue sur Phila Intégration - Vos identifiants de connexion',
     html: `
       <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
         <div style="background: #0C5E6B; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
