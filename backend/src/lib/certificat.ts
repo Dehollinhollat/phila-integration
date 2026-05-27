@@ -46,53 +46,39 @@ export const genererCertificat = (contact: {
       .fontSize(120)
       .fillColor('#1A56B0')
       .fillOpacity(0.04)
-      .text('PHILA', 0, H / 2 - 60, { align: 'center', width: W });
+      .text('PHILA', 0, H / 2 - 30, { align: 'center', width: W });
     doc.fillOpacity(1);
 
     // Logo en haut centré — buffer encodé en base64
-    doc.image(logoBuffer, (W - 70) / 2, 25, { width: 70 });
+    doc.image(logoBuffer, (W - 70) / 2, 55, { width: 70 });
 
     // Titre
     doc
       .fillColor('#1A56B0')
       .fontSize(36)
       .font('Helvetica-Bold')
-      .text("CERTIFICAT D'INTÉGRATION", 0, 130, { align: 'center', width: W });
+      .text("CERTIFICAT D'INTÉGRATION", 0, 160, { align: 'center', width: W });
 
     // Sous-titre église
     doc
       .fillColor('#1A56B0')
       .fontSize(13)
       .font('Helvetica')
-      .text('Église Phila Cité des Adorateurs', 0, 174, { align: 'center', width: W });
-
-    // Ligne décorative dorée
-    doc
-      .moveTo(W / 2 - 150, 198)
-      .lineTo(W / 2 + 150, 198)
-      .lineWidth(2)
-      .stroke('#D4A24E');
+      .text('Église Phila Cité des Adorateurs', 0, 204, { align: 'center', width: W });
 
     // Texte introductif
     doc
       .fillColor('#374151')
       .fontSize(14)
       .font('Helvetica')
-      .text('Ce certificat est décerné à', 0, 218, { align: 'center', width: W });
+      .text('Ce certificat est décerné à', 0, 248, { align: 'center', width: W });
 
     // Nom du bénéficiaire
     doc
       .fillColor('#1A56B0')
       .fontSize(40)
       .font('Helvetica-Bold')
-      .text(`${contact.prenom} ${contact.nom}`, 0, 245, { align: 'center', width: W });
-
-    // Ligne décorative sous le nom
-    doc
-      .moveTo(W / 2 - 100, 300)
-      .lineTo(W / 2 + 100, 300)
-      .lineWidth(1)
-      .stroke('#D4A24E');
+      .text(`${contact.prenom} ${contact.nom}`, 0, 275, { align: 'center', width: W });
 
     // Corps du certificat
     const dateFormatee = contact.date_integration.toLocaleDateString('fr-FR', {
@@ -104,10 +90,10 @@ export const genererCertificat = (contact: {
       .fontSize(13)
       .font('Helvetica')
       .text(
-        `en reconnaissance de son parcours d'intégration accompli avec fidélité au sein de l'Église Phila Cité des Adorateurs — Campus de ${contact.campus}`,
-        80, 315, { align: 'center', width: W - 160 },
+        `en reconnaissance de son parcours d'intégration accompli avec fidélité au sein de l'Église Phila Cité des Adorateurs — Campus de ${contact.campus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
+        80, 345, { align: 'center', width: W - 160 },
       )
-      .text(`Délivré le ${dateFormatee}.`, 0, 348, { align: 'center', width: W });
+      .text(`Délivré le ${dateFormatee}.`, 0, 378, { align: 'center', width: W });
 
     // Verset biblique — italique, centré, doré
     if (contact.verset) {
@@ -115,11 +101,11 @@ export const genererCertificat = (contact: {
         .font('Helvetica-Oblique')
         .fontSize(11)
         .fillColor('#D4A24E')
-        .text(contact.verset, 80, 375, { align: 'center', width: W - 160 });
+        .text(contact.verset, 80, 405, { align: 'center', width: W - 160 });
     }
 
     // Zones de signature
-    const sigY = 440;
+    const sigY = 470;
     const sigW = 180;
 
     // Signature Pasteur (gauche)
