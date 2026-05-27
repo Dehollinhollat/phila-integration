@@ -51,7 +51,9 @@
       "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; $lines = @\\(\\); npx tsc --noEmit 2>&1 | ForEach-Object { $lines += $_ }; $lines | Where-Object { $_ -notmatch \"__tests__\" })",
       "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit > \"$env:TEMP\\\\tsc_out.txt\" 2>&1; Get-Content \"$env:TEMP\\\\tsc_out.txt\" | Where-Object { $_ -notmatch \"__tests__\" })",
       "PowerShell(Set-Location \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\"; npx tsc --noEmit 2> \"$env:TEMP\\\\tsc_err.txt\"; Get-Content \"$env:TEMP\\\\tsc_err.txt\" | Where-Object { $_ -notmatch \"__tests__\" })",
-      "Bash(node scripts/generate-icons.mjs)"
+      "Bash(node scripts/generate-icons.mjs)",
+      "Bash(node -e \"const fs = require\\('fs'\\); const data = fs.readFileSync\\('frontend/public/icons/icon-128x128.png'\\); console.log\\(data.toString\\('base64'\\)\\);\")",
+      "PowerShell($b64 = [Convert]::ToBase64String\\([IO.File]::ReadAllBytes\\(\"frontend\\\\public\\\\icons\\\\icon-128x128.png\"\\)\\); $b64 | Out-File -Encoding utf8 -FilePath \"backend\\\\src\\\\lib\\\\_logo_b64.tmp\"; Write-Host \"Length: $\\($b64.Length\\)\")"
     ]
   }
 }
