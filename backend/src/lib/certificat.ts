@@ -2,6 +2,7 @@
 // Génère un certificat d'intégration PDF au format A4 paysage.
 
 import PDFDocument from 'pdfkit';
+import fs from 'fs';
 import path from 'path';
 
 export const genererCertificat = (contact: {
@@ -19,8 +20,8 @@ export const genererCertificat = (contact: {
     doc.on('end', () => resolve(Buffer.concat(buffers)));
     doc.on('error', reject);
 
-    const W = 841.89;
-    const H = 595.28;
+    const W = doc.page.width;
+    const H = doc.page.height;
 
     // Fond bleu très clair
     doc.rect(0, 0, W, H).fill('#EEF4FF');
@@ -30,37 +31,44 @@ export const genererCertificat = (contact: {
     // Bordure dorée interne
     doc.rect(28, 28, W - 56, H - 56).lineWidth(1.5).stroke('#D4A24E');
 
-    // Filigrane PHILA
+    // Filigrane PHILA — centré, sans rotation
     doc
-      .save()
-      .translate(W / 2, H / 2)
-      .rotate(-30)
+      .font('Helvetica-Bold')
       .fontSize(120)
       .fillColor('#1A56B0')
-      .fillOpacity(0.05)
-      .text('PHILA', 0, 0, { align: 'center' })
-      .restore();
+      .fillOpacity(0.04)
+      .text('PHILA', 0, H / 2 - 60, { align: 'center', width: W });
+    doc.fillOpacity(1);
 
-    // Logo en haut centré
-    const logoPath = path.join(__dirname, '../../public/icons/icon-128x128.png');
-    try {
-      doc.image(logoPath, (W - 80) / 2, 30, { width: 80 });
-    } catch {
-      // Logo non disponible, continue sans
+    // Logo en haut centré — cherche dans plusieurs emplacements
+    const logoPaths = [
+      path.join(__dirname, '../../public/icons/icon-128x128.png'),
+      path.join(__dirname, '../../../frontend/public/icons/icon-128x128.png'),
+      path.join(process.cwd(), 'public/icons/icon-128x128.png'),
+    ];
+    const logoPath = logoPaths.find(p => fs.existsSync(p));
+    if (logoPath) {
+      doc.image(logoPath, (W - 70) / 2, 25, { width: 70 });
     }
 
-    // Titre (décalé vers le bas pour laisser place au logo)
+    // Titre
     doc
-      .fillOpacity(1)
       .fillColor('#1A56B0')
       .fontSize(36)
       .font('Helvetica-Bold')
       .text("CERTIFICAT D'INTÉGRATION", 0, 130, { align: 'center', width: W });
 
+    // Sous-titre église
+    doc
+      .fillColor('#1A56B0')
+      .fontSize(13)
+      .font('Helvetica')
+      .text("Église Phila Cité des Adorateurs", 0, 174, { align: 'center', width: W });
+
     // Ligne décorative dorée
     doc
-      .moveTo(W / 2 - 150, 185)
-      .lineTo(W / 2 + 150, 185)
+      .moveTo(W / 2 - 150, 198)
+      .lineTo(W / 2 + 150, 198)
       .lineWidth(2)
       .stroke('#D4A24E');
 
@@ -69,7 +77,7 @@ export const genererCertificat = (contact: {
       .fillColor('#374151')
       .fontSize(14)
       .font('Helvetica')
-      .text('Ce certificat est remis à', 0, 215, { align: 'center', width: W });
+      .text('Ce certificat est décerné à', 0, 218, { align: 'center', width: W });
 
     // Nom du bénéficiaire
     doc
@@ -78,7 +86,7 @@ export const genererCertificat = (contact: {
       .font('Helvetica-Bold')
       .text(`${contact.prenom} ${contact.nom}`, 0, 245, { align: 'center', width: W });
 
-    // Ligne décorative
+    // Ligne décorative sous le nom
     doc
       .moveTo(W / 2 - 100, 300)
       .lineTo(W / 2 + 100, 300)
@@ -92,13 +100,13 @@ export const genererCertificat = (contact: {
 
     doc
       .fillColor('#374151')
-      .fontSize(14)
+      .fontSize(13)
       .font('Helvetica')
       .text(
-        `en reconnaissance de son intégration au sein de l'Église Phila — Campus de ${contact.campus},`,
-        80, 320, { align: 'center', width: W - 160 },
+        `en reconnaissance de son parcours d'intégration accompli avec fidélité au sein de l'Église Phila Cité des Adorateurs — Campus de ${contact.campus}`,
+        80, 315, { align: 'center', width: W - 160 },
       )
-      .text(`célébrée le ${dateFormatee}.`, 0, 345, { align: 'center', width: W });
+      .text(`Délivré le ${dateFormatee}.`, 0, 348, { align: 'center', width: W });
 
     // Verset biblique — italique, centré, doré
     if (contact.verset) {
