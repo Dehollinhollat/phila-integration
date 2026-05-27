@@ -546,6 +546,33 @@ export default function ContactDetail() {
                 </div>
               )}
 
+              {/* Certificat d'intégration */}
+              {(contact.statut === 'integre' || contact.statut === 'ouvrier') && (
+                <button
+                  onClick={async () => {
+                    const response = await fetch(
+                      `${(import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL}/contacts/${contact.id}/certificat`,
+                      { headers: { Authorization: `Bearer ${localStorage.getItem('phila_token')}` } },
+                    );
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `certificat-${contact.prenom}-${contact.nom}.pdf`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  style={{
+                    background: '#D4A24E', color: 'white', border: 'none', borderRadius: '8px',
+                    padding: '10px 20px', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    width: '100%', justifyContent: 'center',
+                  }}
+                >
+                  🎓 Télécharger le certificat PDF
+                </button>
+              )}
+
               {/* Promotion ouvrier */}
               {canEdit && contact.statut === 'integre' && (
                 isOuvrier ? (

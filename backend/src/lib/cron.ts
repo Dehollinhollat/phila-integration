@@ -340,6 +340,14 @@ export function startCronJobs(): void {
       },
       update: {},
     }),
+    prisma.settings.upsert({
+      where:  { key: 'certificat_verset' },
+      update: {},
+      create: {
+        key:   'certificat_verset',
+        value: "\"Car je connais les projets que j'ai formés sur vous, dit l'Éternel, projets de paix et non de malheur, afin de vous donner un avenir et de l'espérance.\" — Jérémie 29:11",
+      },
+    }),
   ]).catch(() => {/* ignore si settings non disponibles au démarrage */});
 
   // ── Tâche 5 : Messages d'anniversaire (tous les jours à 09h00) ──────────────

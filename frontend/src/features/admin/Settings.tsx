@@ -128,6 +128,19 @@ const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
       },
     ],
   },
+  {
+    label: 'Certificat d\'intégration',
+    icon:  '🎓',
+    settings: [
+      {
+        key:         'certificat_verset',
+        label:       'Verset biblique',
+        description: 'Ce verset apparaît sur tous les certificats d\'intégration générés.',
+        type:        'textarea' as const,
+        placeholder: '"Car je connais les projets que j\'ai formés sur vous..." — Jérémie 29:11',
+      },
+    ],
+  },
 ];
 
 // ─── Composant ────────────────────────────────────────────────────────────────
@@ -291,14 +304,16 @@ export default function Settings() {
                           background:   'var(--bg-secondary)',
                           borderRadius: 6,
                           fontSize:     12,
-                          color:        'var(--text-secondary)',
-                          fontFamily:   'monospace',
+                          color:        def.key === 'certificat_verset' ? '#D4A24E' : 'var(--text-secondary)',
+                          fontFamily:   def.key === 'certificat_verset' ? 'Georgia, serif' : 'monospace',
+                          fontStyle:    def.key === 'certificat_verset' ? 'italic' : 'normal',
                           lineHeight:   1.6,
-                          borderLeft:   '3px solid var(--accent-teal)',
+                          borderLeft:   `3px solid ${def.key === 'certificat_verset' ? '#D4A24E' : 'var(--accent-teal)'}`,
                           whiteSpace:   'pre-wrap',
+                          textAlign:    def.key === 'certificat_verset' ? 'center' : 'left',
                         }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, color: 'var(--text-tertiary)', fontFamily: 'inherit' }}>Aperçu</div>
-                          {computeApercu(def.key, values[def.key] || '')}
+                          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, color: 'var(--text-tertiary)', fontFamily: 'inherit', fontStyle: 'normal' }}>Aperçu</div>
+                          {def.key === 'certificat_verset' ? values[def.key] : computeApercu(def.key, values[def.key] || '')}
                         </div>
                       )}
                     </>

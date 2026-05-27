@@ -13,6 +13,7 @@ import prisma from '../lib/prisma';
 import { cache, withCache } from '../lib/cache';
 import { logAudit } from '../lib/audit';
 import { sendEmailAssignation } from '../lib/email';
+import { genererCertificat } from '../lib/certificat';
 
 const PROFIL_LABELS: Record<string, string> = {
   membre_phila:          'Membre Phila',
@@ -1009,4 +1010,46 @@ export async function globalSearch(req: Request, res: Response): Promise<void> {
     console.error('[SEARCH] Erreur:', err);
     res.status(500).json({ error: 'Erreur recherche' });
   }
+}
+
+// ─── Certificat d'intégration ─────────────────────────────────────────────────
+
+// GET /api/contacts/:id/certificat — génère et télécharge le PDF du certificat d'intégration
+export async function telechargerCertificat(req: Request, res: Response): Promise<void> {
+  const { id } = req.params as { id: string };
+
+  const contact = await prisma.contact.findUnique({
+    where: { id },
+    include: { referent_integration: true },
+  });
+
+  if (!contact) {
+    res.status(404).json({ error: 'Contact non trouvé' });
+    return;
+  }
+
+  if (contact.statut !== 'integre' && contact.statut !== 'ouvrier') {
+    res.status(400).json({ error: "Le contact n'est pas encore intégré" });
+    return;
+  }
+
+  const dateIntegration = contact.updated_at || new Date();
+
+  const settingVerset = await prisma.settings.findUnique({ where: { key: 'certificat_verset' } });
+  const verset = settingVerset?.value || "\"Car je connais les projets que j'ai formés sur vous...\" — Jérémie 29:11";
+
+  const pdfBuffer = await genererCertificat({
+    prenom:           contact.prenom,
+    nom:              contact.nom,
+    campus:           contact.campus,
+    date_integration: dateIntegration,
+    verset,
+  });
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="certificat-${contact.prenom}-${contact.nom}.pdf"`,
+  );
+  res.send(pdfBuffer);
 }

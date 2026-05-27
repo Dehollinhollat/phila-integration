@@ -23,6 +23,7 @@ import {
   getAuditLog,
   getMesContacts,
   suggererReferent,
+  telechargerCertificat,
 } from '../controllers/contacts.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireMinRole, requireRole } from '../middlewares/roles.middleware';
@@ -75,5 +76,8 @@ router.get('/:id/suggerer-referent',  requireMinRole('admin_campus'),         su
 
 // Audit log
 router.get('/:id/audit', requireMinRole('referent_integration'), getAuditLog);
+
+// Certificat d'intégration PDF
+router.get('/:id/certificat', requireMinRole('referent_integration'), telechargerCertificat);
 
 export default router;
