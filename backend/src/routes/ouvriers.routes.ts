@@ -23,7 +23,6 @@ import {
 } from '../controllers/ouvriers.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireMinRole, requireRole } from '../middlewares/roles.middleware';
-import { verifyTurnstile } from '../middlewares/turnstile.middleware';
 import { formRateLimit } from '../middlewares/rateLimit.middleware';
 
 const router = Router();
@@ -33,8 +32,8 @@ const router = Router();
 // /candidature et /check-phone doivent aussi précéder /:id pour éviter qu'Express
 // interprète "candidature" comme un paramètre d'id.
 
-// formRateLimit + verifyTurnstile protègent contre les soumissions automatisées
-router.post('/candidature', formRateLimit, verifyTurnstile, candidatureOuvrier);
+// formRateLimit protège contre les soumissions automatisées
+router.post('/candidature', formRateLimit, candidatureOuvrier);
 router.get('/check-phone',  checkOuvrierPhone);
 
 // ── Middleware d'auth — s'applique à toutes les routes déclarées après ────────

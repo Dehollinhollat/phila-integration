@@ -15,14 +15,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import api from '../services/api';
-import { Turnstile } from '@marsidev/react-turnstile';
 import Logo from '../components/ui/Logo';
 import Footer from '../components/common/Footer';
 import { validatePhone, normalizePhone } from '../utils/phone';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-
-const TURNSTILE_SITE_KEY = (import.meta as unknown as { env: Record<string, string> }).env.VITE_TURNSTILE_SITE_KEY ?? '2x00000000000000000000AB';
 
 const PREFIXES = [
 { code: '+213', label: '+213 Algérie' },
@@ -270,7 +267,6 @@ export default function FormOuvrier() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [honeypot, setHoneypot] = useState('');
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [phoneCheck, setPhoneCheck] = useState<{ loading: boolean; exists: boolean }>({
     loading: false, exists: false,
   });
@@ -387,8 +383,7 @@ export default function FormOuvrier() {
         service_precedent: form.service_precedent.trim() || undefined,
         motivation:        form.motivation.trim() || undefined,
         consentement_rgpd: true,
-        turnstile_token:   turnstileToken,
-        website:           honeypot, // toujours vide pour les humains
+        website: honeypot, // toujours vide pour les humains
       });
       navigate('/success-ouvrier');
     } catch (err) {
@@ -676,16 +671,6 @@ export default function FormOuvrier() {
           style={{ display: 'none', position: 'absolute', left: '-9999px' }}
         />
 
-        {/* Turnstile anti-bot Cloudflare - mode invisible */}
-        <Turnstile
-          siteKey={TURNSTILE_SITE_KEY}
-          onSuccess={token => {
-            console.log('Turnstile token recu:', token);
-            setTurnstileToken(token);
-          }}
-          onExpire={() => setTurnstileToken(null)}
-          options={{ size: 'invisible', execution: 'render', theme: 'auto', language: 'fr' }}
-        />
 
         {errors._form && (
           <div style={{
@@ -796,13 +781,13 @@ export default function FormOuvrier() {
             ) : (
               <button
                 type="submit"
-                disabled={submitting || !turnstileToken}
+                disabled={submitting}
                 style={{
                   flex: 2, padding: '13px 0', borderRadius: 8, border: 'none',
                   background: 'var(--accent-violet)', color: '#fff',
                   fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
-                  cursor: (submitting || !turnstileToken) ? 'not-allowed' : 'pointer',
-                  opacity: (submitting || !turnstileToken) ? 0.7 : 1,
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  opacity: submitting ? 0.7 : 1,
                 }}
               >
                 {submitting ? 'Envoi en cours…' : 'Soumettre ma candidature'}

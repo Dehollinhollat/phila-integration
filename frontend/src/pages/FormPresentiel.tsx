@@ -7,12 +7,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import api from '../services/api';
-import { Turnstile } from '@marsidev/react-turnstile';
 import Logo from '../components/ui/Logo';
 import Footer from '../components/common/Footer';
 import { validatePhone, normalizePhone } from '../utils/phone';
-
-const TURNSTILE_SITE_KEY = (import.meta as unknown as { env: Record<string, string> }).env.VITE_TURNSTILE_SITE_KEY ?? '2x00000000000000000000AB';
 
 // ─── Types locaux ─────────────────────────────────────────────────────────────
 
@@ -244,7 +241,6 @@ export default function FormPresentiel() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [honeypot, setHoneypot]   = useState('');
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [phoneCheck, setPhoneCheck] = useState<{
     loading: boolean; exists: boolean; id: string | null;
   }>({ loading: false, exists: false, id: null });
@@ -385,8 +381,7 @@ export default function FormPresentiel() {
       if (form.comment_connu.trim()) payload.comment_connu   = form.comment_connu.trim();
     }
 
-    payload.turnstile_token = turnstileToken;
-    payload.website         = honeypot; // toujours vide pour les humains
+    payload.website = honeypot; // toujours vide pour les humains
 
     console.log('[FormPresentiel] payload envoyé:', payload);
     try {
@@ -818,16 +813,6 @@ export default function FormPresentiel() {
           style={{ display: 'none', position: 'absolute', left: '-9999px' }}
         />
 
-        {/* Turnstile anti-bot Cloudflare - mode invisible */}
-        <Turnstile
-          siteKey={TURNSTILE_SITE_KEY}
-          onSuccess={token => {
-            console.log('Turnstile token recu:', token);
-            setTurnstileToken(token);
-          }}
-          onExpire={() => setTurnstileToken(null)}
-          options={{ size: 'invisible', execution: 'render', theme: 'auto', language: 'fr' }}
-        />
 
         {errors._form && (
           <div style={{
@@ -973,17 +958,17 @@ export default function FormPresentiel() {
             ) : (
               <button
                 type="submit"
-                disabled={submitting || !turnstileToken}
+                disabled={submitting}
                 style={{
                   flex: 1,
                   padding: 14,
                   borderRadius: 10,
                   border: 'none',
-                  background: (submitting || !turnstileToken) ? 'var(--text-secondary)' : 'var(--accent-teal)',
+                  background: submitting ? 'var(--text-secondary)' : 'var(--accent-teal)',
                   color: '#fff',
                   fontSize: 15,
                   fontWeight: 700,
-                  cursor: (submitting || !turnstileToken) ? 'not-allowed' : 'pointer',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
                 }}
               >

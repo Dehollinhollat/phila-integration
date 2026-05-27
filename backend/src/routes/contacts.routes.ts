@@ -26,7 +26,6 @@ import {
 } from '../controllers/contacts.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireMinRole, requireRole } from '../middlewares/roles.middleware';
-import { verifyTurnstile } from '../middlewares/turnstile.middleware';
 import { formRateLimit } from '../middlewares/rateLimit.middleware';
 import { validate } from '../middlewares/validate.middleware';
 import { createContactSchema } from '../schemas/contacts.schema';
@@ -36,8 +35,8 @@ const router = Router();
 // Routes publiques — avant authenticate (formulaire QR code)
 router.get('/check-phone', checkPhone);
 // validate(createContactSchema) vérifie les champs requis + format téléphone E.164
-// formRateLimit + verifyTurnstile protègent contre les soumissions automatisées
-router.post('/', formRateLimit, verifyTurnstile, validate(createContactSchema), createContact);
+// formRateLimit protège contre les soumissions automatisées
+router.post('/', formRateLimit, validate(createContactSchema), createContact);
 
 router.use(authenticate);
 

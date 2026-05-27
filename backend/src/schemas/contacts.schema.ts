@@ -35,9 +35,8 @@ export const createContactSchema = z.object({
     message: 'Le consentement RGPD est obligatoire',
   }),
 
-  // Anti-bot
-  turnstile_token: z.string().min(1, 'Token Turnstile manquant'),
-  website:         z.string().max(0, 'Honeypot non vide').optional().default(''),
+  // Anti-bot (honeypot)
+  website: z.string().max(0, 'Honeypot non vide').optional().default(''),
 }).passthrough(); // conserve les champs optionnels de branche A/B
 
 export type CreateContactInput = z.infer<typeof createContactSchema>;

@@ -7,6 +7,10 @@
 //   2. Appelle l'API de vérification Cloudflare avec la SECRET_KEY
 //   3. Si la vérification échoue → 403 ; sinon → next()
 //
+// Bypass :
+//   NODE_ENV=development  → Turnstile désactivé (tests locaux)
+//   DISABLE_TURNSTILE=true → Turnstile désactivé (staging / scripts d'import)
+//
 // Clés de test (dev) :
 //   TURNSTILE_SECRET_KEY = 1x0000000000000000000000000000000AA
 //   (accepte toujours sans interaction réelle avec Cloudflare)
@@ -20,6 +24,10 @@ export async function verifyTurnstile(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  if (process.env.NODE_ENV === 'development' || process.env.DISABLE_TURNSTILE === 'true') {
+    return next();
+  }
+
   const token = req.body?.turnstile_token as string | undefined;
 
   if (!token) {
