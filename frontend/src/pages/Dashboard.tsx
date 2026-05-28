@@ -627,11 +627,9 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Charge les stats graphiques (admin_campus+ uniquement)
+  // Charge les stats graphiques (tous les rôles — lecture seule)
   useEffect(() => {
     if (!user) return;
-    const isAdmin = ['super_admin', 'admin_campus'].includes(user.role);
-    if (!isAdmin) { setStatsLoading(false); return; }
 
     setStatsLoading(true);
     const campus = campusFilter !== 'all' ? campusFilter : undefined;
@@ -1039,8 +1037,8 @@ export default function Dashboard() {
           {/* ── Tableau derniers contacts ──────────────────────────────── */}
           <ContactsTable contacts={recentContacts} />
 
-          {/* ── Section Statistiques (admin+ uniquement) ───────────────── */}
-          {user && ['super_admin', 'admin_campus'].includes(user.role) && (
+          {/* ── Section Statistiques (tous les rôles — lecture seule) ─── */}
+          {user && (
             <>
               <div style={{
                 margin:     `${spacing[8]} 0 ${spacing[4]}`,
