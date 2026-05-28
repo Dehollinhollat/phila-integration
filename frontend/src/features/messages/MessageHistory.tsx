@@ -73,26 +73,27 @@ function StatutBadge({ statut }: { statut: string }) {
 
 function MessageModal({ message, onClose }: { message: Message & { contact?: { prenom: string; nom: string } | null }; onClose: () => void }) {
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.45)', zIndex: 1000,
-        }}
-      />
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.6)', zIndex: 1000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '16px', boxSizing: 'border-box',
+      }}
+    >
       {/* Card */}
       <div
         role="dialog"
         aria-modal="true"
+        onClick={e => e.stopPropagation()}
         style={{
-          position: 'fixed', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '420px', maxWidth: '92vw',
+          width: 'min(520px, calc(100% - 32px))',
+          maxHeight: '90vh', overflowY: 'auto',
           background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)',
-          borderRadius: '14px', padding: '28px',
-          zIndex: 1001, boxShadow: '0 16px 48px rgba(0,0,0,0.24)',
+          borderRadius: '12px', padding: '24px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          boxSizing: 'border-box',
         }}
       >
         {/* Header */}
@@ -153,7 +154,7 @@ function MessageModal({ message, onClose }: { message: Message & { contact?: { p
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

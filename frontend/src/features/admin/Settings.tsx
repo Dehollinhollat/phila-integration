@@ -350,6 +350,7 @@ export default function Settings() {
           color:      'var(--text-primary)',
           boxShadow:  '0 4px 20px rgba(0,0,0,0.12)',
           zIndex:     600,
+          maxWidth:   'calc(100vw - 32px)',
         }}>
           {toast}
         </div>

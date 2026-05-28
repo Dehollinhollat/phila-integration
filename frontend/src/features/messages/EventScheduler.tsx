@@ -365,12 +365,12 @@ export default function EventScheduler() {
             <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-secondary)' }}>
               "{toDelete.titre}" sera définitivement supprimé. Cette action est irréversible.
             </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setToDelete(null)} style={btnSecondary} disabled={deleting}>Annuler</button>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button onClick={() => setToDelete(null)} style={{ ...btnSecondary, flex: 1, minWidth: '100px' }} disabled={deleting}>Annuler</button>
               <button
                 onClick={() => void handleDelete()}
                 disabled={deleting}
-                style={{ ...btnPrimary, background: '#DC2626' }}
+                style={{ ...btnPrimary, background: '#DC2626', flex: 1, minWidth: '100px' }}
               >
                 {deleting ? 'Suppression…' : 'Supprimer'}
               </button>
@@ -387,6 +387,7 @@ export default function EventScheduler() {
           borderRadius: 10, padding: '12px 20px',
           fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.12)', zIndex: 600,
+          maxWidth: 'calc(100vw - 32px)',
         }}>
           {toast}
         </div>
@@ -401,9 +402,9 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', boxSizing: 'border-box' }}
     >
-      <div style={{ background: 'var(--bg-card)', borderRadius: 14, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', position: 'relative', zIndex: 1001 }}>
+      <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--bg-card-border)', width: 'min(520px, calc(100% - 32px))', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', boxSizing: 'border-box' }}>
         {children}
       </div>
     </div>

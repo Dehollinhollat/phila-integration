@@ -1031,16 +1031,18 @@ export default function ContactDetail() {
           onClick={e => { if (e.target === e.currentTarget) setShowPromoteModal(false); }}
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.7)',
+            background: 'rgba(0,0,0,0.6)',
             backdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px', boxSizing: 'border-box',
           }}
         >
           <div style={{
             background: 'var(--bg-card)', borderRadius: 12,
             border: '1px solid var(--bg-card-border)',
-            padding: 24, width: 500, maxWidth: '94vw', maxHeight: '90vh',
-            overflowY: 'auto', position: 'relative', zIndex: 1001,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            padding: 24, width: 'min(640px, calc(100% - 32px))', maxHeight: '90vh',
+            overflowY: 'auto', boxSizing: 'border-box',
           }}>
             <h2 style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>
               Promouvoir en ouvrier
@@ -1134,11 +1136,12 @@ export default function ContactDetail() {
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => setShowPromoteModal(false)}
                   style={{
+                    flex: 1, minWidth: '100px',
                     padding: '8px 18px', borderRadius: 6,
                     border: '1px solid var(--bg-card-border)',
                     background: 'var(--bg-card)', color: 'var(--text-primary)',
@@ -1151,6 +1154,7 @@ export default function ContactDetail() {
                   type="submit"
                   disabled={promoteSaving}
                   style={{
+                    flex: 1, minWidth: '100px',
                     padding: '8px 22px', borderRadius: 6, border: 'none',
                     background: 'var(--accent-teal)', color: '#fff',
                     fontSize: 14, fontWeight: 600,

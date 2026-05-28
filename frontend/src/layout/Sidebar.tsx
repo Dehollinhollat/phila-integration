@@ -97,6 +97,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   }
 
   return (
+    <>
+      {/* Overlay mobile derrière la sidebar */}
+      {isMobile && isOpen && (
+        <div
+          onClick={onClose}
+          style={{
+            position:   'fixed',
+            inset:      0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex:     999,
+          }}
+        />
+      )}
     <aside
       className={`sidebar-aside${isOpen ? ' open' : ''}`}
       style={{
@@ -109,8 +122,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         position:      'fixed',
         top:           0,
         left:          0,
-        bottom:        0,
-        zIndex:        100,
+        height:        '100%',
+        zIndex:        1000,
         overflowY:     'auto',
       }}
     >
@@ -293,5 +306,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </button>
       </div>
     </aside>
+    </>
   );
 }

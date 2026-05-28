@@ -76,7 +76,7 @@ export default function NotificationPanel({
         position:     'fixed',
         top:          '60px',
         right:        '16px',
-        width:        '380px',
+        width:        'min(380px, calc(100vw - 32px))',
         maxHeight:    '80vh',
         overflowY:    'auto',
         zIndex:       900,

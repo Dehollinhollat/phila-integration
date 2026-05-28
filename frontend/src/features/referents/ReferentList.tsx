@@ -182,9 +182,9 @@ export default function ReferentList() {
       {reassignTarget && (
         <div
           onClick={e => { if (e.target === e.currentTarget) setReassignTarget(null); }}
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', boxSizing: 'border-box' }}
         >
-          <div style={{ background: 'var(--bg-card)', borderRadius: 14, width: 'min(480px, calc(100% - 20px))', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', position: 'relative', zIndex: 1001 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--bg-card-border)', width: 'min(520px, calc(100% - 32px))', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', boxSizing: 'border-box' }}>
             <form onSubmit={e => void handleReassign(e)}>
               <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--bg-card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
@@ -249,9 +249,9 @@ export default function ReferentList() {
                 </div>
               </div>
 
-              <div style={{ padding: '16px 24px', borderTop: '1px solid var(--bg-card-border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setReassignTarget(null)} style={btnSecondary} disabled={saving}>Annuler</button>
-                <button type="submit" style={btnPrimary} disabled={saving || selectedIds.length === 0 || !newReferentId}>
+              <div style={{ padding: '16px 24px', borderTop: '1px solid var(--bg-card-border)', display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setReassignTarget(null)} style={{ ...btnSecondary, flex: 1, minWidth: '100px' }} disabled={saving}>Annuler</button>
+                <button type="submit" style={{ ...btnPrimary, flex: 1, minWidth: '100px' }} disabled={saving || selectedIds.length === 0 || !newReferentId}>
                   {saving ? 'Réassignation…' : `Réassigner ${selectedIds.length > 0 ? `(${selectedIds.length})` : ''}`}
                 </button>
               </div>
@@ -262,7 +262,7 @@ export default function ReferentList() {
 
       {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)', borderRadius: 10, padding: '12px 20px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', zIndex: 600 }}>
+        <div style={{ position: 'fixed', bottom: 24, right: 24, background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)', borderRadius: 10, padding: '12px 20px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', zIndex: 600, maxWidth: 'calc(100vw - 32px)' }}>
           {toast}
         </div>
       )}

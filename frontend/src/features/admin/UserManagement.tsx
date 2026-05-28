@@ -632,15 +632,15 @@ export default function UserManagement() {
               Toutes les sessions actives seront invalidées.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px 24px', borderTop: '1px solid var(--bg-card-border)' }}>
-            <button type="button" onClick={() => setDeleteTarget(null)} style={btnSecondary} disabled={deleting}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap', padding: '16px 24px', borderTop: '1px solid var(--bg-card-border)' }}>
+            <button type="button" onClick={() => setDeleteTarget(null)} style={{ ...btnSecondary, flex: 1, minWidth: '100px' }} disabled={deleting}>
               Annuler
             </button>
             <button
               type="button"
               onClick={handleDeleteConfirm}
               disabled={deleting}
-              style={{ ...btnPrimary, background: '#A32D2D', opacity: deleting ? 0.7 : 1 }}
+              style={{ ...btnPrimary, background: '#A32D2D', opacity: deleting ? 0.7 : 1, flex: 1, minWidth: '100px' }}
             >
               {deleting ? 'Suppression…' : 'Supprimer'}
             </button>
@@ -672,11 +672,11 @@ export default function UserManagement() {
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '16px 24px', borderTop: '1px solid var(--bg-card-border)' }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap', padding: '16px 24px', borderTop: '1px solid var(--bg-card-border)' }}>
             <button
               type="button"
               onClick={() => { setDeleteConflict(null); setDeleteTarget(null); }}
-              style={btnSecondary}
+              style={{ ...btnSecondary, flex: 1, minWidth: '100px' }}
             >
               Annuler
             </button>
@@ -687,7 +687,7 @@ export default function UserManagement() {
                 setDeleteConflict(null);
                 setDeleteTarget(null);
               }}
-              style={btnPrimary}
+              style={{ ...btnPrimary, flex: 1, minWidth: '100px' }}
             >
               Voir ses contacts →
             </button>
@@ -727,24 +727,24 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
         position:       'fixed',
         inset:          0,
         zIndex:         1000,
-        background:     'rgba(0, 0, 0, 0.7)',   // opacité augmentée : le fond de page ne transparaît plus
+        background:     'rgba(0,0,0,0.6)',   // opacité standardisée mobile audit
         backdropFilter: 'blur(4px)',             // flou derrière pour renforcer le focus sur le modal
         display:        'flex',
         alignItems:     'center',
         justifyContent: 'center',
+        padding:        '16px',
+        boxSizing:      'border-box',
       }}
     >
       <div style={{
         background:   'var(--bg-card)',
         border:       '1px solid var(--bg-card-border)',
         borderRadius: 12,
-        width:        '100%',
-        maxWidth:     520,
+        width:        'min(520px, calc(100% - 32px))',
         maxHeight:    '90vh',
         overflowY:    'auto',
-        position:     'relative',
-        zIndex:       1001,                      // card toujours au-dessus de l'overlay
-        boxShadow:    '0 20px 60px rgba(0,0,0,0.35)',
+        boxShadow:    '0 8px 32px rgba(0,0,0,0.3)',
+        boxSizing:    'border-box',
       }}>
         {children}
       </div>
@@ -767,11 +767,11 @@ function ModalHeader({ title, onClose }: { title: string; onClose: () => void })
 function ModalFooter({ onCancel, submitLabel, loading }: { onCancel: () => void; submitLabel: string; loading: boolean }) {
   return (
     <div style={{
-      display: 'flex', gap: 10, justifyContent: 'flex-end',
+      display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap',
       padding: '16px 24px', borderTop: '1px solid var(--bg-card-border)',
     }}>
-      <button type="button" onClick={onCancel} style={btnSecondary} disabled={loading}>Annuler</button>
-      <button type="submit" style={btnPrimary} disabled={loading}>{loading ? 'Enregistrement…' : submitLabel}</button>
+      <button type="button" onClick={onCancel} style={{ ...btnSecondary, flex: 1, minWidth: '100px' }} disabled={loading}>Annuler</button>
+      <button type="submit" style={{ ...btnPrimary, flex: 1, minWidth: '100px' }} disabled={loading}>{loading ? 'Enregistrement…' : submitLabel}</button>
     </div>
   );
 }

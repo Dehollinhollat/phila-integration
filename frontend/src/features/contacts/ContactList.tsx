@@ -33,21 +33,22 @@ function ConfirmDialog({
   error: string | null;
 }) {
   return (
-    <>
-      <div
-        onClick={onCancel}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.45)', zIndex: 1000,
-        }}
-      />
-      <div role="dialog" aria-modal="true" style={{
-        position: 'fixed', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
+    <div
+      onClick={onCancel}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.6)', zIndex: 1000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '16px', boxSizing: 'border-box',
+      }}
+    >
+      <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{
         background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)',
-        borderRadius: '14px', padding: '28px 28px 22px',
-        width: '400px', maxWidth: '92vw', zIndex: 1001,
-        boxShadow: '0 12px 40px rgba(0,0,0,0.22)',
+        borderRadius: '12px', padding: '24px',
+        width: 'min(520px, calc(100% - 32px))',
+        maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+        boxSizing: 'border-box',
       }}>
         <div style={{ fontSize: '2rem', marginBottom: '12px', lineHeight: 1 }}>🗑️</div>
         <h3 style={{ margin: '0 0 8px', color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 700 }}>
@@ -69,11 +70,12 @@ function ConfirmDialog({
             {error}
           </div>
         )}
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '20px' }}>
           <button
             onClick={onCancel}
             disabled={loading}
             style={{
+              flex: 1, minWidth: '100px',
               padding: '8px 18px', borderRadius: '8px',
               border: '1px solid var(--bg-card-border)', background: 'transparent',
               color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer',
@@ -86,6 +88,7 @@ function ConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
             style={{
+              flex: 1, minWidth: '100px',
               padding: '8px 18px', borderRadius: '8px',
               background: 'var(--accent-red)', border: 'none',
               color: '#fff', fontSize: '0.875rem', fontWeight: 600,
@@ -97,7 +100,7 @@ function ConfirmDialog({
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
