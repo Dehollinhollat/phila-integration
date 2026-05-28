@@ -102,6 +102,7 @@ export interface User {
   onboarding_complete: boolean;
   created_at:          string;
   updated_at:          string;
+  telephone?:          string | null;
 }
 
 export interface ConnectionLog {

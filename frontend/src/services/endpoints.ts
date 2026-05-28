@@ -243,7 +243,7 @@ export const planningEndpoints = {
 
 export const profileEndpoints = {
   get:                ()                                                   => api.get<User>('/users/me'),
-  update:             (data: { prenom?: string; nom?: string })           => api.put<User>('/users/me', data),
+  update:             (data: { prenom?: string; nom?: string; telephone?: string }) => api.put<User>('/users/me', data),
   changePassword:     (data: { current_password: string; new_password: string }) =>
     api.patch<{ message: string }>('/users/me/password', data),
   completeOnboarding: ()                                                  => api.patch<User>('/users/me/onboarding'),

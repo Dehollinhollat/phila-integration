@@ -30,6 +30,7 @@ import statsRoutes from './routes/stats.routes';
 import auditRoutes from './routes/audit.routes';
 import searchRoutes from './routes/search.routes';
 import feedbackRoutes from './routes/feedback.routes';
+import twilioRoutes from './routes/twilio.routes';
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -167,6 +168,9 @@ app.use('/api/stats',         statsRoutes);
 app.use('/api/audit',         auditRoutes);
 app.use('/api/search',        searchRoutes);
 app.use('/api/feedback',      feedbackRoutes);
+
+// Webhook Twilio — route publique, pas de JWT (Twilio ne peut pas en fournir)
+app.use('/webhooks/twilio', twilioRoutes);
 
 // Health check — inclut le flag maintenance pour que le frontend puisse le détecter
 // même quand le middleware 503 est actif (il laisse passer /health vers ce handler).

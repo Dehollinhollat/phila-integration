@@ -112,6 +112,74 @@ export async function sendEmailAssignation(
   });
 }
 
+// ─── Notification réponse WhatsApp entrante — envoyée au référent ────────────
+// Déclenché par le webhook POST /webhooks/twilio/incoming.
+// Informe le référent qu'un de ses contacts vient de lui répondre sur WhatsApp.
+
+// Échappe les caractères HTML spéciaux pour prévenir l'injection HTML.
+// & en premier pour éviter le double-échappement (&lt; → &amp;lt;).
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export async function sendReplyNotificationEmail(
+  emailReferent:    string,
+  prenomReferent:   string,
+  prenomContact:    string,
+  nomContact:       string,
+  telephoneContact: string,
+  corpsMessage:     string,
+): Promise<void> {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=================================');
+    console.log('[DEV] Email notif réponse WhatsApp :');
+    console.log(`Destinataire: ${emailReferent}`);
+    console.log(`Contact: ${prenomContact} ${nomContact} (${telephoneContact})`);
+    console.log(`Message: ${corpsMessage}`);
+    console.log('=================================');
+    return;
+  }
+
+  await resend.emails.send({
+    from:    'Phila Intégration <noreply@phila-integration.fr>',
+    to:      emailReferent,
+    subject: `Réponse WhatsApp de ${prenomContact} ${nomContact}`,
+    html: `
+      <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
+        <div style="background: #1A56B0; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="margin: 0; color: #fff; font-size: 20px; font-weight: 700;">Phila Intégration</h1>
+        </div>
+        <div style="padding: 32px 28px; background: #fff; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 12px 12px;">
+          <h2 style="margin: 0 0 16px; color: #1A56B0; font-size: 18px;">Nouveau message WhatsApp</h2>
+          <p style="margin: 0 0 12px; line-height: 1.6;">Bonjour ${esc(prenomReferent)},</p>
+          <p style="margin: 0 0 20px; line-height: 1.6;">
+            <strong>${esc(prenomContact)} ${esc(nomContact)}</strong> vous a répondu sur WhatsApp :
+          </p>
+          <div style="background: #F3F4F6; border-left: 4px solid #1A56B0; border-radius: 0 8px 8px 0; padding: 16px; margin: 0 0 24px; font-style: italic;">
+            ${esc(corpsMessage).replace(/\n/g, '<br>')}
+          </div>
+          <p style="margin: 0 0 8px; font-size: 13px; color: #6B7280;">
+            Pour rappeler ce contact : <strong>${esc(telephoneContact)}</strong>
+          </p>
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${process.env.FRONTEND_URL ?? 'http://localhost:5173'}/contacts"
+               style="display: inline-block; background: #1A56B0; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              Voir la fiche contact
+            </a>
+          </div>
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;">
+          <p style="color: #9CA3AF; font-size: 12px; margin: 0;">Phila Cité des Adorateurs</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 // ─── Rapport hebdomadaire - envoyé chaque lundi aux admins ───────────────────
 // Récapitulatif : nouveaux contacts, intégrés, messages, ouvriers actifs.
 // En développement : log console uniquement.

@@ -25,6 +25,7 @@ function genererMotDePasseProvisoire(): string {
 const USER_SELECT = {
   id: true, prenom: true, nom: true, email: true,
   role: true, campus: true, actif: true, created_at: true, onboarding_complete: true,
+  telephone: true,
 } as const;
 
 // ─── Routes /me ───────────────────────────────────────────────────────────────
@@ -39,12 +40,13 @@ export async function getMyProfile(req: Request, res: Response): Promise<void> {
   res.json(user);
 }
 
-// PUT /api/users/me — modifie prénom et nom uniquement
+// PUT /api/users/me — modifie prénom, nom et téléphone WhatsApp
 export async function updateMyProfile(req: Request, res: Response): Promise<void> {
-  const { prenom, nom } = req.body as { prenom?: string; nom?: string };
+  const { prenom, nom, telephone } = req.body as { prenom?: string; nom?: string; telephone?: string };
   const data: Record<string, unknown> = {};
-  if (prenom?.trim()) data.prenom = prenom.trim();
-  if (nom?.trim())    data.nom    = nom.trim();
+  if (prenom?.trim())          data.prenom    = prenom.trim();
+  if (nom?.trim())             data.nom       = nom.trim();
+  if (telephone !== undefined) data.telephone = telephone?.trim() || null;
 
   if (Object.keys(data).length === 0) {
     res.status(400).json({ message: 'Aucune donnée à mettre à jour' });

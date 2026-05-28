@@ -42,8 +42,9 @@ export default function UserProfile() {
   const { theme, themePreference, setThemePreference } = useTheme();
 
   // ── Section 1 : infos personnelles ──────────────────────────────────────────
-  const [prenom,      setPrenom]      = useState(user?.prenom ?? '');
-  const [nom,         setNom]         = useState(user?.nom    ?? '');
+  const [prenom,      setPrenom]      = useState(user?.prenom     ?? '');
+  const [nom,         setNom]         = useState(user?.nom        ?? '');
+  const [telephone,   setTelephone]   = useState(user?.telephone  ?? '');
   const [infoSaving,  setInfoSaving]  = useState(false);
   const [infoToast,   setInfoToast]   = useState<string | null>(null);
 
@@ -62,9 +63,9 @@ export default function UserProfile() {
     () => localStorage.getItem(NOTIF_KEY) !== 'false'
   );
 
-  // Sync prénom/nom si l'user change dans le contexte
+  // Sync prénom/nom/téléphone si l'user change dans le contexte
   useEffect(() => {
-    if (user) { setPrenom(user.prenom); setNom(user.nom); }
+    if (user) { setPrenom(user.prenom); setNom(user.nom); setTelephone(user.telephone ?? ''); }
   }, [user]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -74,8 +75,12 @@ export default function UserProfile() {
     if (!prenom.trim() || !nom.trim()) return;
     setInfoSaving(true);
     try {
-      const res = await profileEndpoints.update({ prenom: prenom.trim(), nom: nom.trim() });
-      updateUser({ prenom: res.data.prenom, nom: res.data.nom });
+      const res = await profileEndpoints.update({
+        prenom:    prenom.trim(),
+        nom:       nom.trim(),
+        telephone: telephone.trim() || undefined,
+      });
+      updateUser({ prenom: res.data.prenom, nom: res.data.nom, telephone: res.data.telephone });
       toast(setInfoToast, 'Profil mis à jour');
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -163,6 +168,18 @@ export default function UserProfile() {
                 onChange={e => setNom(e.target.value)}
                 style={inputStyle}
               />
+            </Field>
+            <Field label="Numéro WhatsApp" style={{ gridColumn: '1 / -1' }}>
+              <input
+                type="tel"
+                value={telephone}
+                onChange={e => setTelephone(e.target.value)}
+                placeholder="+33612345678"
+                style={inputStyle}
+              />
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                Format international E.164 (ex: +33612345678). Utilisé pour recevoir les réponses WhatsApp de vos contacts.
+              </span>
             </Field>
             <Field label="Email" style={{ gridColumn: '1 / -1' }}>
               <input value={user.email} readOnly disabled style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }} />
