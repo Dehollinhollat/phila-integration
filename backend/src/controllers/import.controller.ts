@@ -139,6 +139,9 @@ export async function importContacts(req: Request, res: Response): Promise<void>
     const ligne = i + 2; // Numéro de ligne Excel (1 = header)
 
     try {
+      // ── Ligne vide — ignore silencieusement ───────────────────────────────
+      if (!cell(row, 'PRENOM') && !cell(row, 'NOM') && !cell(row, 'CONTACT')) continue;
+
       // ── Téléphone (clé anti-doublon obligatoire) ──────────────────────────
       const telephoneRaw = cell(row, 'CONTACT');
       const telephone = normaliserTelephone(telephoneRaw);

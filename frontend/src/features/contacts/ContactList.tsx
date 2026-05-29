@@ -63,19 +63,28 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000, padding: '16px', boxSizing: 'border-box',
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '16px',
       }}
     >
       <div
         role="dialog" aria-modal="true"
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'var(--bg-card)', borderRadius: '12px', padding: '24px',
-          width: 'min(520px, calc(100% - 32px))', maxHeight: '90vh', overflowY: 'auto',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: '1px solid var(--bg-card-border)',
-          boxSizing: 'border-box',
+          background: 'var(--bg-card)',
+          borderRadius: '12px',
+          padding: '24px',
+          width: 'min(520px, calc(100% - 32px))',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          border: '1px solid var(--bg-card-border)',
         }}
       >
         <h3 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
