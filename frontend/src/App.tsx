@@ -129,8 +129,8 @@ export default function App() {
   const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
-    const healthUrl = API_BASE.replace(/\/api$/, '') + '/health';
-    fetch(healthUrl)
+    const healthUrl = API_BASE.replace(/\/api$/, '') + `/health?t=${Date.now()}`;
+    fetch(healthUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
       .then(r => r.json())
       .then((data: { maintenance?: boolean }) => {
         if (data.maintenance === true) setMaintenance(true);
