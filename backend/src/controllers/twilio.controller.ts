@@ -13,6 +13,7 @@
 // Twilio via twilio.validateRequest() + la variable TWILIO_WEBHOOK_URL.
 
 import { Request, Response } from 'express';
+import twilio from 'twilio';
 import prisma from '../lib/prisma';
 import { sendWhatsApp } from '../lib/twilio';
 import { sendReplyNotificationEmail } from '../lib/email';
@@ -20,8 +21,25 @@ import { sendReplyNotificationEmail } from '../lib/email';
 const TWIML_EMPTY = '<?xml version="1.0" encoding="UTF-8"?><Response/>';
 
 export async function handleIncomingWhatsApp(req: Request, res: Response): Promise<void> {
-  // Twilio envoie toujours 200 même si on log une erreur interne
   res.setHeader('Content-Type', 'text/xml');
+
+  // Vérification de la signature Twilio en production.
+  // Empêche n'importe qui d'appeler ce webhook et d'injecter de faux messages.
+  if (process.env.NODE_ENV === 'production') {
+    const twilioSignature = req.headers['x-twilio-signature'] as string ?? '';
+    const webhookUrl      = `${process.env.BACKEND_URL}/webhooks/twilio/incoming`;
+    const isValid = twilio.validateRequest(
+      process.env.TWILIO_AUTH_TOKEN ?? '',
+      twilioSignature,
+      webhookUrl,
+      req.body as Record<string, string>,
+    );
+    if (!isValid) {
+      console.warn('[TWILIO_WEBHOOK] Signature invalide — requête rejetée');
+      res.status(403).send('Forbidden');
+      return;
+    }
+  }
 
   try {
     const from: string  = req.body?.From  ?? '';

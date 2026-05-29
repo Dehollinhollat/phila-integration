@@ -321,6 +321,11 @@ model Contact {
   consentement_rgpd     Boolean                      // obligatoire — case cochée à la soumission du formulaire
   date_consentement     DateTime            @default(now())
 
+  // ── Import Excel — champs supplémentaires ─────────────
+  besoin_particulier    String?             // texte libre issu de la colonne BESOIN PARTICULIER
+  presence              String?             // texte libre issu de la colonne PRESENCE
+  suivi                 String?             // notes de suivi issues de la colonne SUIVI
+
   // ── Meta ──────────────────────────────
   date_inscription      DateTime            @default(now())
   derniere_interaction  DateTime?           // mise à jour à chaque commentaire ou message envoyé

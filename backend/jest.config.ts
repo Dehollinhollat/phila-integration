@@ -17,6 +17,7 @@ const config: Config = {
     '^../lib/prisma$': '<rootDir>/src/__tests__/__mocks__/prisma.ts',
     '^./lib/prisma$': '<rootDir>/src/__tests__/__mocks__/prisma.ts',
     '^../../lib/prisma$': '<rootDir>/src/__tests__/__mocks__/prisma.ts',
+    '^\./prisma$': '<rootDir>/src/__tests__/__mocks__/prisma.ts',
   },
   clearMocks: true,
   collectCoverageFrom: [

@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { contactsEndpoints } from '../../services/endpoints';
+import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import type { ContactRow, Canal, StatutContact, Campus, Profil, Intention } from '../../types';
 import {
@@ -16,6 +17,177 @@ import {
 } from '../../utils/constants';
 
 const PAGE_SIZE = 15;
+
+// ─── Types import ─────────────────────────────────────────────────────────────
+
+interface ImportResult {
+  importes: number;
+  ignores:  number;
+  erreurs:  { ligne: number; raison: string }[];
+}
+
+// ─── ImportModal ──────────────────────────────────────────────────────────────
+
+function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [loading,  setLoading]  = useState(false);
+  const [result,   setResult]   = useState<ImportResult | null>(null);
+  const [error,    setError]    = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const { data } = await api.post<ImportResult>('/import/contacts', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setResult(data);
+      onDone();
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? (err.response?.data?.message as string | undefined) ?? 'Erreur lors de l\'import'
+        : 'Erreur inattendue';
+      setError(msg);
+    } finally {
+      setLoading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: '16px', boxSizing: 'border-box',
+      }}
+    >
+      <div
+        role="dialog" aria-modal="true"
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--bg-card)', borderRadius: '12px', padding: '24px',
+          width: 'min(520px, calc(100% - 32px))', maxHeight: '90vh', overflowY: 'auto',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: '1px solid var(--bg-card-border)',
+          boxSizing: 'border-box',
+        }}
+      >
+        <h3 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Importer des contacts depuis Excel
+        </h3>
+        <p style={{ margin: '0 0 16px', fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+          Fichier .xlsx, .xls ou .csv. Colonnes attendues : CIVILITE, PRENOM, NOM, CONTACT (téléphone), CAMPUS…
+          Les contacts dont le numéro existe déjà sont ignorés.
+        </p>
+
+        {!result && (
+          <label style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '8px', padding: '32px 16px',
+            border: '2px dashed var(--bg-card-border)', borderRadius: '10px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
+            fontSize: '0.875rem', transition: '120ms ease',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            {loading ? 'Import en cours…' : 'Cliquer pour choisir un fichier'}
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              disabled={loading}
+              onChange={e => void handleFile(e)}
+              style={{ display: 'none' }}
+            />
+          </label>
+        )}
+
+        {error && (
+          <div style={{
+            marginTop: '12px', padding: '10px 14px', borderRadius: '8px',
+            background: 'rgba(220,38,38,0.08)', color: 'var(--accent-red)',
+            border: '1px solid rgba(220,38,38,0.2)', fontSize: '0.8125rem',
+          }}>
+            {error}
+          </div>
+        )}
+
+        {result && (
+          <div style={{ marginTop: '4px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <span style={badgeStat('#ECFDF5', '#059669')}>✓ {result.importes} importé{result.importes !== 1 ? 's' : ''}</span>
+              <span style={badgeStat('#FFF7ED', '#D97706')}>⏭ {result.ignores} ignoré{result.ignores !== 1 ? 's' : ''}</span>
+              {result.erreurs.length > 0 && (
+                <span style={badgeStat('rgba(220,38,38,0.08)', 'var(--accent-red)')}>✕ {result.erreurs.length} erreur{result.erreurs.length !== 1 ? 's' : ''}</span>
+              )}
+            </div>
+            {result.erreurs.length > 0 && (
+              <div style={{
+                maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--bg-card-border)',
+                borderRadius: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)',
+              }}>
+                {result.erreurs.map((e, i) => (
+                  <div key={i} style={{
+                    padding: '6px 12px', borderBottom: '1px solid var(--bg-card-border)',
+                    display: 'flex', gap: '8px',
+                  }}>
+                    <span style={{ color: 'var(--accent-red)', fontWeight: 600, whiteSpace: 'nowrap' }}>Ligne {e.ligne}</span>
+                    <span>{e.raison}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, minWidth: '100px',
+              padding: '8px 18px', borderRadius: '8px',
+              border: '1px solid var(--bg-card-border)', background: 'transparent',
+              color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer',
+            }}
+          >
+            Fermer
+          </button>
+          {result && (
+            <button
+              onClick={() => { setResult(null); setError(null); }}
+              style={{
+                flex: 1, minWidth: '100px',
+                padding: '8px 18px', borderRadius: '8px',
+                background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)',
+                border: '1px solid var(--accent-teal)', fontSize: '0.875rem',
+                fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Nouvel import
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function badgeStat(bg: string, color: string): React.CSSProperties {
+  return {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    padding: '4px 10px', borderRadius: '999px',
+    background: bg, color, fontSize: '0.8125rem', fontWeight: 600,
+  };
+}
 
 // ─── ConfirmDialog ────────────────────────────────────────────────────────────
 
@@ -172,6 +344,9 @@ export default function ContactList() {
   const [deleteLoading, setDeleteLoading]     = useState(false);
   const [deleteError, setDeleteError]         = useState<string | null>(null);
 
+  // État de l'import Excel
+  const [showImport, setShowImport] = useState(false);
+
   useEffect(() => {
     if (deletingContact) document.dispatchEvent(new CustomEvent('modal-opened'));
   }, [deletingContact]);
@@ -272,22 +447,43 @@ export default function ContactList() {
           </p>
         </div>
 
-        <button
-          onClick={() => navigate('/contacts/nouveau')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '7px',
-            padding: '9px 18px',
-            background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)',
-            border: '1px solid var(--accent-teal)', borderRadius: '8px',
-            fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
-            boxShadow: '0 0 10px rgba(26,86,176,0.18)', transition: '120ms ease',
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="7" y1="1" x2="7" y2="13" /><line x1="1" y1="7" x2="13" y2="7" />
-          </svg>
-          Nouveau contact
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {canModify && (
+            <button
+              onClick={() => setShowImport(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '7px',
+                padding: '9px 16px',
+                background: 'transparent', color: 'var(--text-primary)',
+                border: '1px solid var(--bg-card-border)', borderRadius: '8px',
+                fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+                transition: '120ms ease',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Importer Excel
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/contacts/nouveau')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '7px',
+              padding: '9px 18px',
+              background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)',
+              border: '1px solid var(--accent-teal)', borderRadius: '8px',
+              fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+              boxShadow: '0 0 10px rgba(26,86,176,0.18)', transition: '120ms ease',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="7" y1="1" x2="7" y2="13" /><line x1="1" y1="7" x2="13" y2="7" />
+            </svg>
+            Nouveau contact
+          </button>
+        </div>
       </div>
 
       {/* ── Filters ────────────────────────────────────────────────────────── */}
@@ -708,6 +904,14 @@ export default function ContactList() {
           onCancel={() => { setDeletingContact(null); setDeleteError(null); }}
           loading={deleteLoading}
           error={deleteError}
+        />
+      )}
+
+      {/* ── Modal import Excel ─────────────────────────────────────────────── */}
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onDone={() => { fetchContacts(); }}
         />
       )}
     </div>

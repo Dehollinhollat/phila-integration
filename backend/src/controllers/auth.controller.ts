@@ -13,6 +13,12 @@ import { JwtPayload } from '../middlewares/auth.middleware';
 const ACCESS_TOKEN_TTL  = '8h';
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000; // 7 jours en ms
 
+// Hash factice pré-calculé pour bcrypt.compare quand l'email n'existe pas.
+// Égalise le temps de réponse et empêche les attaques par timing qui révèlent
+// l'existence d'un compte (user_not_found ≈ 0ms vs wrong_password ≈ 100ms).
+// Valeur : hash bcrypt coût 12 d'une chaîne aléatoire — ne correspond à rien.
+const DUMMY_HASH = '$2b$12$RKiAVCWLPiMZKQZQGGaTPe4WKMuBvKnfW4K1JQvGqK5H6OjhN9rqO';
+
 function buildJwtPayload(user: { id: string; email: string; role: string; campus: string[] }): JwtPayload {
   return {
     id:     user.id,
@@ -35,22 +41,18 @@ export async function login(req: Request, res: Response): Promise<void> {
   const userAgent = req.headers['user-agent'];
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=user_not_found time=${new Date().toISOString()}`);
-    res.status(401).json({ message: 'Identifiants invalides' });
-    return;
-  }
-  if (!user.actif) {
-    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=compte_inactif time=${new Date().toISOString()}`);
-    await prisma.connectionLog.create({ data: { user_id: user.id, ip, user_agent: userAgent, succes: false, raison: 'compte_inactif' } });
-    res.status(401).json({ message: 'Identifiants invalides' });
-    return;
-  }
 
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) {
-    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=mot_de_passe_incorrect time=${new Date().toISOString()}`);
-    await prisma.connectionLog.create({ data: { user_id: user.id, ip, user_agent: userAgent, succes: false, raison: 'mot_de_passe_incorrect' } });
+  // Toujours comparer le mot de passe — hash factice si l'email n'existe pas —
+  // pour égaliser le temps de réponse et prévenir l'énumération d'emails.
+  const hashToCompare = user?.password ?? DUMMY_HASH;
+  const valid = await bcrypt.compare(password, hashToCompare);
+
+  if (!user || !user.actif || !valid) {
+    const raison = !user ? 'user_not_found' : !user.actif ? 'compte_inactif' : 'mot_de_passe_incorrect';
+    console.warn(`[AUTH][FAILED_LOGIN] email=${email} ip=${ip} reason=${raison} time=${new Date().toISOString()}`);
+    if (user) {
+      await prisma.connectionLog.create({ data: { user_id: user.id, ip, user_agent: userAgent, succes: false, raison } });
+    }
     res.status(401).json({ message: 'Identifiants invalides' });
     return;
   }
@@ -131,40 +133,40 @@ export async function logout(req: Request, res: Response): Promise<void> {
 }
 
 // POST /api/auth/forgot-password — demande de réinitialisation
+// Retourne TOUJOURS le même message 200 que l'email existe ou non (anti-énumération).
+// La protection timing : si l'email n'existe pas, on effectue un hash bcrypt factice
+// pour occuper le CPU le même temps que la création d'un vrai token.
 export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  const RESPONSE = { message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' };
+
   const { email } = req.body as { email?: string };
-
-  console.log('[FORGOT-PASSWORD] Email recu:', email);
-
-  // Retourne toujours 200 — évite l'énumération d'emails
   if (!email) {
-    res.json({ message: 'Si cet email existe, vous recevrez un lien dans quelques minutes.' });
+    res.json(RESPONSE);
     return;
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
-  console.log('[FORGOT-PASSWORD] User trouve:', user ? 'OUI - ' + user.email : 'NON');
 
   if (user && user.actif) {
-    // Invalide les anciens tokens non utilisés pour cet utilisateur
     await prisma.passwordResetToken.updateMany({
-      where:  { user_id: user.id, used: false },
-      data:   { used: true },
+      where: { user_id: user.id, used: false },
+      data:  { used: true },
     });
 
     const token     = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     await prisma.passwordResetToken.create({ data: { token, user_id: user.id, expires_at: expiresAt } });
 
     const resetUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:5173'}/reset-password?token=${token}`;
-    console.log('[FORGOT-PASSWORD] Envoi email en cours...');
     await sendPasswordResetEmail(email, user.prenom, resetUrl).catch(err => {
       console.error('[AUTH][FORGOT_PASSWORD] Erreur envoi email:', err);
     });
-    console.log('[FORGOT-PASSWORD] Email envoye (ou log dev)');
+  } else {
+    // Égalise le temps CPU — empêche la détection d'emails via timing
+    await bcrypt.hash('_timing_protection_', 10);
   }
 
-  res.json({ message: 'Si cet email existe, vous recevrez un lien dans quelques minutes.' });
+  res.json(RESPONSE);
 }
 
 // POST /api/auth/reset-password — utilise le token pour changer le mot de passe

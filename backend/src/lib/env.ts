@@ -10,6 +10,7 @@ const REQUIRED_VARS = [
   'TWILIO_AUTH_TOKEN',
   'TWILIO_WHATSAPP_FROM',
   'RESEND_API_KEY',
+  'BACKEND_URL',
 ] as const;
 
 const missing = REQUIRED_VARS.filter(key => !process.env[key]);

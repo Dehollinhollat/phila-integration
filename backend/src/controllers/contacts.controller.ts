@@ -14,6 +14,7 @@ import { cache, withCache } from '../lib/cache';
 import { logAudit } from '../lib/audit';
 import { sendEmailAssignation } from '../lib/email';
 import { genererCertificat } from '../lib/certificat';
+import { peutAccederContact, filtreContactsParRole } from '../lib/authorization';
 
 const PROFIL_LABELS: Record<string, string> = {
   membre_phila:          'Membre Phila',
@@ -105,11 +106,12 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
     ];
   }
 
-  const { role, id: userId, campus: userCampus } = req.user!;
+  const { role, id: userId } = req.user!;
   const cacheKey = `contacts:list:${role}:${userId}:${JSON.stringify({ campus, profil, statut, canal, search, page, limit })}`;
 
   const result = await withCache(cacheKey, 300, async () => {
-    const where = buildContactWhere(req, extra);
+    const roleFilter = filtreContactsParRole(req.user!) as Record<string, unknown>;
+    const where: Record<string, unknown> = { ...roleFilter, ...extra };
     const skip = (Number(page) - 1) * Number(limit);
 
     const [items, total] = await Promise.all([
@@ -139,11 +141,16 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
 
 // GET /api/contacts/:id
 export async function getContact(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
-  const where = buildContactWhere(req, { id });
+  const id = req.params.id as string;
+
+  const autorise = await peutAccederContact(req.user!, id);
+  if (!autorise) {
+    res.status(403).json({ error: 'Acces non autorise a ce contact' });
+    return;
+  }
 
   const contact = await prisma.contact.findFirst({
-    where,
+    where: { id },
     include: {
       referent_integration: { select: { id: true, prenom: true, nom: true, email: true } },
       referent_eglise: { select: { id: true, prenom: true, nom: true, email: true } },
@@ -273,9 +280,14 @@ export async function createContact(req: Request, res: Response): Promise<void> 
 // PATCH /api/contacts/:id
 export async function updateContact(req: Request, res: Response): Promise<void> {
   const id = req.params.id as string;
-  const where = buildContactWhere(req, { id });
 
-  const exists = await prisma.contact.findFirst({ where });
+  const autorise = await peutAccederContact(req.user!, id);
+  if (!autorise) {
+    res.status(403).json({ error: 'Acces non autorise a ce contact' });
+    return;
+  }
+
+  const exists = await prisma.contact.findFirst({ where: { id } });
   if (!exists) {
     res.status(404).json({ message: 'Contact introuvable ou accès refusé' });
     return;
@@ -297,9 +309,14 @@ export async function updateContact(req: Request, res: Response): Promise<void> 
 // PUT /api/contacts/:id — mise à jour complète (admin_campus+), telephone modifiable avec vérification doublon
 export async function updateContactFull(req: Request, res: Response): Promise<void> {
   const id = req.params.id as string;
-  const where = buildContactWhere(req, { id });
 
-  const exists = await prisma.contact.findFirst({ where });
+  const autorise = await peutAccederContact(req.user!, id);
+  if (!autorise) {
+    res.status(403).json({ error: 'Acces non autorise a ce contact' });
+    return;
+  }
+
+  const exists = await prisma.contact.findFirst({ where: { id } });
   if (!exists) {
     res.status(404).json({ message: 'Contact introuvable ou accès refusé' });
     return;
@@ -340,6 +357,13 @@ export async function updateContactFull(req: Request, res: Response): Promise<vo
 // DELETE /api/contacts/:id — suppression avec cascade (admin+ uniquement)
 export async function deleteContact(req: Request, res: Response): Promise<void> {
   const id = String(req.params.id);
+
+  const autorise = await peutAccederContact(req.user!, id);
+  if (!autorise) {
+    res.status(403).json({ error: 'Acces non autorise a ce contact' });
+    return;
+  }
+
   const exists = await prisma.contact.findUnique({ where: { id } });
   if (!exists) {
     res.status(404).json({ message: 'Contact introuvable' });
@@ -446,12 +470,19 @@ export async function patchChecklist(req: Request, res: Response): Promise<void>
 // PATCH /api/contacts/:id/referents — assigne/retire référent intégration et/ou église
 export async function patchReferents(req: Request, res: Response): Promise<void> {
   const id = String(req.params.id);
+
+  const autorise = await peutAccederContact(req.user!, id);
+  if (!autorise) {
+    res.status(403).json({ error: 'Acces non autorise a ce contact' });
+    return;
+  }
+
   const { referent_integration_id, referent_eglise_id } = req.body as {
     referent_integration_id?: string | null;
     referent_eglise_id?: string | null;
   };
 
-  const contact = await prisma.contact.findFirst({ where: buildContactWhere(req, { id }) });
+  const contact = await prisma.contact.findFirst({ where: { id } });
   if (!contact) {
     res.status(404).json({ message: 'Contact introuvable ou accès refusé' });
     return;
@@ -869,6 +900,12 @@ export async function getAuditLog(req: Request, res: Response): Promise<void> {
 export async function suggererReferent(req: Request, res: Response): Promise<void> {
   const { id } = req.params as { id: string };
 
+  const autorise = await peutAccederContact(req.user!, id);
+  if (!autorise) {
+    res.status(403).json({ error: 'Acces non autorise a ce contact' });
+    return;
+  }
+
   const contact = await prisma.contact.findUnique({ where: { id } });
   if (!contact) { res.status(404).json({ error: 'Contact non trouvé' }); return; }
 
@@ -1017,6 +1054,12 @@ export async function globalSearch(req: Request, res: Response): Promise<void> {
 // GET /api/contacts/:id/certificat — génère et télécharge le PDF du certificat d'intégration
 export async function telechargerCertificat(req: Request, res: Response): Promise<void> {
   const { id } = req.params as { id: string };
+
+  const autorise = await peutAccederContact(req.user!, id);
+  if (!autorise) {
+    res.status(403).json({ error: 'Acces non autorise a ce contact' });
+    return;
+  }
 
   const contact = await prisma.contact.findUnique({
     where: { id },

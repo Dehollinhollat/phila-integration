@@ -16,8 +16,8 @@ export const createContactSchema = z.object({
   prenom: z.string().min(1, 'Prénom requis').max(100).trim(),
   nom:    z.string().min(1, 'Nom requis').max(100).trim(),
   telephone: z.string().regex(
-    /^\+[1-9]\d{6,14}$/,
-    'Numéro de téléphone invalide (format E.164 attendu : +33612345678)'
+    /^\+[1-9]\d{7,14}$/,
+    'Numéro invalide, format E.164 attendu (ex: +33612345678)'
   ),
   email: z.string().email('Email invalide').max(255).optional().nullable(),
 

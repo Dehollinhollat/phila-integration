@@ -55,7 +55,9 @@
       "Bash(node -e \"const fs = require\\('fs'\\); const data = fs.readFileSync\\('frontend/public/icons/icon-128x128.png'\\); console.log\\(data.toString\\('base64'\\)\\);\")",
       "PowerShell($b64 = [Convert]::ToBase64String\\([IO.File]::ReadAllBytes\\(\"frontend\\\\public\\\\icons\\\\icon-128x128.png\"\\)\\); $b64 | Out-File -Encoding utf8 -FilePath \"backend\\\\src\\\\lib\\\\_logo_b64.tmp\"; Write-Host \"Length: $\\($b64.Length\\)\")",
       "PowerShell(\\(Get-Item \"C:\\\\Users\\\\dehom\\\\phila-integration\\\\frontend\\\\src\\\\assets\\\\images\\\\LOGO-PHILA-BLEU.png\"\\).Length)",
-      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\\\\scripts\" -Force)"
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\\\\scripts\" -Force)",
+      "Bash(npm test *)",
+      "Bash(npx jest *)"
     ]
   }
 }
