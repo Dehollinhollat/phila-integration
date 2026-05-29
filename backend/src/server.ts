@@ -41,6 +41,18 @@ const PORT = process.env.PORT ?? 4000;
 // Requis pour que express-rate-limit comptabilise correctement par client.
 app.set('trust proxy', 1);
 
+// Défini tôt : utilisé dans le handler /health anticipé et dans le middleware 503.
+const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true';
+
+// ─── Health check anticipé — avant Helmet, CORS et rate-limit ────────────────
+// Access-Control-Allow-Origin: * permet au frontend de l'appeler depuis n'importe
+// quelle origine, y compris en cas de mauvaise configuration CORS du backend.
+app.get('/health', (_req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.json({ ok: true, maintenance: MAINTENANCE_MODE });
+});
+
 // ─── Redirect HTTP → HTTPS en production ─────────────────────────────────────
 // Placé avant tout middleware — détecte le proto via l'en-tête Railway X-Forwarded-Proto.
 if (process.env.NODE_ENV === 'production') {
@@ -131,8 +143,7 @@ app.use(globalRateLimit);
 
 // ─── 7. Mode maintenance ──────────────────────────────────────────────────────
 // Activé via Railway → Variables → MAINTENANCE_MODE=true.
-// Toutes les requêtes renvoient 503 sauf /health (utilisé par le frontend pour détecter le mode).
-const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true';
+// /health est intercepté plus tôt (avant ce middleware) et répond toujours.
 if (MAINTENANCE_MODE) {
   app.use((req, res, next) => {
     if (req.path === '/health') return next();
@@ -166,10 +177,6 @@ app.use('/api/feedback',      feedbackRoutes);
 app.use('/webhooks/twilio', twilioRoutes);
 
 app.use('/api/import',      importRoutes);
-
-// Health check — inclut le flag maintenance pour que le frontend puisse le détecter
-// même quand le middleware 503 est actif (il laisse passer /health vers ce handler).
-app.get('/health', (_req, res) => res.json({ ok: true, maintenance: MAINTENANCE_MODE }));
 
 // ─── Gestionnaire d'erreurs global ────────────────────────────────────────────
 // En production : stack trace logguée côté serveur seulement, jamais exposée au client.
