@@ -89,12 +89,15 @@ app.use(helmet({
 
 // ─── 3. CORS — whitelist stricte ─────────────────────────────────────────────
 // Seules les origines explicitement listées peuvent appeler l'API.
-// Ajouter FRONTEND_URL dans .env pour autoriser le domaine de production.
+// FRONTEND_URL accepté avec ou sans slash final pour éviter les rejets silencieux
+// lorsque la variable d'environnement est copiée avec un slash en trop.
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://192.168.1.14:5173', // IP réseau local pour tests mobile
   process.env.FRONTEND_URL,
-].filter((o): o is string => Boolean(o));
+  process.env.FRONTEND_URL?.replace(/\/$/, ''), // sans slash final
+  'http://localhost:5173',
+  'http://localhost:4173',                       // vite preview
+  'http://192.168.1.14:5173',                   // IP réseau local pour tests mobile
+].filter(Boolean) as string[];
 
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -102,7 +105,8 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Non autorisé par CORS'));
+      console.error(`[CORS] Origine rejetée : ${origin}`);
+      callback(new Error(`Non autorisé par CORS: ${origin}`));
     }
   },
   credentials:    true,
