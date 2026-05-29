@@ -63,28 +63,16 @@ app.use(morgan('combined'));
 
 // ─── 2. Headers de sécurité (helmet) ─────────────────────────────────────────
 // HSTS 1 an + preload → navigateurs mémorisent le HTTPS même sans visite préalable.
-// unsafe-inline requis pour les styles inline Vite en production.
+// CSP désactivé ici : il est géré par Vercel via frontend/vercel.json,
+// ce qui évite les conflits de double-header CSP entre backend et frontend.
 app.use(helmet({
+  contentSecurityPolicy:    false,
+  crossOriginEmbedderPolicy: false, // requis pour Cloudflare Turnstile
   hsts: {
     maxAge:            31536000, // 1 an en secondes
     includeSubDomains: true,
     preload:           true,
   },
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc:  ["'self'", "'unsafe-inline'", 'https://challenges.cloudflare.com'],
-      frameSrc:   ['https://challenges.cloudflare.com'],
-      imgSrc:     ["'self'", 'data:', 'https:'],
-      connectSrc: [
-        "'self'",
-        'http://localhost:4000',
-        ...(process.env.BACKEND_URL  ? [process.env.BACKEND_URL]  : []),
-        ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
-      ],
-    },
-  },
-  crossOriginEmbedderPolicy: false, // requis pour Cloudflare Turnstile
 }));
 
 // ─── 3. CORS — whitelist stricte ─────────────────────────────────────────────
