@@ -24,7 +24,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { API_BASE } from './utils/constants';
 import ProtectedLayout   from './layout/ProtectedLayout';
 import Login             from './pages/Login';
 import FormPresentiel    from './pages/FormPresentiel';
@@ -129,14 +128,22 @@ export default function App() {
   const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
-    const healthUrl = API_BASE.replace(/\/api$/, '') + `/health?t=${Date.now()}`;
-    fetch(healthUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    const baseUrl = apiUrl.endsWith('/api')
+      ? apiUrl.slice(0, -4)
+      : apiUrl.endsWith('/api/')
+      ? apiUrl.slice(0, -5)
+      : apiUrl.replace(/\/$/, '');
+
+    fetch(`${baseUrl}/health?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
       .then(r => r.json())
       .then((data: { maintenance?: boolean }) => {
         if (data.maintenance === true) setMaintenance(true);
       })
       .catch(() => {
-        // Backend complètement indisponible → affiche la page maintenance
         setMaintenance(true);
       });
   }, []);
