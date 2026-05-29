@@ -21,7 +21,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://phila-integration-production.up.railway.app https://phila-integration-production-2963.up.railway.app https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.up.railway.app https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:;"
         },
         {
           "key": "Strict-Transport-Security",
