@@ -19,9 +19,26 @@ type ImportResult = { importes: number; ignores: number; erreurs: ImportError[] 
 
 function normaliserTelephone(raw: string): string | null {
   if (!raw) return null;
-  const clean = raw.replace(/[\s.\-()]/g, '').trim();
-  if (/^0\d{9}$/.test(clean)) return '+33' + clean.slice(1);
-  if (/^\+[1-9]\d{7,14}$/.test(clean)) return clean;
+
+  let tel = raw.replace(/[\s\-\.]/g, '');
+
+  // Déjà au format E.164
+  if (/^\+\d{8,15}$/.test(tel)) return tel;
+
+  // Format 00XXXX → +XXXX (ex: 00261... → +261...)
+  if (tel.startsWith('00')) return '+' + tel.slice(2);
+
+  // Format 0XXXXXXXXX français → +33XXXXXXXXX
+  if (tel.startsWith('0') && tel.length === 10) return '+33' + tel.slice(1);
+
+  // Format sans + ni 00 mais avec indicatif pays connu
+  if (tel.startsWith('243') && tel.length >= 11) return '+' + tel; // RDC
+  if (tel.startsWith('261') && tel.length >= 11) return '+' + tel; // Madagascar
+  if (tel.startsWith('33')  && tel.length >= 11) return '+' + tel; // France
+
+  // 10 chiffres sans indicatif → France par défaut
+  if (/^\d{10}$/.test(tel)) return '+33' + tel.slice(1);
+
   return null;
 }
 
