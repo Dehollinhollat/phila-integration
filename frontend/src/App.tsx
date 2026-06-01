@@ -19,7 +19,6 @@
 //   /admin                 → gestion des utilisateurs           [admin+]
 //   *                      → page 404
 
-import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
@@ -125,39 +124,17 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
-  const [maintenance, setMaintenance] = useState(false);
+  const MAINTENANCE_MODE = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 
-  useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || '';
-    const baseUrl = apiUrl.endsWith('/api')
-      ? apiUrl.slice(0, -4)
-      : apiUrl.replace(/\/$/, '');
-
-    fetch(`${baseUrl}/health?t=${Date.now()}`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' },
-    })
-      .then(r => r.json())
-      .then((data: { maintenance?: boolean }) => {
-        if (data.maintenance === true) setMaintenance(true);
-      })
-      .catch((err: unknown) => {
-        console.error('[HEALTH] Erreur fetch:', err);
-        // Erreur réseau = backend indisponible, pas forcément en maintenance
-      });
-  }, []);
+  if (MAINTENANCE_MODE) return <Maintenance />;
 
   return (
     <ThemeProvider>
       <AuthProvider>
-        {maintenance ? (
-          <Maintenance />
-        ) : (
-          <BrowserRouter>
-            <AnimatedRoutes />
-            <InstallPWA />
-          </BrowserRouter>
-        )}
+        <BrowserRouter>
+          <AnimatedRoutes />
+          <InstallPWA />
+        </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
   );
