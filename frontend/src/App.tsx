@@ -131,8 +131,6 @@ export default function App() {
     const apiUrl = import.meta.env.VITE_API_URL || '';
     const baseUrl = apiUrl.endsWith('/api')
       ? apiUrl.slice(0, -4)
-      : apiUrl.endsWith('/api/')
-      ? apiUrl.slice(0, -5)
       : apiUrl.replace(/\/$/, '');
 
     fetch(`${baseUrl}/health?t=${Date.now()}`, {
@@ -143,8 +141,9 @@ export default function App() {
       .then((data: { maintenance?: boolean }) => {
         if (data.maintenance === true) setMaintenance(true);
       })
-      .catch(() => {
-        setMaintenance(true);
+      .catch((err: unknown) => {
+        console.error('[HEALTH] Erreur fetch:', err);
+        // Erreur réseau = backend indisponible, pas forcément en maintenance
       });
   }, []);
 

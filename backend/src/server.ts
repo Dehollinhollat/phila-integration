@@ -43,6 +43,7 @@ app.set('trust proxy', 1);
 
 // Défini tôt : utilisé dans le handler /health anticipé et dans le middleware 503.
 const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true';
+console.log(`[SERVER] MAINTENANCE_MODE=${MAINTENANCE_MODE} (env="${process.env.MAINTENANCE_MODE ?? 'non défini'}")`);
 
 // ─── Health check anticipé — avant Helmet, CORS et rate-limit ────────────────
 // Access-Control-Allow-Origin: * permet au frontend de l'appeler depuis n'importe
