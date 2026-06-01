@@ -511,26 +511,67 @@ function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
 
 // ─── Graphiques ───────────────────────────────────────────────────────────────
 
-const TOOLTIP_STYLE = {
-  background: 'var(--bg-card)',
-  border: '1px solid var(--bg-card-border)',
-  color: 'var(--text-primary)',
-  borderRadius: 8,
-  fontSize: 12,
-};
+// Tooltip thémé — remplace le conteneur Recharts natif pour que les CSS variables
+// du thème light/dark soient correctement résolues dans le rendu React.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background:   'var(--bg-card)',
+      border:       '1px solid var(--bg-card-border)',
+      borderRadius: '8px',
+      padding:      '10px 14px',
+      color:        'var(--text-primary)',
+      fontSize:     '13px',
+      boxShadow:    '0 4px 12px rgba(0,0,0,0.3)',
+    }}>
+      {label && <p style={{ fontWeight: 600, margin: '0 0 4px' }}>{label}</p>}
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      {(payload as any[]).map((p: any, i: number) => (
+        <p key={i} style={{ color: p.color, margin: 0 }}>
+          {p.name} : {p.value}
+        </p>
+      ))}
+    </div>
+  );
+}
 
-// Composant tick personnalisé : permet d'utiliser les CSS variables dans le SVG
+// Ticks axes — style CSS (pas attribut SVG) pour supporter les CSS variables
 function AxisTickX({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
   return (
-    <text x={x} y={(y ?? 0) + 12} textAnchor="middle" style={{ fill: 'var(--text-secondary)', fontSize: 11 }}>
+    <text x={x} y={(y ?? 0) + 12} textAnchor="middle" style={{ fill: 'var(--text-primary)', fontSize: 11 }}>
       {payload?.value}
     </text>
   );
 }
 function AxisTickY({ x, y, payload }: { x?: number; y?: number; payload?: { value: string | number } }) {
   return (
-    <text x={(x ?? 0) - 4} y={(y ?? 0) + 4} textAnchor="end" style={{ fill: 'var(--text-secondary)', fontSize: 11 }}>
+    <text x={(x ?? 0) - 4} y={(y ?? 0) + 4} textAnchor="end" style={{ fill: 'var(--text-primary)', fontSize: 11 }}>
       {payload?.value}
+    </text>
+  );
+}
+
+// Labels PieChart extérieurs — positionnés à outerRadius+30, fill via style SVG
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function renderCustomizedLabel({ cx, cy, midAngle, outerRadius, percent, name }: any) {
+  if ((percent ?? 0) === 0) return null;
+  const RADIAN = Math.PI / 180;
+  const radius = (outerRadius as number) + 30;
+  const x = (cx as number) + radius * Math.cos(-midAngle * RADIAN);
+  const y = (cy as number) + radius * Math.sin(-midAngle * RADIAN);
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="var(--text-primary)"
+      textAnchor={x > (cx as number) ? 'start' : 'end'}
+      dominantBaseline="central"
+      fontSize={12}
+      fontWeight="500"
+    >
+      {`${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
     </text>
   );
 }
@@ -1059,7 +1100,7 @@ export default function Dashboard() {
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
                       <XAxis dataKey="mois" tick={<AxisTickX />} axisLine={false} tickLine={false} />
                       <YAxis tick={<AxisTickY />} axisLine={false} tickLine={false} allowDecimals={false} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-secondary)' }} />
                       <Line
                         type="monotone" dataKey="presentiel" name="Présentiel"
@@ -1080,18 +1121,16 @@ export default function Dashboard() {
                       <Pie
                         data={statsProfils}
                         cx="50%" cy="50%"
-                        outerRadius={80}
+                        outerRadius={70}
                         dataKey="value"
-                        label={({ name, percent }) =>
-                          (percent ?? 0) > 0 ? `${name} ${Math.round((percent ?? 0) * 100)}%` : ''
-                        }
-                        labelLine={false}
+                        label={renderCustomizedLabel}
+                        labelLine={{ stroke: 'var(--text-secondary)', strokeWidth: 1 }}
                       >
                         {statsProfils.map((entry, index) => (
                           <Cell key={index} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
                 </ChartCard>
@@ -1110,7 +1149,7 @@ export default function Dashboard() {
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" vertical={false} />
                       <XAxis dataKey="label" tick={<AxisTickX />} axisLine={false} tickLine={false} />
                       <YAxis tick={<AxisTickY />} axisLine={false} tickLine={false} allowDecimals={false} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="count" name="Contacts" radius={[3, 3, 0, 0]}>
                         {statsStatuts.map((entry, index) => (
                           <Cell key={index} fill={STATUT_CHART_COLORS[entry.statut] ?? '#6B7280'} />
@@ -1133,7 +1172,7 @@ export default function Dashboard() {
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
                       <XAxis dataKey="semaine" tick={<AxisTickX />} axisLine={false} tickLine={false} />
                       <YAxis tick={<AxisTickY />} axisLine={false} tickLine={false} allowDecimals={false} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Tooltip content={<CustomTooltip />} />
                       <Area
                         type="monotone" dataKey="count" name="Messages"
                         stroke="#1A56B0" strokeWidth={2}
