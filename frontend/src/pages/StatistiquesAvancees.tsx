@@ -10,6 +10,14 @@ import {
   CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import { statsEndpoints } from '../services/endpoints';
+import { HelpButton } from '../components/common/HelpButton';
+
+const HELP_STATS = [
+  { titre: 'Taux de conversion', description: "Pourcentage de contacts qui ont atteint le statut Intégré ou Ouvrier par rapport au total.", emoji: '📈' },
+  { titre: "Temps d'intégration", description: "Durée moyenne entre la date d'inscription et le passage au statut Intégré.", emoji: '⏱' },
+  { titre: 'Performance référents', description: 'Tableau comparatif des référents avec leur taux de conversion et nombre de contacts.', emoji: '🏆' },
+  { titre: 'Rapport hebdomadaire', description: "Envoyez manuellement un rapport par email aux admins ou attendez l'envoi automatique chaque lundi à 8h.", emoji: '📧' },
+];
 import type {
   TauxConversionData,
   TempsIntegrationData,
@@ -97,6 +105,7 @@ export default function StatistiquesAvancees() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <HelpButton titre="Aide Statistiques" steps={HELP_STATS} />
           {rapportMsg && (
             <span style={{
               fontSize:     13,

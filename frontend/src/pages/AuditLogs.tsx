@@ -31,6 +31,7 @@ interface AuditResponse {
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const ACTION_LABELS: Record<string, string> = {
+  LOGIN:                'Connexion',
   creation:             'Création',
   modification:         'Modification',
   suppression:          'Suppression',
@@ -40,6 +41,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const ACTION_BADGE: Record<string, { bg: string; color: string }> = {
+  LOGIN:                { bg: '#eff6ff', color: '#1d4ed8' },
   creation:             { bg: '#dcfce7', color: '#15803d' },
   modification:         { bg: '#fef3c7', color: '#b45309' },
   suppression:          { bg: '#fee2e2', color: '#dc2626' },

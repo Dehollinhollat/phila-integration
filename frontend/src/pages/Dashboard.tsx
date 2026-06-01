@@ -15,6 +15,7 @@ import { useCountUp } from '../hooks/useCountUp';
 import {
   STATUT_LABELS, STATUT_COLORS, CAMPUS_LABELS, PROFIL_BADGE, PROFIL_LABELS, CANAL_BADGE,
 } from '../utils/constants';
+import { HelpButton } from '../components/common/HelpButton';
 import type { ContactRow, Campus, InscriptionMoisData, ProfilData, StatutData, MessageSemaineData } from '../types';
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -734,11 +735,22 @@ export default function Dashboard() {
     const sansRef            = filteredContacts.filter(c => !c.referent_integration).length;
     const enLigne            = filteredContacts.filter(c => c.canal === 'en_ligne').length;
     const presentiel  = filteredContacts.filter(c => c.canal === 'presentiel').length;
+    const integre              = filteredContacts.filter(c => c.statut === 'integre').length;
+    const ouvrier              = filteredContacts.filter(c => c.statut === 'ouvrier').length;
+    const paris                = filteredContacts.filter(c => c.campus === 'paris').length;
+    const parisNord            = filteredContacts.filter(c => c.campus === 'paris_nord').length;
+    const parisIntegre         = filteredContacts.filter(c => c.campus === 'paris' && c.statut === 'integre').length;
+    const parisMembrePhila     = filteredContacts.filter(c => c.campus === 'paris' && c.profil === 'membre_phila').length;
+    const parisNordIntegre     = filteredContacts.filter(c => c.campus === 'paris_nord' && c.statut === 'integre').length;
+    const parisNordMembrePhila = filteredContacts.filter(c => c.campus === 'paris_nord' && c.profil === 'membre_phila').length;
     const byStatut: Record<string, number> = {};
     for (const c of filteredContacts) {
       byStatut[c.statut] = (byStatut[c.statut] ?? 0) + 1;
     }
-    return { total, membrePhila, visiteurSansEglise, visiteurAvecEglise, sansRef, enLigne, presentiel, byStatut };
+    return {
+      total, membrePhila, visiteurSansEglise, visiteurAvecEglise, sansRef, enLigne, presentiel, byStatut,
+      integre, ouvrier, paris, parisNord, parisIntegre, parisMembrePhila, parisNordIntegre, parisNordMembrePhila,
+    };
   }, [filteredContacts]);
 
   // ─── Charge référents ─────────────────────────────────────────────────────
@@ -861,6 +873,108 @@ export default function Dashboard() {
     doc.save(`rapport-phila-${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}.pdf`);
   }
 
+  function genererRapportAnnuel() {
+    const doc   = new jsPDF();
+    const annee = new Date().getFullYear();
+
+    doc.setFillColor(26, 86, 176);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Phila Cite des Adorateurs', 20, 18);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Rapport annuel ${annee}`, 20, 30);
+
+    doc.setTextColor(26, 86, 176);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Bilan annuel', 20, 55);
+
+    const kpisAnnuels: Array<{ label: string; value: string; color: [number, number, number] }> = [
+      { label: 'Total inscrits', value: String(kpi.total),       color: [26,  86,  176] },
+      { label: 'Membres Phila',  value: String(kpi.membrePhila), color: [20,  184, 166] },
+      { label: 'Integres',       value: String(kpi.integre),     color: [16,  185, 129] },
+      { label: 'Ouvriers',       value: String(kpi.ouvrier),     color: [212, 162, 78]  },
+    ];
+
+    kpisAnnuels.forEach((k, i) => {
+      const x = 20 + (i % 2) * 90;
+      const y = 62 + Math.floor(i / 2) * 25;
+      doc.setFillColor(...k.color);
+      doc.roundedRect(x, y, 80, 18, 3, 3, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(k.label, x + 4, y + 7);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(k.value, x + 4, y + 15);
+    });
+
+    doc.setTextColor(26, 86, 176);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Repartition par campus', 20, 120);
+
+    autoTable(doc, {
+      startY: 125,
+      head: [['Campus', 'Total', 'Integres', 'Membres Phila']],
+      body: [
+        ['Paris',      String(kpi.paris),      String(kpi.parisIntegre),     String(kpi.parisMembrePhila)    ],
+        ['Paris Nord', String(kpi.parisNord),  String(kpi.parisNordIntegre), String(kpi.parisNordMembrePhila)],
+      ],
+      styles:             { fontSize: 9, cellPadding: 3 },
+      headStyles:         { fillColor: [26, 86, 176], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      margin:             { left: 20, right: 20 },
+    });
+
+    doc.setTextColor(26, 86, 176);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text(`Liste complete des contacts (${filteredContacts.length})`, 20, (doc as any).lastAutoTable.finalY + 15);
+
+    autoTable(doc, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      startY: (doc as any).lastAutoTable.finalY + 20,
+      head: [['Prenom', 'Nom', 'Profil', 'Statut', 'Campus', 'Date inscription']],
+      body: filteredContacts.map(c => [
+        c.prenom,
+        c.nom,
+        PROFIL_LABELS[c.profil] || c.profil,
+        STATUT_LABELS[c.statut] || c.statut,
+        c.campus === 'paris' ? 'Paris' : 'Paris Nord',
+        new Date(c.date_inscription).toLocaleDateString('fr-FR'),
+      ]),
+      styles:             { fontSize: 8, cellPadding: 2 },
+      headStyles:         { fillColor: [26, 86, 176], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      margin:             { left: 20, right: 20 },
+    });
+
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Phila Integration - Document confidentiel', 20, 290);
+      doc.text(`Page ${i} / ${pageCount}`, 180, 290);
+    }
+
+    doc.save(`rapport-annuel-phila-${annee}.pdf`);
+  }
+
+  const HELP_DASHBOARD = [
+    { titre: "Vue d'ensemble", description: "Le dashboard affiche les KPIs principaux : total inscrits, par profil, par statut et par campus.", emoji: '📊' },
+    { titre: 'Rapport mensuel', description: "Exportez un PDF avec les statistiques du mois et la liste des contacts selon les filtres actifs.", emoji: '📄' },
+    { titre: 'Rapport annuel', description: "Exportez un bilan complet de l'année avec répartition par campus et liste complète des contacts.", emoji: '📋' },
+    { titre: 'Filtres', description: "Filtrez par campus et par période pour affiner les statistiques affichées.", emoji: '🔍' },
+  ];
+
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   const campusOpts: Array<{ value: CampusFilter; label: string }> = [
@@ -913,6 +1027,36 @@ export default function Dashboard() {
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: spacing[2], flexShrink: 0, alignItems: 'center' }}>
+          <HelpButton titre="Aide Dashboard" steps={HELP_DASHBOARD} />
+
+          {/* Rapport annuel - bouton vert émeraude */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={genererRapportAnnuel}
+            style={{
+              display:      'flex',
+              alignItems:   'center',
+              gap:          '6px',
+              padding:      '8px 16px',
+              borderRadius: '8px',
+              border:       '1px solid #10B981',
+              background:   '#10B981',
+              color:        '#fff',
+              fontSize:     typography.fontSize.sm,
+              fontWeight:   600,
+              cursor:       'pointer',
+              transition:   '120ms ease',
+              boxShadow:    '0 0 12px rgba(16,185,129,0.2)',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="1"  y="6"  width="3" height="9" rx="1" fill="currentColor"/>
+              <rect x="6"  y="2"  width="3" height="13" rx="1" fill="currentColor"/>
+              <rect x="11" y="4"  width="3" height="11" rx="1" fill="currentColor"/>
+            </svg>
+            Rapport annuel
+          </motion.button>
+
           {/* Rapport mensuel - bouton premium */}
           <motion.button
             whileTap={{ scale: 0.97 }}

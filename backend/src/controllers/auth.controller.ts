@@ -66,6 +66,16 @@ export async function login(req: Request, res: Response): Promise<void> {
   await prisma.refreshToken.create({ data: { token: refreshToken, user_id: user.id, expires_at: expiresAt } });
 
   await prisma.connectionLog.create({ data: { user_id: user.id, ip, user_agent: userAgent, succes: true, raison: null } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (prisma.auditLog as any).create({
+    data: {
+      action:      'LOGIN',
+      entite:      'User',
+      entite_id:   user.id,
+      description: `Connexion réussie depuis IP ${ip}`,
+      auteur_id:   user.id,
+    },
+  });
   console.info(`[AUTH][LOGIN_SUCCESS] email=${email} ip=${ip} time=${new Date().toISOString()}`);
 
   res.json({

@@ -17,6 +17,13 @@ import logoUrl from '../../assets/images/LOGO-PHILA-BLEU.png';
 import { planningEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_RANK } from '../../utils/constants';
+import { HelpButton } from '../../components/common/HelpButton';
+
+const HELP_PLANNING = [
+  { titre: 'Créer un planning', description: 'Cliquez sur + Nouveau planning pour créer le planning du prochain dimanche.', emoji: '📅' },
+  { titre: 'Assigner des rôles', description: 'Pour chaque planning, assignez les membres aux rôles : Identification NM, Service Salle, Préparation Salle, Service en Ligne.', emoji: '👥' },
+  { titre: 'Confirmer sa présence', description: 'Les membres assignés peuvent confirmer ou décliner leur présence depuis leur tableau de bord.', emoji: '✅' },
+];
 import type { PlanningService, Campus, RoleService } from '../../types';
 
 // ─── Helpers PDF ─────────────────────────────────────────────────────────────
@@ -264,6 +271,7 @@ export default function PlanningTable() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <HelpButton titre="Aide Planning" steps={HELP_PLANNING} />
           <button
             onClick={() => setShowPast(p => !p)}
             style={{

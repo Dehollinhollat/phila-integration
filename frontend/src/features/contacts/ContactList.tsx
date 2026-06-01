@@ -15,6 +15,15 @@ import {
   CANAL_LABELS, CANAL_BADGE, PROFIL_BADGE, PROFIL_LABELS, ROLE_RANK,
   INTENTION_LABELS, INTENTION_COLORS,
 } from '../../utils/constants';
+import { HelpButton } from '../../components/common/HelpButton';
+
+const HELP_CONTACTS = [
+  { titre: 'Ajouter un contact', description: 'Cliquez sur + Nouveau contact pour enregistrer manuellement un nouveau membre ou visiteur.', emoji: '➕' },
+  { titre: 'Importer depuis Excel', description: 'Utilisez le bouton Importer Excel pour ajouter plusieurs contacts à la fois depuis un fichier .xlsx.', emoji: '📥' },
+  { titre: 'Filtrer les contacts', description: 'Utilisez les filtres Campus, Profil, Statut et Intention pour affiner votre recherche.', emoji: '🔍' },
+  { titre: 'Assigner un référent', description: "Ouvrez la fiche d'un contact et assignez-lui un référent d'intégration depuis le panneau de droite.", emoji: '👤' },
+  { titre: 'Télécharger un certificat', description: 'Pour les contacts intégrés, un bouton doré permet de télécharger leur certificat d\'intégration en PDF.', emoji: '🎓' },
+];
 
 const PAGE_SIZE = 15;
 
@@ -456,7 +465,8 @@ export default function ContactList() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <HelpButton titre="Aide Contacts" steps={HELP_CONTACTS} />
           {canModify && (
             <button
               onClick={() => setShowImport(true)}
