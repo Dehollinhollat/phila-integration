@@ -456,7 +456,10 @@ export async function deleteOuvrier(req: Request, res: Response): Promise<void> 
       res.status(404).json({ message: 'Ouvrier introuvable' });
       return;
     }
-    await prisma.ouvrier.delete({ where: { id } });
+    await prisma.$transaction([
+      prisma.affectationPlanning.deleteMany({ where: { ouvrier_id: id } }),
+      prisma.ouvrier.delete({ where: { id } }),
+    ]);
     console.log(`[DELETE_OUVRIER] Supprimé : ${ouvrier.prenom} ${ouvrier.nom}`);
     res.json({ message: 'Ouvrier supprimé définitivement' });
   } catch (err) {

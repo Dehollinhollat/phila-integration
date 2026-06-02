@@ -569,7 +569,7 @@ model AffectationPlanning {
   planning_id   String
   planning      PlanningService   @relation(fields: [planning_id], references: [id], onDelete: Cascade)
   ouvrier_id    String
-  ouvrier       Ouvrier           @relation(fields: [ouvrier_id], references: [id])
+  ouvrier       Ouvrier           @relation(fields: [ouvrier_id], references: [id], onDelete: Cascade)
   role_service  RoleService
   statut        StatutAffectation @default(en_attente)
   repondu_le    DateTime?
