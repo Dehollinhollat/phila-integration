@@ -134,31 +134,43 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     >
       {/* Logo */}
       <div style={{
-        padding:      `${spacing[6]} ${spacing[4]}`,
-        paddingTop:   isMobile ? '64px' : spacing[6],
-        borderBottom: '1px solid var(--sidebar-border)',
         display:      'flex',
         alignItems:   'center',
-        gap:          spacing[3],
+        gap:          '12px',
+        padding:      '20px 16px',
+        paddingTop:   isMobile ? '64px' : '20px',
+        borderBottom: '1px solid var(--bg-card-border)',
       }}>
-        <img src={logoPhila} alt="Phila" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+        <img
+          src={logoPhila}
+          alt="Phila"
+          style={{
+            width:        '40px',
+            height:       '40px',
+            borderRadius: '8px',
+            objectFit:    'contain',
+            filter:       'none',
+            opacity:      1,
+          }}
+        />
         <div>
-          <div style={{
-            color:         'var(--text-on-sidebar)',
-            fontSize:      typography.fontSize.md,
-            fontWeight:    typography.fontWeight.semibold,
-            letterSpacing: '-0.3px',
-            lineHeight:    1.2,
+          <p style={{
+            margin:     0,
+            fontWeight: 700,
+            fontSize:   '15px',
+            color:      'var(--text-primary)',
+            opacity:    1,
           }}>
             Phila Intégration
-          </div>
-          <div style={{
-            color:     'var(--text-on-sidebar-muted)',
-            fontSize:  typography.fontSize.xs,
-            marginTop: '2px',
+          </p>
+          <p style={{
+            margin:   0,
+            fontSize: '11px',
+            color:    'var(--text-secondary)',
+            opacity:  1,
           }}>
             Cité des Adorateurs
-          </div>
+          </p>
         </div>
       </div>
 
