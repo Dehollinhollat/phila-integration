@@ -399,10 +399,10 @@ export default function UserManagement() {
         <div style={{ ...tableRow, background: 'var(--bg-secondary)', fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <div style={{ flex: '0 0 36px' }} />
           <div style={{ flex: 3 }}>Utilisateur</div>
-          <div style={{ flex: 2 }}>Rôle</div>
-          {!isMobile && <div style={{ flex: 2 }}>Campus</div>}
+          <div style={{ flex: 2, textAlign: 'center' }}>Rôle</div>
+          {!isMobile && <div style={{ flex: 2, textAlign: 'center' }}>Campus</div>}
           <div style={{ flex: 1, textAlign: 'center' }}>Statut</div>
-          {!isMobile && <div style={{ flex: 2 }}>Créé le</div>}
+          {!isMobile && <div style={{ flex: 2, textAlign: 'center' }}>Créé le</div>}
           <div style={{ flex: 2, textAlign: 'right' }}>Actions</div>
         </div>
 
@@ -430,9 +430,9 @@ export default function UserManagement() {
                   {u.email}
                 </div>
               </div>
-              <div style={{ flex: 2 }}><RoleBadge role={u.role} /></div>
+              <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}><RoleBadge role={u.role} /></div>
               {!isMobile && (
-                <div style={{ flex: 2, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                <div style={{ flex: 2, display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {u.campus.map(c => (
                     <span key={c} style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                       {CAMPUS_LABELS[c]}
@@ -448,7 +448,7 @@ export default function UserManagement() {
                 }} title={u.actif ? 'Actif' : 'Inactif'} />
               </div>
               {!isMobile && (
-                <div style={{ flex: 2, fontSize: 12, color: 'var(--text-secondary)' }}>
+                <div style={{ flex: 2, fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>
                   {new Date(u.created_at).toLocaleDateString('fr-FR')}
                 </div>
               )}

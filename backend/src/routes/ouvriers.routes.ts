@@ -18,6 +18,7 @@ import {
   updateOuvrier,
   toggleStatut,
   deactivateOuvrier,
+  deleteOuvrier,
   candidatureOuvrier,
   checkOuvrierPhone,
 } from '../controllers/ouvriers.controller';
@@ -46,8 +47,9 @@ router.post('/',      requireRole('super_admin', 'admin_campus'), createOuvrier)
 // PATCH /:id/statut AVANT /:id pour éviter qu'Express matche 'statut' comme un id
 router.patch('/:id/statut', requireRole('super_admin', 'admin_campus'), toggleStatut);
 
-router.get('/:id',    requireMinRole('lecteur'),               getOuvrier);
-router.put('/:id',    requireRole('super_admin', 'admin_campus'), updateOuvrier);
-router.delete('/:id', requireRole('super_admin', 'admin_campus'), deactivateOuvrier);
+router.get('/:id',             requireMinRole('lecteur'),               getOuvrier);
+router.put('/:id',             requireRole('super_admin', 'admin_campus'), updateOuvrier);
+router.delete('/:id',          requireRole('super_admin', 'admin_campus'), deactivateOuvrier);
+router.delete('/:id/permanent',requireMinRole('admin_campus'),             deleteOuvrier);
 
 export default router;

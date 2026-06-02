@@ -9,8 +9,9 @@
 // Badge Type : Promu (vient d'un contact) / Direct (inscription_directe)
 
 import { useState, useEffect, useCallback } from 'react';
-import { Edit2 } from 'lucide-react';
+import { Edit2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 import { ouvriersEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_RANK } from '../../utils/constants';
@@ -121,9 +122,11 @@ export default function OuvrierList() {
   const { user }       = useAuth();
   const canEdit        = user ? ROLE_RANK[user.role] >= ROLE_RANK['admin_campus'] : false;
 
-  const [ouvriers, setOuvriers]   = useState<Ouvrier[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [toggling, setToggling]   = useState<string | null>(null);
+  const [ouvriers,    setOuvriers]   = useState<Ouvrier[]>([]);
+  const [loading,     setLoading]    = useState(true);
+  const [toggling,    setToggling]   = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Ouvrier | null>(null);
+  const [deleting,     setDeleting]  = useState(false);
 
   // Filtres
   const [search,  setSearch]  = useState('');
@@ -158,6 +161,18 @@ export default function OuvrierList() {
     finally  { setToggling(null); }
   }
 
+  // ── Suppression définitive ───────────────────────────────────────────────
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/ouvriers/${deleteTarget.id}/permanent`);
+      setOuvriers(prev => prev.filter(o => o.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch { /* silencieux */ }
+    finally  { setDeleting(false); }
+  }
+
   // ── Stats calculées depuis les données ───────────────────────────────────
   const actifs       = ouvriers.filter(o => o.statut);
   const totalActifs  = actifs.length;
@@ -182,6 +197,7 @@ export default function OuvrierList() {
   };
 
   return (
+    <>
     <div style={{ padding: 'clamp(16px, 4vw, 28px) clamp(12px, 3vw, 32px)', fontFamily: 'inherit' }}>
 
       {/* En-tête */}
@@ -395,6 +411,20 @@ export default function OuvrierList() {
                         >
                           {toggling === o.id ? '…' : o.statut ? 'Désactiver' : 'Activer'}
                         </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => setDeleteTarget(o)}
+                            title="Supprimer définitivement"
+                            style={{
+                              width: 28, height: 28, borderRadius: 6,
+                              background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)',
+                              color: '#dc2626', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -406,5 +436,59 @@ export default function OuvrierList() {
         )}
       </div>
     </div>
+
+    {/* ── Modal confirmation suppression ────────────────────────────────── */}
+    {deleteTarget && (
+      <div
+        onClick={() => !deleting && setDeleteTarget(null)}
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '16px',
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: 'var(--bg-card)', borderRadius: 12, padding: 24,
+            width: 'min(440px, calc(100% - 32px))',
+            border: '1px solid var(--bg-card-border)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          }}
+        >
+          <h3 style={{ margin: '0 0 12px', color: 'var(--text-primary)', fontSize: 16 }}>
+            Supprimer définitivement ?
+          </h3>
+          <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
+            <strong>{deleteTarget.prenom} {deleteTarget.nom}</strong> sera supprimé de façon permanente.
+            Cette action est irréversible.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+              style={{
+                padding: '8px 16px', borderRadius: 6, border: '1px solid var(--bg-card-border)',
+                background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13,
+              }}
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              style={{
+                padding: '8px 16px', borderRadius: 6, border: 'none',
+                background: '#dc2626', color: '#fff', cursor: deleting ? 'default' : 'pointer',
+                fontSize: 13, fontWeight: 600, opacity: deleting ? 0.7 : 1,
+              }}
+            >
+              {deleting ? 'Suppression…' : 'Supprimer'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

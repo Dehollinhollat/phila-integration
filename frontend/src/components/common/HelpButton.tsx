@@ -49,7 +49,7 @@ export const HelpButton = ({ steps, titre }: HelpButtonProps) => {
             style={{
               position:       'fixed',
               inset:          0,
-              background:     'rgba(0,0,0,0.6)',
+              background:     'rgba(0,0,0,0.75)',
               display:        'flex',
               alignItems:     'center',
               justifyContent: 'center',
@@ -64,7 +64,7 @@ export const HelpButton = ({ steps, titre }: HelpButtonProps) => {
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={e => e.stopPropagation()}
               style={{
-                background:   'var(--bg-card)',
+                background:   'var(--bg-card-solid, #1a2332)',
                 borderRadius: '12px',
                 padding:      '24px',
                 width:        'min(500px, calc(100% - 32px))',

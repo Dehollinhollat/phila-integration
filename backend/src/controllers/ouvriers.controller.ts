@@ -443,3 +443,22 @@ export async function deactivateOuvrier(req: Request, res: Response): Promise<vo
     res.status(500).json({ message: 'Erreur serveur' });
   }
 }
+
+// ─── Suppression définitive ───────────────────────────────────────────────────
+
+// DELETE /api/ouvriers/:id/permanent
+export async function deleteOuvrier(req: Request, res: Response): Promise<void> {
+  try {
+    const id = req.params['id'] as string;
+    const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!ouvrier) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    await prisma.ouvrier.delete({ where: { id } });
+    res.json({ message: 'Ouvrier supprimé définitivement' });
+  } catch (err) {
+    console.error('[deleteOuvrier]', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+}

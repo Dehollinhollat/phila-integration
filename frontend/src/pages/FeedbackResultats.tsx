@@ -4,6 +4,8 @@
 
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import api from '../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -76,27 +78,76 @@ function QuestionChart({ title, data, qKey }: { title: string; data: Record<stri
   );
 }
 
-// ─── Export CSV ───────────────────────────────────────────────────────────────
+// ─── Export PDF ───────────────────────────────────────────────────────────────
 
-function exportCSV(feedbacks: FeedbackStats['feedbacks']) {
-  const headers = ['id', 'created_at', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12'];
-  const rows = feedbacks.map(f => {
-    const r = f.reponses;
-    return headers.map(h => {
-      if (h === 'id')         return f.id;
-      if (h === 'created_at') return new Date(f.created_at).toLocaleDateString('fr-FR');
-      const v = r[h];
-      return Array.isArray(v) ? `"${v.join(', ')}"` : `"${String(v ?? '')}"`;
-    }).join(';');
+function exportPDF(
+  feedbacks: FeedbackStats['feedbacks'],
+  moyenneQ4: number,
+  moyenneQ5: number,
+) {
+  const doc       = new jsPDF();
+  const maintenant = new Date();
+
+  doc.setFillColor(26, 86, 176);
+  doc.rect(0, 0, 210, 35, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Rapport de Satisfaction', 20, 15);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Phila Cite des Adorateurs - Genere le ${maintenant.toLocaleDateString('fr-FR')}`, 20, 25);
+
+  doc.setTextColor(26, 86, 176);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Vue d'ensemble", 20, 50);
+
+  autoTable(doc, {
+    startY: 55,
+    head: [['Indicateur', 'Valeur']],
+    body: [
+      ['Nombre total de reponses', String(feedbacks.length)],
+      ['Note moyenne experience culte (Q4)', `${moyenneQ4.toFixed(1)} / 5`],
+      ['Note moyenne accueil (Q5)',          `${moyenneQ5.toFixed(1)} / 5`],
+    ],
+    styles:     { fontSize: 10 },
+    headStyles: { fillColor: [26, 86, 176], textColor: 255 },
+    margin:     { left: 20, right: 20 },
   });
-  const csv  = [headers.join(';'), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `feedback-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const commentaires = feedbacks.map((f: any) => f.reponses?.q12).filter(Boolean) as string[];
+
+  if (commentaires.length > 0) {
+    doc.setTextColor(26, 86, 176);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    doc.text('Commentaires libres', 20, (doc as any).lastAutoTable.finalY + 15);
+
+    autoTable(doc, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      startY:       (doc as any).lastAutoTable.finalY + 20,
+      head:         [['#', 'Commentaire']],
+      body:         commentaires.map((c, i) => [String(i + 1), c]),
+      styles:       { fontSize: 9, cellPadding: 3 },
+      headStyles:   { fillColor: [26, 86, 176], textColor: 255 },
+      columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 160 } },
+      margin:       { left: 20, right: 20 },
+    });
+  }
+
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Phila Integration - Document confidentiel', 20, 290);
+    doc.text(`Page ${i} / ${pageCount}`, 180, 290);
+  }
+
+  doc.save(`rapport-satisfaction-${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}.pdf`);
 }
 
 // ─── Composant principal ──────────────────────────────────────────────────────
@@ -124,6 +175,8 @@ export default function FeedbackResultats() {
   if (!data) return null;
 
   const { total, statistiques: s, commentaires, feedbacks } = data;
+  const moyenneQ4 = s.moyenne_q4 ?? 0;
+  const moyenneQ5 = s.moyenne_q5 ?? 0;
 
   return (
     <div style={{ padding: 'clamp(16px, 4vw, 28px)', maxWidth: 900 }}>
@@ -137,11 +190,11 @@ export default function FeedbackResultats() {
           </p>
         </div>
         <button
-          onClick={() => exportCSV(feedbacks)}
+          onClick={() => exportPDF(feedbacks, moyenneQ4, moyenneQ5)}
           disabled={total === 0}
-          style={{ padding: '9px 18px', background: TEAL, color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ padding: '9px 18px', background: TEAL, color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: total === 0 ? 'default' : 'pointer', fontFamily: 'inherit' }}
         >
-          ↓ Exporter CSV
+          ↓ Exporter PDF
         </button>
       </div>
 

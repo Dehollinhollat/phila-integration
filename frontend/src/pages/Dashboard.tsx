@@ -1050,33 +1050,35 @@ export default function Dashboard() {
         <div style={{ display: 'flex', gap: spacing[2], flexShrink: 0, alignItems: 'center' }}>
           <HelpButton titre="Aide Dashboard" steps={HELP_DASHBOARD} />
 
-          {/* Rapport annuel - bouton vert émeraude */}
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={genererRapportAnnuel}
-            style={{
-              display:      'flex',
-              alignItems:   'center',
-              gap:          '6px',
-              padding:      '8px 16px',
-              borderRadius: '8px',
-              border:       '1px solid #10B981',
-              background:   '#10B981',
-              color:        '#fff',
-              fontSize:     typography.fontSize.sm,
-              fontWeight:   600,
-              cursor:       'pointer',
-              transition:   '120ms ease',
-              boxShadow:    '0 0 12px rgba(16,185,129,0.2)',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <rect x="1"  y="6"  width="3" height="9" rx="1" fill="currentColor"/>
-              <rect x="6"  y="2"  width="3" height="13" rx="1" fill="currentColor"/>
-              <rect x="11" y="4"  width="3" height="11" rx="1" fill="currentColor"/>
-            </svg>
-            Rapport annuel
-          </motion.button>
+          {/* Rapport annuel - visible uniquement en décembre (12) et janvier (1) */}
+          {(new Date().getMonth() + 1 === 12 || new Date().getMonth() + 1 === 1) && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={genererRapportAnnuel}
+              style={{
+                display:      'flex',
+                alignItems:   'center',
+                gap:          '6px',
+                padding:      '8px 16px',
+                borderRadius: '8px',
+                border:       '1px solid #10B981',
+                background:   '#10B981',
+                color:        '#fff',
+                fontSize:     typography.fontSize.sm,
+                fontWeight:   600,
+                cursor:       'pointer',
+                transition:   '120ms ease',
+                boxShadow:    '0 0 12px rgba(16,185,129,0.2)',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <rect x="1"  y="6"  width="3" height="9" rx="1" fill="currentColor"/>
+                <rect x="6"  y="2"  width="3" height="13" rx="1" fill="currentColor"/>
+                <rect x="11" y="4"  width="3" height="11" rx="1" fill="currentColor"/>
+              </svg>
+              Rapport annuel
+            </motion.button>
+          )}
 
           {/* Rapport mensuel - bouton premium */}
           <motion.button

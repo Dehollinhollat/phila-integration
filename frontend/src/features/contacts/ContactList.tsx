@@ -377,9 +377,8 @@ export default function ContactList() {
     timer.current = setTimeout(() => { setDebounced(val); setPage(1); }, 300);
   }
 
-  const fetchContacts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchContacts = useCallback(async (tentative = 1) => {
+    if (tentative === 1) { setLoading(true); setError(null); }
     try {
       const params: Record<string, unknown> = { page, limit: PAGE_SIZE };
       if (debouncedSearch)  params.search      = debouncedSearch;
@@ -395,10 +394,15 @@ export default function ContactList() {
       );
       setContacts(data.contacts ?? []);
       setTotal(data.total);
-    } catch {
-      setError('Impossible de charger les contacts.');
-    } finally {
       setLoading(false);
+    } catch {
+      if (tentative < 3) {
+        console.warn(`[CONTACTS] Tentative ${tentative} échouée, retry dans ${tentative}s…`);
+        setTimeout(() => { void fetchContacts(tentative + 1); }, tentative * 1000);
+      } else {
+        setError('Impossible de charger les contacts.');
+        setLoading(false);
+      }
     }
   }, [page, debouncedSearch, filterCampus, filterProfil, filterStatut, filterCanal, filterIntention, referentId]);
 
