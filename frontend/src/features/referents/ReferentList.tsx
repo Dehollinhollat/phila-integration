@@ -183,9 +183,9 @@ export default function ReferentList() {
       {reassignTarget && (
         <div
           onClick={e => { if (e.target === e.currentTarget) setReassignTarget(null); }}
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', boxSizing: 'border-box' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', boxSizing: 'border-box' }}
         >
-          <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--bg-card-border)', width: 'min(520px, calc(100% - 32px))', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', boxSizing: 'border-box' }}>
+          <div style={{ background: 'var(--bg-card-solid, #1a2332)', borderRadius: '12px', border: '1px solid var(--bg-card-border)', width: 'min(520px, calc(100% - 32px))', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', boxSizing: 'border-box' }}>
             <form onSubmit={e => void handleReassign(e)}>
               <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--bg-card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>

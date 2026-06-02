@@ -728,7 +728,7 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
         position:       'fixed',
         inset:          0,
         zIndex:         1000,
-        background:     'rgba(0,0,0,0.6)',   // opacité standardisée mobile audit
+        background:     'rgba(0,0,0,0.75)',
         backdropFilter: 'blur(4px)',             // flou derrière pour renforcer le focus sur le modal
         display:        'flex',
         alignItems:     'center',
@@ -738,7 +738,7 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
       }}
     >
       <div style={{
-        background:   'var(--bg-card)',
+        background:   'var(--bg-card-solid, #1a2332)',
         border:       '1px solid var(--bg-card-border)',
         borderRadius: 12,
         width:        'min(520px, calc(100% - 32px))',

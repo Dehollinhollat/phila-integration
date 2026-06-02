@@ -165,6 +165,7 @@ export default function OuvrierList() {
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
+    console.log(`[OuvrierList] Suppression définitive de ${deleteTarget.id} (${deleteTarget.prenom} ${deleteTarget.nom})`);
     try {
       await api.delete(`/ouvriers/${deleteTarget.id}/permanent`);
       setOuvriers(prev => prev.filter(o => o.id !== deleteTarget.id));
@@ -442,7 +443,7 @@ export default function OuvrierList() {
       <div
         onClick={() => !deleting && setDeleteTarget(null)}
         style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1000, padding: '16px',
         }}
@@ -450,7 +451,7 @@ export default function OuvrierList() {
         <div
           onClick={e => e.stopPropagation()}
           style={{
-            background: 'var(--bg-card)', borderRadius: 12, padding: 24,
+            background: 'var(--bg-card-solid, #1a2332)', borderRadius: 12, padding: 24,
             width: 'min(440px, calc(100% - 32px))',
             border: '1px solid var(--bg-card-border)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.3)',

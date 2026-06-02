@@ -1035,16 +1035,16 @@ export default function ContactDetail() {
           onClick={e => { if (e.target === e.currentTarget) setShowPromoteModal(false); }}
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.6)',
+            background: 'rgba(0,0,0,0.75)',
             backdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '16px', boxSizing: 'border-box',
           }}
         >
           <div style={{
-            background: 'var(--bg-card)', borderRadius: 12,
+            background: 'var(--bg-card-solid, #1a2332)', borderRadius: 12,
             border: '1px solid var(--bg-card-border)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             padding: 24, width: 'min(640px, calc(100% - 32px))', maxHeight: '90vh',
             overflowY: 'auto', boxSizing: 'border-box',
           }}>

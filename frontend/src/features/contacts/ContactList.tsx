@@ -74,7 +74,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.6)',
+        background: 'rgba(0,0,0,0.75)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -86,13 +86,13 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         role="dialog" aria-modal="true"
         onClick={e => e.stopPropagation()}
         style={{
-          background: 'var(--bg-card)',
+          background: 'var(--bg-card-solid, #1a2332)',
           borderRadius: '12px',
           padding: '24px',
           width: 'min(520px, calc(100% - 32px))',
           maxHeight: '90vh',
           overflowY: 'auto',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           border: '1px solid var(--bg-card-border)',
         }}
       >
@@ -227,17 +227,17 @@ function ConfirmDialog({
       onClick={onCancel}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.6)', zIndex: 1000,
+        background: 'rgba(0,0,0,0.75)', zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px', boxSizing: 'border-box',
       }}
     >
       <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{
-        background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)',
+        background: 'var(--bg-card-solid, #1a2332)', border: '1px solid var(--bg-card-border)',
         borderRadius: '12px', padding: '24px',
         width: 'min(520px, calc(100% - 32px))',
         maxHeight: '90vh', overflowY: 'auto',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         boxSizing: 'border-box',
       }}>
         <div style={{ fontSize: '2rem', marginBottom: '12px', lineHeight: 1 }}>🗑️</div>

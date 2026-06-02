@@ -77,7 +77,7 @@ function MessageModal({ message, onClose }: { message: Message & { contact?: { p
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.6)', zIndex: 1000,
+        background: 'rgba(0,0,0,0.75)', zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px', boxSizing: 'border-box',
       }}
@@ -90,9 +90,9 @@ function MessageModal({ message, onClose }: { message: Message & { contact?: { p
         style={{
           width: 'min(520px, calc(100% - 32px))',
           maxHeight: '90vh', overflowY: 'auto',
-          background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)',
+          background: 'var(--bg-card-solid, #1a2332)', border: '1px solid var(--bg-card-border)',
           borderRadius: '12px', padding: '24px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           boxSizing: 'border-box',
         }}
       >

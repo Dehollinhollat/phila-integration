@@ -450,12 +450,14 @@ export async function deactivateOuvrier(req: Request, res: Response): Promise<vo
 export async function deleteOuvrier(req: Request, res: Response): Promise<void> {
   try {
     const id = req.params['id'] as string;
+    console.log(`[DELETE_OUVRIER] Suppression définitive id=${id} par user=${req.user?.id}`);
     const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
     if (!ouvrier) {
       res.status(404).json({ message: 'Ouvrier introuvable' });
       return;
     }
     await prisma.ouvrier.delete({ where: { id } });
+    console.log(`[DELETE_OUVRIER] Supprimé : ${ouvrier.prenom} ${ouvrier.nom}`);
     res.json({ message: 'Ouvrier supprimé définitivement' });
   } catch (err) {
     console.error('[deleteOuvrier]', err);
