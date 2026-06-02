@@ -67,14 +67,7 @@ export async function getPlanning(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const referents = planning.referents_integration.length > 0
-    ? await prisma.user.findMany({
-        where:  { id: { in: planning.referents_integration } },
-        select: { id: true, prenom: true, nom: true, email: true, role: true },
-      })
-    : [];
-
-  res.json({ ...planning, referents });
+  res.json(planning);
 }
 
 // POST /api/planning

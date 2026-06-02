@@ -280,8 +280,6 @@ export interface PlanningService {
   service_salle?:   string | null;
   preparation_salle?: string | null;
   priere_lundi?:    string | null;
-  referents_integration?: string[];
-  referents?:        UserSummary[];
   created_by:       string;
   createur?:        UserSummary;
   affectations?:    AffectationPlanning[];
