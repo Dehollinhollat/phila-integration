@@ -503,6 +503,7 @@ model PlanningService {
   service_salle      String?                       // noms des personnes en service dans la salle
   preparation_salle  String?                       // noms des personnes en préparation
   priere_lundi       String?                       // nom de la personne responsable de la prière du lundi
+  referents_integration String[]                   // IDs des référents d'intégration assignés à ce dimanche
   created_by         String
   createur           User     @relation(fields: [created_by], references: [id])
   created_at         DateTime @default(now())

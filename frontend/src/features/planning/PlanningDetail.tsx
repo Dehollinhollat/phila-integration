@@ -1,7 +1,8 @@
 // src/features/planning/PlanningDetail.tsx
 // Vue détail d'un planning dominical.
 // 4 sections de rôle avec slots fixes (identification×4, service_salle×2, preparation_salle×2, priere×1).
-// Les admins peuvent assigner/retirer des ouvriers ; les ouvriers voient leur statut.
+// Section référents d'intégration : liste des référents assignés à ce dimanche.
+// Les admins peuvent assigner/retirer des ouvriers et des référents.
 // Export PDF via jsPDF + jspdf-autotable : header logo+titre+date, 4 sections, footer.
 
 import { useState, useEffect } from 'react';
@@ -9,17 +10,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logoUrl from '../../assets/images/LOGO-PHILA-BLEU.png';
-import { planningEndpoints, affectationsEndpoints, ouvriersEndpoints } from '../../services/endpoints';
+import { planningEndpoints, affectationsEndpoints, ouvriersEndpoints, referentsEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_RANK } from '../../utils/constants';
-import type { PlanningService, AffectationPlanning, RoleService, Ouvrier } from '../../types';
-
-// ─── Configuration des rôles ─────────────────────────────────────────────────
+import type { PlanningService, AffectationPlanning, RoleService, Ouvrier, UserSummary, Campus } from '../../types';
 
 // ─── Helpers PDF ─────────────────────────────────────────────────────────────
 
-// Charge une image depuis son URL Vite et retourne un data URL base64.
-// Utilise fetch + FileReader pour éviter les problèmes de taint canvas.
 async function getImageBase64(url: string): Promise<string> {
   const response = await fetch(url);
   const blob     = await response.blob();
@@ -31,7 +28,6 @@ async function getImageBase64(url: string): Promise<string> {
   });
 }
 
-// Formate une chaîne YYYY-MM-DD en date longue locale sans décalage UTC.
 function formatDateLong(dateStr: string): string {
   const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('fr-FR', {
@@ -60,6 +56,8 @@ const STATUT_BADGE = {
   decline:    { bg: '#fee2e2', color: '#dc2626', label: 'Décliné' },
 } as const;
 
+const REFERENT_COLOR = '#0C5E6B';
+
 // ─── Composant ───────────────────────────────────────────────────────────────
 
 export default function PlanningDetail() {
@@ -68,14 +66,18 @@ export default function PlanningDetail() {
   const { user }  = useAuth();
   const canEdit   = user ? ROLE_RANK[user.role] >= ROLE_RANK['admin_campus'] : false;
 
-  const [planning,        setPlanning]        = useState<PlanningService | null>(null);
-  const [ouvriers,        setOuvriers]        = useState<Ouvrier[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [saving,          setSaving]          = useState(false);
-  const [deleting,        setDeleting]        = useState<string | null>(null);
-  const [addingRole,      setAddingRole]      = useState<RoleService | null>(null);
-  const [selectedOuvrier, setSelectedOuvrier] = useState('');
-  const [assignError,     setAssignError]     = useState<string | null>(null);
+  const [planning,           setPlanning]           = useState<PlanningService | null>(null);
+  const [ouvriers,           setOuvriers]           = useState<Ouvrier[]>([]);
+  const [availableReferents, setAvailableReferents] = useState<UserSummary[]>([]);
+  const [loading,            setLoading]            = useState(true);
+  const [saving,             setSaving]             = useState(false);
+  const [deleting,           setDeleting]           = useState<string | null>(null);
+  const [addingRole,         setAddingRole]         = useState<RoleService | null>(null);
+  const [selectedOuvrier,    setSelectedOuvrier]    = useState('');
+  const [assignError,        setAssignError]        = useState<string | null>(null);
+  const [addingReferent,     setAddingReferent]     = useState(false);
+  const [selectedReferent,   setSelectedReferent]   = useState('');
+  const [referentSaving,     setReferentSaving]     = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -84,14 +86,21 @@ export default function PlanningDetail() {
       .then(planRes => {
         const p = planRes.data;
         setPlanning(p);
-        return ouvriersEndpoints.list({ campus: p.campus });
+        return Promise.all([
+          ouvriersEndpoints.list({ campus: p.campus, service: 'integration' }),
+          referentsEndpoints.list(p.campus as Campus, 'referent_integration'),
+        ]);
       })
-      .then(ouvrierRes => setOuvriers(ouvrierRes.data.filter(o => o.statut)))
+      .then(([ouvrierRes, referentRes]) => {
+        // Double-filter ouvriers to only those in the intégration department
+        setOuvriers(ouvrierRes.data.filter(o => o.statut && o.services.includes('integration')));
+        setAvailableReferents(referentRes.data);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  // ── Actions ouvriers ──────────────────────────────────────────────────────
 
   async function handleAddAffectation(role: RoleService) {
     if (!planning || !selectedOuvrier) return;
@@ -133,6 +142,47 @@ export default function PlanningDetail() {
     }
   }
 
+  // ── Actions référents ─────────────────────────────────────────────────────
+
+  async function handleAddReferent() {
+    if (!planning || !selectedReferent) return;
+    const currentIds = planning.referents_integration ?? [];
+    if (currentIds.includes(selectedReferent)) return;
+    const newIds = [...currentIds, selectedReferent];
+    const newUser = availableReferents.find(r => r.id === selectedReferent);
+    if (!newUser) return;
+    setReferentSaving(true);
+    try {
+      await planningEndpoints.update(planning.id, { referents_integration: newIds });
+      setPlanning(prev => prev ? {
+        ...prev,
+        referents_integration: newIds,
+        referents: [...(prev.referents ?? []), newUser],
+      } : prev);
+      setAddingReferent(false);
+      setSelectedReferent('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReferentSaving(false);
+    }
+  }
+
+  async function handleRemoveReferent(userId: string) {
+    if (!planning) return;
+    const newIds = (planning.referents_integration ?? []).filter(i => i !== userId);
+    try {
+      await planningEndpoints.update(planning.id, { referents_integration: newIds });
+      setPlanning(prev => prev ? {
+        ...prev,
+        referents_integration: newIds,
+        referents: (prev.referents ?? []).filter(r => r.id !== userId),
+      } : prev);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   async function handleDeletePlanning() {
     if (!planning) return;
     if (!window.confirm('Supprimer ce planning ? Toutes les affectations seront supprimées.')) return;
@@ -150,20 +200,19 @@ export default function PlanningDetail() {
     if (!planning) return;
 
     const doc        = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const BLUE       = [26, 86, 176] as [number, number, number]; // #1A56B0
+    const BLUE       = [26, 86, 176] as [number, number, number];
+    const TEAL       = [12, 94, 107] as [number, number, number];
     const campusLabel = planning.campus === 'paris' ? 'Paris' : 'Paris Nord';
     const dateStr    = planning.date_dimanche.slice(0, 10);
     const dateLabel  = formatDateLong(dateStr);
     const pageW      = doc.internal.pageSize.getWidth();
     const pageH      = doc.internal.pageSize.getHeight();
 
-    // ── Logo ────────────────────────────────────────────────────────────────
     try {
       const logoB64 = await getImageBase64(logoUrl);
       doc.addImage(logoB64, 'PNG', 14, 8, 16, 16);
-    } catch { /* logo non disponible, on continue sans */ }
+    } catch { /* logo non disponible */ }
 
-    // ── Titre ───────────────────────────────────────────────────────────────
     doc.setFontSize(18);
     doc.setTextColor(BLUE[0], BLUE[1], BLUE[2]);
     doc.text('Planning de service', 36, 16);
@@ -172,11 +221,9 @@ export default function PlanningDetail() {
     doc.setTextColor(50, 50, 50);
     doc.text(`Campus ${campusLabel} · ${dateLabel}`, 36, 24);
 
-    // ── Ligne de séparation ──────────────────────────────────────────────────
     doc.setDrawColor(200, 200, 200);
     doc.line(14, 29, pageW - 14, 29);
 
-    // ── Nouveaux membres ─────────────────────────────────────────────────────
     let startY = 36;
     if (planning.nouveaux_membres) {
       doc.setFontSize(10);
@@ -185,7 +232,23 @@ export default function PlanningDetail() {
       startY += 8;
     }
 
-    // ── Sections de rôle ────────────────────────────────────────────────────
+    // Référents d'intégration
+    const referents = planning.referents ?? [];
+    if (referents.length > 0) {
+      autoTable(doc, {
+        startY,
+        head: [[{ content: 'Référents d\'intégration', colSpan: 1, styles: { halign: 'left' } }]],
+        body: referents.map(r => [`${r.prenom} ${r.nom}`]),
+        headStyles:         { fillColor: TEAL, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
+        bodyStyles:         { fontSize: 10, textColor: [30, 30, 30] },
+        alternateRowStyles: { fillColor: [248, 249, 250] },
+        margin: { left: 14, right: 14 },
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      startY = (doc as any).lastAutoTable.finalY + 6;
+    }
+
+    // Sections de rôle
     for (const [roleKey, cfg] of Object.entries(ROLE_CONFIG) as [RoleService, { label: string; max: number; color: string }][]) {
       const affs = (planning.affectations ?? []).filter(
         (a: AffectationPlanning) => a.role_service === roleKey
@@ -200,9 +263,7 @@ export default function PlanningDetail() {
 
       autoTable(doc, {
         startY,
-        head: [[
-          { content: cfg.label, colSpan: 2, styles: { halign: 'left' } },
-        ]],
+        head: [[{ content: cfg.label, colSpan: 2, styles: { halign: 'left' } }]],
         body: rows,
         headStyles:          { fillColor: BLUE, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
         bodyStyles:          { fontSize: 10, textColor: [30, 30, 30] },
@@ -218,7 +279,6 @@ export default function PlanningDetail() {
       startY = (doc as any).lastAutoTable.finalY + 6;
     }
 
-    // ── Footer ───────────────────────────────────────────────────────────────
     const today = new Date().toLocaleDateString('fr-FR');
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
@@ -250,7 +310,6 @@ export default function PlanningDetail() {
     );
   }
 
-  // Groupes d'affectations par rôle
   const affsByRole = new Map<RoleService, AffectationPlanning[]>(
     (Object.keys(ROLE_CONFIG) as RoleService[]).map(k => [k, []])
   );
@@ -258,12 +317,13 @@ export default function PlanningDetail() {
     affsByRole.get(aff.role_service)?.push(aff);
   }
 
-  // Un planning est verrouillé si sa date est passée de plus de 3 jours
   const estVerrouille = new Date(planning.date_dimanche) < new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
   const peutModifier  = canEdit && !estVerrouille;
 
-  // Tous les ouvriers actifs sont proposés — la même personne peut être sur plusieurs rôles
-  const availableOuvriers = ouvriers;
+  const assignedReferents = planning.referents ?? [];
+  const unassignedReferents = availableReferents.filter(
+    r => !(planning.referents_integration ?? []).includes(r.id)
+  );
 
   const dateLabel = new Date(planning.date_dimanche).toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -338,8 +398,117 @@ export default function PlanningDetail() {
         </div>
       </div>
 
+      {/* ── Section référents d'intégration ────────────────────────────────── */}
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)',
+        borderRadius: 8, padding: 20, marginBottom: 16,
+        borderLeft: `4px solid ${REFERENT_COLOR}`,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: assignedReferents.length > 0 || addingReferent ? 14 : 4 }}>
+          <div>
+            <span style={{ fontSize: 15, fontWeight: 600, color: REFERENT_COLOR }}>
+              Référents d'intégration
+            </span>
+            <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+              {assignedReferents.length}
+            </span>
+          </div>
+          {peutModifier && !addingReferent && unassignedReferents.length > 0 && (
+            <button
+              onClick={() => { setAddingReferent(true); setSelectedReferent(''); }}
+              style={{
+                padding: '5px 12px', borderRadius: 6,
+                border: `1px solid ${REFERENT_COLOR}`,
+                background: 'transparent', color: REFERENT_COLOR,
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              + Ajouter
+            </button>
+          )}
+        </div>
 
-      {/* Sections de rôle */}
+        {assignedReferents.length === 0 && !addingReferent ? (
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+            Aucun référent assigné
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {assignedReferents.map(r => (
+              <div key={r.id} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '9px 12px', borderRadius: 6,
+                background: 'var(--surface-hover)', border: '1px solid var(--bg-card-border)',
+              }}>
+                <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
+                  {r.prenom} {r.nom}
+                </span>
+                {peutModifier && (
+                  <button
+                    onClick={() => void handleRemoveReferent(r.id)}
+                    title="Retirer"
+                    style={{
+                      width: 24, height: 24, borderRadius: 4, border: 'none',
+                      background: 'transparent', color: '#9ca3af',
+                      cursor: 'pointer', fontSize: 16, lineHeight: 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {addingReferent && peutModifier && (
+          <div style={{ marginTop: assignedReferents.length > 0 ? 10 : 0 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select
+                value={selectedReferent}
+                onChange={e => setSelectedReferent(e.target.value)}
+                style={{
+                  flex: 1, padding: '8px 10px', borderRadius: 6,
+                  border: '1px solid var(--bg-card-border)',
+                  background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13,
+                }}
+              >
+                <option value="">- Choisir un référent -</option>
+                {unassignedReferents.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.prenom} {r.nom}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => void handleAddReferent()}
+                disabled={!selectedReferent || referentSaving}
+                style={{
+                  padding: '8px 16px', borderRadius: 6, border: 'none',
+                  background: REFERENT_COLOR, color: '#fff',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  opacity: !selectedReferent || referentSaving ? 0.6 : 1,
+                }}
+              >
+                {referentSaving ? '…' : 'Assigner'}
+              </button>
+              <button
+                onClick={() => { setAddingReferent(false); setSelectedReferent(''); }}
+                style={{
+                  padding: '8px 12px', borderRadius: 6,
+                  border: '1px solid var(--bg-card-border)', background: 'transparent',
+                  color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13,
+                }}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Sections de rôle (ouvriers intégration uniquement) ─────────────── */}
       {(Object.entries(ROLE_CONFIG) as [RoleService, { label: string; max: number; color: string }][]).map(([roleKey, cfg]) => {
         const affs     = affsByRole.get(roleKey) ?? [];
         const isFull   = affs.length >= cfg.max;
@@ -351,7 +520,6 @@ export default function PlanningDetail() {
             borderRadius: 8, padding: 20, marginBottom: 16,
             borderLeft: `4px solid ${cfg.color}`,
           }}>
-            {/* En-tête du rôle */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: affs.length > 0 || isAdding ? 14 : 4 }}>
               <div>
                 <span style={{ fontSize: 15, fontWeight: 600, color: cfg.color }}>
@@ -376,7 +544,6 @@ export default function PlanningDetail() {
               )}
             </div>
 
-            {/* Liste des assignés */}
             {affs.length === 0 && !isAdding ? (
               <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
                 Aucune personne assignée
@@ -423,7 +590,6 @@ export default function PlanningDetail() {
               </div>
             )}
 
-            {/* Formulaire d'ajout inline */}
             {isAdding && peutModifier && (
               <div style={{ marginTop: affs.length > 0 ? 10 : 0 }}>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -436,8 +602,8 @@ export default function PlanningDetail() {
                       background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13,
                     }}
                   >
-                    <option value="">- Choisir un ouvrier -</option>
-                    {availableOuvriers.map(o => (
+                    <option value="">- Choisir un ouvrier (intégration) -</option>
+                    {ouvriers.map(o => (
                       <option key={o.id} value={o.id}>
                         {o.prenom} {o.nom}
                       </option>

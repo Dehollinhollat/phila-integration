@@ -58,7 +58,8 @@
       "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\\\\scripts\" -Force)",
       "Bash(npm test *)",
       "Bash(npx jest *)",
-      "Bash(git worktree *)"
+      "Bash(git worktree *)",
+      "Bash(xargs grep -l \"ouvrier\")"
     ]
   }
 }
