@@ -173,6 +173,7 @@ export const ouvriersEndpoints = {
   toggleStatut: (id: string, statut: boolean)        =>
     api.patch<Ouvrier>(`/ouvriers/${id}/statut`, { statut }),
   deactivate:   (id: string) => api.delete(`/ouvriers/${id}`),
+  deleteOuvrier:(id: string) => api.delete(`/ouvriers/${id}/permanent`),
 
   // Routes publiques — formulaire candidature (/form/ouvrier)
   candidature: (data: {

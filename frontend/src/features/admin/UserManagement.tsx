@@ -399,11 +399,11 @@ export default function UserManagement() {
         <div style={{ ...tableRow, background: 'var(--bg-secondary)', fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <div style={{ flex: '0 0 36px' }} />
           <div style={{ flex: 3 }}>Utilisateur</div>
-          <div style={{ flex: 2, textAlign: 'center' }}>Rôle</div>
-          {!isMobile && <div style={{ flex: 2, textAlign: 'center' }}>Campus</div>}
-          <div style={{ flex: 1, textAlign: 'center' }}>Statut</div>
-          {!isMobile && <div style={{ flex: 2, textAlign: 'center' }}>Créé le</div>}
-          <div style={{ flex: 2, textAlign: 'right' }}>Actions</div>
+          <div style={{ flex: 2, textAlign: 'center', whiteSpace: 'nowrap' }}>Rôle</div>
+          {!isMobile && <div style={{ flex: 2, textAlign: 'center', whiteSpace: 'nowrap' }}>Campus</div>}
+          <div style={{ flex: 1, textAlign: 'center', whiteSpace: 'nowrap' }}>Statut</div>
+          {!isMobile && <div style={{ flex: 2, textAlign: 'center', whiteSpace: 'nowrap' }}>Créé le</div>}
+          <div style={{ flex: 2, textAlign: 'center', whiteSpace: 'nowrap' }}>Actions</div>
         </div>
 
         {loading ? (
@@ -452,7 +452,7 @@ export default function UserManagement() {
                   {new Date(u.created_at).toLocaleDateString('fr-FR')}
                 </div>
               )}
-              <div style={{ flex: 2, display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+              <div style={{ flex: 2, display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {/* Un admin_campus ne peut pas gérer les comptes super_admin */}
                 {!(isAdminCampus && u.role === 'super_admin') ? (
                   <>

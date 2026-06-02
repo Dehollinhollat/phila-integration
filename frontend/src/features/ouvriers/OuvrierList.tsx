@@ -11,7 +11,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
 import { ouvriersEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_RANK } from '../../utils/constants';
@@ -127,6 +126,7 @@ export default function OuvrierList() {
   const [toggling,    setToggling]   = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Ouvrier | null>(null);
   const [deleting,     setDeleting]  = useState(false);
+  const [deleteError,  setDeleteError] = useState<string | null>(null);
 
   // Filtres
   const [search,  setSearch]  = useState('');
@@ -165,13 +165,19 @@ export default function OuvrierList() {
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
-    console.log(`[OuvrierList] Suppression définitive de ${deleteTarget.id} (${deleteTarget.prenom} ${deleteTarget.nom})`);
+    setDeleteError(null);
+    const { id, prenom, nom } = deleteTarget;
+    console.log(`[OuvrierList] DELETE /ouvriers/${id}/permanent — ${prenom} ${nom}`);
     try {
-      await api.delete(`/ouvriers/${deleteTarget.id}/permanent`);
-      setOuvriers(prev => prev.filter(o => o.id !== deleteTarget.id));
+      await ouvriersEndpoints.deleteOuvrier(id);
+      setOuvriers(prev => prev.filter(o => o.id !== id));
       setDeleteTarget(null);
-    } catch { /* silencieux */ }
-    finally  { setDeleting(false); }
+    } catch (err) {
+      console.error('[OuvrierList] Erreur suppression:', err);
+      setDeleteError('Impossible de supprimer cet ouvrier.');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   // ── Stats calculées depuis les données ───────────────────────────────────
@@ -414,7 +420,7 @@ export default function OuvrierList() {
                         </button>
                         {canEdit && (
                           <button
-                            onClick={() => setDeleteTarget(o)}
+                            onClick={() => { setDeleteError(null); setDeleteTarget(o); }}
                             title="Supprimer définitivement"
                             style={{
                               width: 28, height: 28, borderRadius: 6,
@@ -460,10 +466,13 @@ export default function OuvrierList() {
           <h3 style={{ margin: '0 0 12px', color: 'var(--text-primary)', fontSize: 16 }}>
             Supprimer définitivement ?
           </h3>
-          <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
+          <p style={{ margin: '0 0 16px', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
             <strong>{deleteTarget.prenom} {deleteTarget.nom}</strong> sera supprimé de façon permanente.
             Cette action est irréversible.
           </p>
+          {deleteError && (
+            <p style={{ margin: '0 0 16px', color: '#dc2626', fontSize: 13 }}>{deleteError}</p>
+          )}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button
               onClick={() => setDeleteTarget(null)}
