@@ -5,6 +5,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
   colors, typography, spacing, radius, shadows, transitions,
@@ -53,7 +54,14 @@ export default function Login() {
       <div style={S.card}>
         {/* Logo */}
         <div style={S.logoArea}>
-          <Logo width={72} height={72} style={{ marginBottom: spacing[4] }} />
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+            style={{ marginBottom: spacing[4] }}
+          >
+            <Logo width={72} height={72} />
+          </motion.div>
           <h1 style={S.title}>Phila Intégration</h1>
           <p style={S.subtitle}>Espace d'administration - Cité des Adorateurs</p>
         </div>

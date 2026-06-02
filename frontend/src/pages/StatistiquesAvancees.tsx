@@ -10,6 +10,7 @@ import {
   CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import { Mail } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { statsEndpoints } from '../services/endpoints';
 import { HelpButton } from '../components/common/HelpButton';
 
@@ -144,7 +145,11 @@ export default function StatistiquesAvancees() {
           Chargement des statistiques…
         </div>
       ) : (
-        <>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           {/* ── Taux de conversion par campus ────────────────────────────── */}
           <Section title="Taux de conversion par campus">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
@@ -281,7 +286,7 @@ export default function StatistiquesAvancees() {
               </div>
             )}
           </Section>
-        </>
+        </motion.div>
       )}
     </div>
   );

@@ -8,6 +8,7 @@
 import type { ReactNode } from 'react';
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   BarChart2, Home, TrendingUp, Users, Handshake, MessageSquare,
   Calendar, Bell, Church, ClipboardList, Smartphone, User,
@@ -215,10 +216,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     cursor:         'pointer',
                   })}
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', width: '18px', flexShrink: 0 }}>
-                    {item.icon}
-                  </span>
-                  {item.label}
+                  <motion.span
+                    whileHover={{ x: 4 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: spacing[3], width: '100%' }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', width: '18px', flexShrink: 0 }}>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </motion.span>
                 </NavLink>
               ))}
             </div>

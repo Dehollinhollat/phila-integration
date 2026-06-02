@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import logoPhila from '../assets/images/LOGO-PHILA-BLEU.png';
 
 export default function NotFound() {
@@ -15,7 +16,14 @@ export default function NotFound() {
       textAlign: 'center',
     }}>
       <img src={logoPhila} alt="Phila" style={{ width: '80px', marginBottom: '24px' }} />
-      <h1 style={{ fontSize: '80px', fontWeight: 800, color: 'var(--accent-blue)', margin: 0, lineHeight: 1 }}>404</h1>
+      <motion.h1
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: 'spring', stiffness: 150, damping: 10 }}
+        style={{ fontSize: '80px', fontWeight: 800, color: 'var(--accent-blue)', margin: 0, lineHeight: 1 }}
+      >
+        404
+      </motion.h1>
       <h2 style={{ color: 'var(--text-primary)', fontSize: '24px', marginTop: '16px' }}>Page introuvable</h2>
       <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', lineHeight: '1.6', marginTop: '8px' }}>
         La page que vous cherchez n'existe pas ou a été déplacée.

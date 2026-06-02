@@ -3,6 +3,7 @@
 
 import type { ReactNode } from 'react';
 import { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Star, User as UserIcon, Edit2, Trash2, GraduationCap, Lightbulb } from 'lucide-react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -665,12 +666,13 @@ export default function ContactDetail() {
                 const item       = checklist.find(i => i.etape === etape);
                 const isComplete = item?.complete ?? false;
                 return (
-                  <div
+                  <motion.div
                     key={etape}
+                    animate={{ backgroundColor: isComplete ? 'var(--surface-hover)' : 'transparent' }}
+                    transition={{ duration: 0.3 }}
                     style={{
                       display: 'flex', alignItems: 'flex-start', gap: 10,
                       padding: '10px 12px', borderRadius: 6,
-                      background: isComplete ? 'var(--surface-hover)' : 'transparent',
                       border: '1px solid var(--bg-card-border)',
                     }}
                   >
@@ -700,7 +702,7 @@ export default function ContactDetail() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

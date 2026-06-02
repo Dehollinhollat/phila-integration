@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { contactsEndpoints } from '../services/endpoints';
 import { useAuth } from '../context/AuthContext';
 import { STATUT_LABELS, CAMPUS_LABELS } from '../utils/constants';
@@ -135,8 +136,11 @@ export default function MonTableauDeBord() {
               const daysSince = Math.floor((Date.now() - new Date(sinceDate).getTime()) / 86_400_000);
 
               return (
-                <div
+                <motion.div
                   key={c.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
                   onClick={() => navigate(`/contacts/${c.id}`)}
                   style={{
                     display:       'flex',
@@ -195,7 +199,7 @@ export default function MonTableauDeBord() {
                   </span>
 
                   <span style={{ color: 'var(--text-tertiary)', fontSize: 16, flexShrink: 0 }}>›</span>
-                </div>
+                </motion.div>
               );
             })}
           </div>

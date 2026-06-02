@@ -91,10 +91,10 @@ function FilterBtn({
 // KPI simple - valeur + icône + label
 // Count-up animé sur les valeurs numériques. Lift au survol via framer-motion.
 function KpiSimple({
-  label, value, icon, accentVar, sub, onClick,
+  label, value, icon, accentVar, sub, onClick, entryDelay = 0,
 }: {
   label: string; value: number | string; icon: ReactNode; accentVar: string;
-  sub?: string; onClick?: () => void;
+  sub?: string; onClick?: () => void; entryDelay?: number;
 }) {
   const numericTarget = typeof value === 'number' ? value : 0;
   const animated      = useCountUp(numericTarget);
@@ -102,8 +102,10 @@ function KpiSimple({
 
   return (
     <motion.div
-      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
-      transition={{ duration: 0.15, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: entryDelay }}
+      whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
       style={{
         background:   'var(--bg-card)',
         border:       '1px solid var(--bg-card-border)',
@@ -166,12 +168,14 @@ function KpiSimple({
 
 
 // KPI alerte - sans référent
-function KpiAlert({ value, label }: { value: number; label: string }) {
+function KpiAlert({ value, label, entryDelay = 0 }: { value: number; label: string; entryDelay?: number }) {
   const animated = useCountUp(value);
   return (
     <motion.div
-      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
-      transition={{ duration: 0.15, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: entryDelay }}
+      whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
       style={{
         background:   'var(--bg-card-alert)',
         border:       '1px solid var(--bg-card-alert-border)',
@@ -215,10 +219,15 @@ function KpiAlert({ value, label }: { value: number; label: string }) {
 
 // KPI avec pourcentage
 function KpiPercent({
-  label, value, total, icon, accentVar,
-}: { label: string; value: number; total: number; icon: ReactNode; accentVar: string }) {
+  label, value, total, icon, accentVar, entryDelay = 0,
+}: { label: string; value: number; total: number; icon: ReactNode; accentVar: string; entryDelay?: number }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: entryDelay }}
+    >
     <Card>
       <div style={{
         display:        'flex',
@@ -266,6 +275,7 @@ function KpiPercent({
         </div>
       </div>
     </Card>
+    </motion.div>
   );
 }
 
@@ -1009,7 +1019,14 @@ export default function Dashboard() {
             color:      'var(--text-primary)',
             margin:     0,
           }}>
-            Bonjour, {user?.prenom} 👋
+            Bonjour, {user?.prenom}{' '}
+            <motion.span
+              animate={{ rotate: [0, 14, -8, 14, -4, 10, 0] }}
+              transition={{ duration: 1.5, delay: 0.5, repeat: 2, repeatDelay: 3 }}
+              style={{ display: 'inline-block', transformOrigin: '70% 70%' }}
+            >
+              👋
+            </motion.span>
           </h1>
           <p style={{
             color:      'var(--text-secondary)',
@@ -1183,38 +1200,15 @@ export default function Dashboard() {
         <>
           {/* ── 6 KPIs - 3 col desktop / 2 tablette / 1 mobile ───────────────── */}
           <div className="kpi-grid-3">
-            <KpiSimple
-              label="Total inscrits"
-              value={kpi.total}
-              icon={<Users size={18} />}
-              accentVar="--accent-teal"
-              onClick={() => navigate('/contacts')}
-            />
-            <KpiSimple label="Membres Phila"        value={kpi.membrePhila}        icon={<Users size={18} />}    accentVar="--accent-teal"   />
-            <KpiSimple label="Visiteurs sans église" value={kpi.visiteurSansEglise} icon={<User size={18} />}     accentVar="--accent-gold"   />
-            <KpiSimple label="Visiteurs avec église" value={kpi.visiteurAvecEglise} icon={<Building2 size={18} />} accentVar="--accent-violet" />
-            <KpiAlert value={kpi.sansRef} label="Sans référent" />
+            <KpiSimple label="Total inscrits"       value={kpi.total}              icon={<Users size={18} />}      accentVar="--accent-teal"   entryDelay={0}   onClick={() => navigate('/contacts')} />
+            <KpiSimple label="Membres Phila"        value={kpi.membrePhila}        icon={<Users size={18} />}      accentVar="--accent-teal"   entryDelay={0.1} />
+            <KpiSimple label="Visiteurs sans église" value={kpi.visiteurSansEglise} icon={<User size={18} />}       accentVar="--accent-gold"   entryDelay={0.2} />
+            <KpiSimple label="Visiteurs avec église" value={kpi.visiteurAvecEglise} icon={<Building2 size={18} />}  accentVar="--accent-violet" entryDelay={0.3} />
+            <KpiAlert  value={kpi.sansRef} label="Sans référent" entryDelay={0.4} />
 
-            <KpiPercent
-              label="En ligne"
-              value={kpi.enLigne}
-              total={kpi.total}
-              icon={<Monitor size={18} />}
-              accentVar="--accent-blue"
-            />
-            <KpiPercent
-              label="Présentiel"
-              value={kpi.presentiel}
-              total={kpi.total}
-              icon={<Building2 size={18} />}
-              accentVar="--accent-violet"
-            />
-            <KpiSimple
-              label="Messages envoyés"
-              value={msgCount}
-              icon={<MessageSquare size={18} />}
-              accentVar="--accent-teal"
-            />
+            <KpiPercent label="En ligne"    value={kpi.enLigne}    total={kpi.total} icon={<Monitor size={18} />}    accentVar="--accent-blue"   entryDelay={0.5} />
+            <KpiPercent label="Présentiel"  value={kpi.presentiel} total={kpi.total} icon={<Building2 size={18} />}  accentVar="--accent-violet" entryDelay={0.6} />
+            <KpiSimple  label="Messages envoyés" value={msgCount}  icon={<MessageSquare size={18} />} accentVar="--accent-teal" entryDelay={0.7} />
           </div>
 
           {/* ── 2 cartes - côte à côte desktop, empilées mobile ──────────── */}

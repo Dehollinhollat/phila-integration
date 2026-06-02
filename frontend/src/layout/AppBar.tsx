@@ -11,6 +11,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { layout } from '../components/ui/tokens';
 import { useNotifications } from '../hooks/useNotifications';
 import NotificationPanel from '../features/notifications/NotificationPanel';
@@ -276,19 +277,23 @@ export default function AppBar({ onMenuToggle }: AppBarProps) {
         >
           <BellIcon size={20} />
           {unreadCount > 0 && (
-            <span style={{
-              position:       'absolute', top: 2, right: 2,
-              minWidth: 16, height: 16,
-              borderRadius:   '9999px',
-              background:     '#DC2626',
-              color:          '#fff',
-              fontSize: 10, fontWeight: 700,
-              display:        'flex', alignItems: 'center', justifyContent: 'center',
-              padding:        '0 3px', lineHeight: 1,
-              border:         '1.5px solid var(--bg-primary)',
-            }}>
+            <motion.span
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+              style={{
+                position:       'absolute', top: 2, right: 2,
+                minWidth: 16, height: 16,
+                borderRadius:   '9999px',
+                background:     '#DC2626',
+                color:          '#fff',
+                fontSize: 10, fontWeight: 700,
+                display:        'flex', alignItems: 'center', justifyContent: 'center',
+                padding:        '0 3px', lineHeight: 1,
+                border:         '1.5px solid var(--bg-primary)',
+              }}
+            >
               {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
+            </motion.span>
           )}
         </button>
 
