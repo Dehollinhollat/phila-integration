@@ -196,6 +196,7 @@ enum AuditAction {
   changement_statut
   assignation_referent
   checklist_cochee
+  LOGIN
 }
 
 /// Cible des messages événement et actu

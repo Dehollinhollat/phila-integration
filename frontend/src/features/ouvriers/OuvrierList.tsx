@@ -9,6 +9,7 @@
 // Badge Type : Promu (vient d'un contact) / Direct (inscription_directe)
 
 import { useState, useEffect, useCallback } from 'react';
+import { Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ouvriersEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -376,7 +377,7 @@ export default function OuvrierList() {
                             fontSize: 14,
                           }}
                         >
-                          ✏️
+                          <Edit2 size={14} />
                         </button>
                         <button
                           onClick={() => handleToggle(o)}

@@ -4,9 +4,13 @@
 //
 // Toutes les couleurs passent par des CSS variables (thème light/dark).
 
+import type { ReactNode } from 'react';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import {
+  Users, User, Building2, AlertTriangle, Monitor, MessageSquare,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { contactsEndpoints, messagesEndpoints, statsEndpoints } from '../services/endpoints';
 import api from '../services/api';
@@ -89,7 +93,7 @@ function FilterBtn({
 function KpiSimple({
   label, value, icon, accentVar, sub, onClick,
 }: {
-  label: string; value: number | string; icon: string; accentVar: string;
+  label: string; value: number | string; icon: ReactNode; accentVar: string;
   sub?: string; onClick?: () => void;
 }) {
   const numericTarget = typeof value === 'number' ? value : 0;
@@ -125,7 +129,7 @@ function KpiSimple({
             display:        'flex',
             alignItems:     'center',
             justifyContent: 'center',
-            fontSize:       '18px',
+            color:          `var(${accentVar})`,
           }}>
             {icon}
           </span>
@@ -182,7 +186,7 @@ function KpiAlert({ value, label }: { value: number; label: string }) {
         justifyContent: 'space-between',
         marginBottom:   spacing[3],
       }}>
-        <span style={{ fontSize: '18px' }}>⚠️</span>
+        <span style={{ display: 'flex', color: 'var(--accent-red)' }}><AlertTriangle size={18} /></span>
         <span style={{
           fontSize:      typography.fontSize.xs,
           color:         'var(--accent-red)',
@@ -212,7 +216,7 @@ function KpiAlert({ value, label }: { value: number; label: string }) {
 // KPI avec pourcentage
 function KpiPercent({
   label, value, total, icon, accentVar,
-}: { label: string; value: number; total: number; icon: string; accentVar: string }) {
+}: { label: string; value: number; total: number; icon: ReactNode; accentVar: string }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <Card>
@@ -222,7 +226,7 @@ function KpiPercent({
         justifyContent: 'space-between',
         marginBottom:   spacing[3],
       }}>
-        <span style={{ fontSize: '18px' }}>{icon}</span>
+        <span style={{ display: 'flex', color: 'var(--text-secondary)' }}>{icon}</span>
         <span style={{
           fontSize:      typography.fontSize.xs,
           color:         'var(--kpi-label)',
@@ -1182,33 +1186,33 @@ export default function Dashboard() {
             <KpiSimple
               label="Total inscrits"
               value={kpi.total}
-              icon="👥"
+              icon={<Users size={18} />}
               accentVar="--accent-teal"
               onClick={() => navigate('/contacts')}
             />
-            <KpiSimple label="Membres Phila"       value={kpi.membrePhila}        icon="⛪" accentVar="--accent-teal"   />
-            <KpiSimple label="Visiteurs sans église" value={kpi.visiteurSansEglise} icon="👤" accentVar="--accent-gold"   />
-            <KpiSimple label="Visiteurs avec église" value={kpi.visiteurAvecEglise} icon="🏛️" accentVar="--accent-violet" />
+            <KpiSimple label="Membres Phila"        value={kpi.membrePhila}        icon={<Users size={18} />}    accentVar="--accent-teal"   />
+            <KpiSimple label="Visiteurs sans église" value={kpi.visiteurSansEglise} icon={<User size={18} />}     accentVar="--accent-gold"   />
+            <KpiSimple label="Visiteurs avec église" value={kpi.visiteurAvecEglise} icon={<Building2 size={18} />} accentVar="--accent-violet" />
             <KpiAlert value={kpi.sansRef} label="Sans référent" />
 
             <KpiPercent
               label="En ligne"
               value={kpi.enLigne}
               total={kpi.total}
-              icon="💻"
+              icon={<Monitor size={18} />}
               accentVar="--accent-blue"
             />
             <KpiPercent
               label="Présentiel"
               value={kpi.presentiel}
               total={kpi.total}
-              icon="🏛️"
+              icon={<Building2 size={18} />}
               accentVar="--accent-violet"
             />
             <KpiSimple
               label="Messages envoyés"
               value={msgCount}
-              icon="💬"
+              icon={<MessageSquare size={18} />}
               accentVar="--accent-teal"
             />
           </div>

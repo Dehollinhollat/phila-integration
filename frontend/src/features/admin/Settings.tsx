@@ -3,8 +3,10 @@
 // Trois sections : Seuils & Alertes, Infos Église, Templates Messages.
 // Toutes les clés sont persistées en clé-valeur via PUT /api/settings.
 
+import type { ReactNode } from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, MessageSquare, PartyPopper, Calendar, GraduationCap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { settingsEndpoints } from '../../services/endpoints';
 
@@ -20,10 +22,10 @@ interface SettingDef {
   max?:        number;
 }
 
-const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
+const SECTIONS: { label: string; icon: ReactNode; settings: SettingDef[] }[] = [
   {
     label: 'Seuils & Alertes',
-    icon:  '⚠️',
+    icon:  <AlertTriangle size={16} />,
     settings: [
       {
         key: 'seuil_sans_referent',
@@ -71,7 +73,7 @@ const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
   },
   {
     label: 'Templates Messages',
-    icon:  '💬',
+    icon:  <MessageSquare size={16} />,
     settings: [
       {
         key: 'message_bienvenue',
@@ -91,7 +93,7 @@ const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
   },
   {
     label: 'Messages d\'anniversaire',
-    icon:  '🎂',
+    icon:  <Calendar size={16} />,
     settings: [
       {
         key: 'template_anniversaire',
@@ -104,7 +106,7 @@ const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
   },
   {
     label: 'Message Nouvel An',
-    icon:  '🎉',
+    icon:  <PartyPopper size={16} />,
     settings: [
       {
         key:         'template_nouvel_an',
@@ -117,7 +119,7 @@ const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
   },
   {
     label: 'Template Événement',
-    icon:  '📅',
+    icon:  <Calendar size={16} />,
     settings: [
       {
         key:         'template_evenement',
@@ -130,7 +132,7 @@ const SECTIONS: { label: string; icon: string; settings: SettingDef[] }[] = [
   },
   {
     label: 'Certificat d\'intégration',
-    icon:  '🎓',
+    icon:  <GraduationCap size={16} />,
     settings: [
       {
         key:         'certificat_verset',
@@ -266,7 +268,7 @@ export default function Settings() {
               alignItems:  'center',
               gap:         8,
             }}>
-              <span style={{ fontSize: 16 }}>{section.icon}</span>
+              <span style={{ display: 'flex', alignItems: 'center' }}>{section.icon}</span>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{section.label}</span>
             </div>
 

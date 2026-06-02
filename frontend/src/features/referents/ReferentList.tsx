@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, ClipboardList } from 'lucide-react';
 import { referentsEndpoints } from '../../services/endpoints';
 import type { ChargeReferent } from '../../services/endpoints';
 import type { StatutContact } from '../../types';
@@ -141,7 +142,7 @@ export default function ReferentList() {
       {surcharges.length > 0 && (
         <div style={{ marginBottom: 16, padding: '12px 16px', background: '#fee2e2', borderRadius: 10, border: '1px solid #fca5a5' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: '#b91c1c', marginBottom: 4 }}>
-            ⚠️ {surcharges.length} référent(s) ont dépassé le seuil de {SEUIL} contacts
+            <AlertTriangle size={14} style={{ flexShrink: 0 }} /> {surcharges.length} référent(s) ont dépassé le seuil de {SEUIL} contacts
           </div>
           <div style={{ fontSize: 12, color: '#b91c1c' }}>
             {surcharges.map(r => `${r.prenom} ${r.nom} (${r.count})`).join(' · ')}
@@ -155,7 +156,7 @@ export default function ReferentList() {
           style={{ marginBottom: 24, padding: '12px 16px', background: '#fef3c7', borderRadius: 10, border: '1px solid #fcd34d', cursor: 'pointer' }}
         >
           <div style={{ fontWeight: 700, fontSize: 13, color: '#b45309' }}>
-            📋 {data.sans_referent} contact(s) sans référent intégration → Voir les contacts
+            <ClipboardList size={14} style={{ flexShrink: 0 }} /> {data.sans_referent} contact(s) sans référent intégration → Voir les contacts
           </div>
         </div>
       )}

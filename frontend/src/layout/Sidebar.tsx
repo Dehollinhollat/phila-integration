@@ -5,8 +5,14 @@
 //             se ferme automatiquement après chaque navigation
 // Props : isOpen (mobile), onClose (fermer au clic nav ou overlay)
 
+import type { ReactNode } from 'react';
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  BarChart2, Home, TrendingUp, Users, Handshake, MessageSquare,
+  Calendar, Bell, Church, ClipboardList, Smartphone, User,
+  Star, Settings2, FileText, Moon, Sun, LogOut,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { typography, spacing } from '../components/ui/tokens';
@@ -19,7 +25,7 @@ import type { Role } from '../types';
 interface NavItem {
   to:      string;
   label:   string;
-  icon:    string;
+  icon:    ReactNode;
   minRole: Role;
 }
 
@@ -32,32 +38,32 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Principal',
     items: [
-      { to: '/dashboard',          label: 'Tableau de bord',  icon: '📊', minRole: 'lecteur' },
-      { to: '/mon-tableau-de-bord', label: 'Mon tableau',      icon: '🏠', minRole: 'referent_integration' },
-      { to: '/statistiques',        label: 'Statistiques',     icon: '📈', minRole: 'admin_campus' },
-      { to: '/contacts',   label: 'Contacts',         icon: '👥', minRole: 'lecteur' },
-      { to: '/referents',  label: 'Référents',         icon: '🤝', minRole: 'admin_campus' },
-      { to: '/messagerie',     label: 'Messagerie',     icon: '💬', minRole: 'referent_integration' },
-      { to: '/evenements',     label: 'Événements',     icon: '📅', minRole: 'referent_integration' },
-      { to: '/notifications',  label: 'Notifications',  icon: '🔔', minRole: 'lecteur' },
+      { to: '/dashboard',           label: 'Tableau de bord', icon: <BarChart2 size={18} />,     minRole: 'lecteur' },
+      { to: '/mon-tableau-de-bord', label: 'Mon tableau',     icon: <Home size={18} />,           minRole: 'referent_integration' },
+      { to: '/statistiques',        label: 'Statistiques',    icon: <TrendingUp size={18} />,     minRole: 'admin_campus' },
+      { to: '/contacts',            label: 'Contacts',        icon: <Users size={18} />,           minRole: 'lecteur' },
+      { to: '/referents',           label: 'Référents',       icon: <Handshake size={18} />,      minRole: 'admin_campus' },
+      { to: '/messagerie',          label: 'Messagerie',      icon: <MessageSquare size={18} />,  minRole: 'referent_integration' },
+      { to: '/evenements',          label: 'Événements',      icon: <Calendar size={18} />,       minRole: 'referent_integration' },
+      { to: '/notifications',       label: 'Notifications',   icon: <Bell size={18} />,           minRole: 'lecteur' },
     ],
   },
   {
     label: 'Gestion',
     items: [
-      { to: '/ouvriers',     label: 'Ouvriers',     icon: '⛪', minRole: 'lecteur' },
-      { to: '/planning',     label: 'Planning',     icon: '🗓️',  minRole: 'lecteur' },
-      { to: '/mon-planning', label: 'Mon planning', icon: '📋', minRole: 'referent_integration' },
-      { to: '/qrcodes',      label: 'QR Codes',     icon: '📱', minRole: 'admin_campus' },
+      { to: '/ouvriers',     label: 'Ouvriers',     icon: <Church size={18} />,        minRole: 'lecteur' },
+      { to: '/planning',     label: 'Planning',     icon: <Calendar size={18} />,      minRole: 'lecteur' },
+      { to: '/mon-planning', label: 'Mon planning', icon: <ClipboardList size={18} />, minRole: 'referent_integration' },
+      { to: '/qrcodes',      label: 'QR Codes',     icon: <Smartphone size={18} />,    minRole: 'admin_campus' },
     ],
   },
   {
     label: 'Admin',
     items: [
-      { to: '/admin',      label: 'Comptes',    icon: '👤', minRole: 'admin_campus' },
-      { to: '/feedback-resultats', label: 'Satisfaction', icon: '⭐', minRole: 'referent_integration' },
-      { to: '/parametres', label: 'Paramètres', icon: '⚙️', minRole: 'super_admin' },
-      { to: '/audit',      label: 'Audit',      icon: '🗒️', minRole: 'super_admin' },
+      { to: '/admin',              label: 'Comptes',      icon: <User size={18} />,        minRole: 'admin_campus' },
+      { to: '/feedback-resultats', label: 'Satisfaction', icon: <Star size={18} />,        minRole: 'referent_integration' },
+      { to: '/parametres',         label: 'Paramètres',   icon: <Settings2 size={18} />,   minRole: 'super_admin' },
+      { to: '/audit',              label: 'Audit',        icon: <FileText size={18} />,    minRole: 'super_admin' },
     ],
   },
 ];
@@ -91,7 +97,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     navigate('/login');
   }
 
-  // Ferme la sidebar sur mobile après navigation
   function handleNavClick() {
     onClose();
   }
@@ -127,7 +132,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         overflowY:     'auto',
       }}
     >
-      {/* Logo — paddingTop sur mobile pour ne pas être couvert par l'AppBar */}
+      {/* Logo */}
       <div style={{
         padding:      `${spacing[6]} ${spacing[4]}`,
         paddingTop:   isMobile ? '64px' : spacing[6],
@@ -198,7 +203,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     cursor:         'pointer',
                   })}
                 >
-                  <span style={{ fontSize: '15px', lineHeight: 1, width: '18px', textAlign: 'center' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', width: '18px', flexShrink: 0 }}>
                     {item.icon}
                   </span>
                   {item.label}
@@ -272,13 +277,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             display:        'flex',
             alignItems:     'center',
             justifyContent: 'center',
-            fontSize:       '14px',
-            lineHeight:     1,
             flexShrink:     0,
             transition:     '120ms ease',
           }}
         >
-          {theme === 'light' ? '🌙' : '☀️'}
+          {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
         </button>
 
         {/* Déconnexion */}
@@ -296,13 +299,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             display:        'flex',
             alignItems:     'center',
             justifyContent: 'center',
-            fontSize:       '16px',
-            lineHeight:     1,
             flexShrink:     0,
             transition:     '120ms ease',
           }}
         >
-          ↩
+          <LogOut size={14} />
         </button>
       </div>
     </aside>

@@ -1,7 +1,9 @@
 // src/features/contacts/ContactDetail.tsx
 // Fiche détail 3 colonnes : identité | checklist + commentaires | référents + historique + messages
 
+import type { ReactNode } from 'react';
 import { useState, useEffect, useCallback } from 'react';
+import { Star, User as UserIcon, Edit2, Trash2, GraduationCap, Lightbulb } from 'lucide-react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { contactsEndpoints, checklistEndpoints, messagesEndpoints, referentsEndpoints, ouvriersEndpoints, auditEndpoints } from '../../services/endpoints';
@@ -187,13 +189,13 @@ function ReferentField({
 
 // ─── Audit Timeline helpers ───────────────────────────────────────────────────
 
-const AUDIT_ICONS: Record<AuditAction, string> = {
-  creation:            '⭐',
+const AUDIT_ICONS: Record<AuditAction, ReactNode> = {
+  creation:            <Star size={13} />,
   changement_statut:   '→',
-  assignation_referent:'👤',
+  assignation_referent:<UserIcon size={13} />,
   checklist_cochee:    '✓',
-  modification:        '✏️',
-  suppression:         '🗑️',
+  modification:        <Edit2 size={13} />,
+  suppression:         <Trash2 size={13} />,
 };
 
 const AUDIT_COLORS: Record<AuditAction, string> = {
@@ -569,7 +571,7 @@ export default function ContactDetail() {
                     width: '100%', justifyContent: 'center',
                   }}
                 >
-                  🎓 Télécharger le certificat PDF
+                  <GraduationCap size={16} /> Télécharger le certificat PDF
                 </button>
               )}
 
@@ -803,7 +805,7 @@ export default function ContactDetail() {
                       opacity: suggLoading ? 0.6 : 1, fontFamily: 'inherit',
                     }}
                   >
-                    {suggLoading ? '…' : '💡 Suggérer un référent'}
+                    {suggLoading ? '…' : <><Lightbulb size={14} /> Suggérer un référent</>}
                   </button>
 
                   {suggestion && (

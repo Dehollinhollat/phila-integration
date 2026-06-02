@@ -3,6 +3,7 @@
 // Affiche stats, table filtrée, modal création/édition, modal réinitialisation mot de passe.
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Edit2, Key, Lock, Unlock, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usersAdminEndpoints } from '../../services/endpoints';
 import type { DeleteConflict } from '../../services/endpoints';
@@ -455,11 +456,11 @@ export default function UserManagement() {
                 {/* Un admin_campus ne peut pas gérer les comptes super_admin */}
                 {!(isAdminCampus && u.role === 'super_admin') ? (
                   <>
-                    <button onClick={() => openEdit(u)} style={btnAction} title="Modifier">✏️</button>
-                    <button onClick={() => openPassword(u)} style={btnAction} title="Réinitialiser mot de passe">🔑</button>
+                    <button onClick={() => openEdit(u)} style={btnAction} title="Modifier"><Edit2 size={14} /></button>
+                    <button onClick={() => openPassword(u)} style={btnAction} title="Réinitialiser mot de passe"><Key size={14} /></button>
                     <button onClick={() => openConnexions(u)} style={btnAction} title="Historique des connexions">🕐</button>
                     <button onClick={() => handleToggle(u)} style={btnAction} title={u.actif ? 'Désactiver' : 'Activer'}>
-                      {u.actif ? '🔒' : '🔓'}
+                      {u.actif ? <Lock size={14} /> : <Unlock size={14} />}
                     </button>
                     {/* Suppression - super_admin uniquement, pas sur soi-même ni sur un autre super_admin */}
                     {isSuperAdmin && u.id !== currentUser?.id && u.role !== 'super_admin' && (
@@ -468,7 +469,7 @@ export default function UserManagement() {
                         style={{ ...btnAction, color: 'var(--accent-red, #A32D2D)' }}
                         title="Supprimer le compte"
                       >
-                        🗑️
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </>
@@ -519,7 +520,7 @@ export default function UserManagement() {
                   color:        'var(--text-secondary)',
                   lineHeight:   1.5,
                 }}>
-                  <span style={{ flexShrink: 0, fontSize: 16 }}>🔑</span>
+                  <span style={{ flexShrink: 0, display: 'flex' }}><Key size={16} /></span>
                   <span>
                     Un mot de passe provisoire sera <strong>généré automatiquement</strong> et
                     envoyé par email au nouvel utilisateur.

@@ -9,6 +9,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend,
 } from 'recharts';
+import { Mail } from 'lucide-react';
 import { statsEndpoints } from '../services/endpoints';
 import { HelpButton } from '../components/common/HelpButton';
 
@@ -133,7 +134,7 @@ export default function StatistiquesAvancees() {
               opacity:    rapportLoading ? 0.7 : 1,
             }}
           >
-            {rapportLoading ? 'Envoi...' : '📧 Envoyer le rapport'}
+            {rapportLoading ? 'Envoi...' : <><Mail size={15} /> Envoyer le rapport</>}
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BookOpen } from 'lucide-react';
 
 interface HelpStep {
   titre: string;
@@ -74,8 +75,8 @@ export const HelpButton = ({ steps, titre }: HelpButtonProps) => {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>
-                  📖 {titre}
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BookOpen size={18} /> {titre}
                 </h2>
                 <button
                   onClick={() => setOpen(false)}

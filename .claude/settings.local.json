@@ -57,7 +57,8 @@
       "PowerShell(\\(Get-Item \"C:\\\\Users\\\\dehom\\\\phila-integration\\\\frontend\\\\src\\\\assets\\\\images\\\\LOGO-PHILA-BLEU.png\"\\).Length)",
       "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\dehom\\\\phila-integration\\\\backend\\\\scripts\" -Force)",
       "Bash(npm test *)",
-      "Bash(npx jest *)"
+      "Bash(npx jest *)",
+      "Bash(git worktree *)"
     ]
   }
 }

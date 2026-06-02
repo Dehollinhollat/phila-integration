@@ -1,21 +1,25 @@
 // src/pages/Notifications.tsx
 // Page complète des notifications -liste paginée, filtre lu/non lu, marquage groupé.
 
+import type { ReactNode } from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  User, AlertTriangle, ClipboardList, Calendar, CheckCircle, Bell, Church,
+} from 'lucide-react';
 import { notificationsEndpoints } from '../services/endpoints';
 import type { Notification, TypeNotification } from '../types';
 
 // ─── Config par type ──────────────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<TypeNotification, { color: string; label: string; icon: string }> = {
-  nouveau_contact_assigne:      { color: '#3B82F6', label: 'Contact assigné', icon: '👤' },
-  contact_sans_referent:        { color: '#EF4444', label: 'Sans référent',   icon: '⚠️' },
-  planning_non_confirme:        { color: '#F59E0B', label: 'Planning',        icon: '📋' },
-  rappel_evenement:             { color: '#8B5CF6', label: 'Événement',       icon: '📅' },
-  checklist_completee:          { color: '#10B981', label: 'Intégration',     icon: '✅' },
-  nouvelle_candidature_ouvrier: { color: '#8B5CF6', label: 'Candidature',    icon: '⛪' },
-  alerte_risque:                { color: '#EF4444', label: 'Alerte risque',  icon: '⚠️' },
+const TYPE_CONFIG: Record<TypeNotification, { color: string; label: string; icon: ReactNode }> = {
+  nouveau_contact_assigne:      { color: '#3B82F6', label: 'Contact assigné', icon: <User size={17} /> },
+  contact_sans_referent:        { color: '#EF4444', label: 'Sans référent',   icon: <AlertTriangle size={17} /> },
+  planning_non_confirme:        { color: '#F59E0B', label: 'Planning',        icon: <ClipboardList size={17} /> },
+  rappel_evenement:             { color: '#8B5CF6', label: 'Événement',       icon: <Calendar size={17} /> },
+  checklist_completee:          { color: '#10B981', label: 'Intégration',     icon: <CheckCircle size={17} /> },
+  nouvelle_candidature_ouvrier: { color: '#8B5CF6', label: 'Candidature',    icon: <Church size={17} /> },
+  alerte_risque:                { color: '#EF4444', label: 'Alerte risque',  icon: <AlertTriangle size={17} /> },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -175,7 +179,7 @@ export default function Notifications() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {displayed.map(notif => {
-            const cfg = TYPE_CONFIG[notif.type] ?? { color: '#6B7280', label: notif.type, icon: '🔔' };
+            const cfg = TYPE_CONFIG[notif.type] ?? { color: '#6B7280', label: notif.type, icon: <Bell size={17} /> };
             return (
               <button
                 key={notif.id}
