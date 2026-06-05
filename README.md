@@ -131,7 +131,7 @@ phila-integration/
 Ce projet a été conçu et livré en conditions réelles, avec des contraintes de production effectives (lancement le 1er juillet 2026).
 
 **Approche produit**  
-Les besoins ont été identifiés directement avec les responsables de l'église. Chaque fonctionnalité a été pondérée selon son impact métier avant d'être implémentée. Certains modules initialement prévus (cellules de prière, chat interne) ont été abandonnés pour respecter les délais.
+Les besoins ont été identifiés directement avec les responsables de l'église. Chaque fonctionnalité a été pondérée selon son impact métier avant d'être implémentée. Certains modules initialement prévus (cellules de prière, chat interne) ont été abandonnés dans cette version, mais sont prévus dans Phila Manager (module de gestion pastorale avancée), dont le développement est prévu pour le deuxième semestre 2026.
 
 **Architecture des décisions**
 - Choix de Prisma 7 avec l'adaptateur pg natif pour éviter la latence du moteur Rust en production Railway
