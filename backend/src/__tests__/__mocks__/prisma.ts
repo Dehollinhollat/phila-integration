@@ -72,6 +72,10 @@ const prisma = {
     create:      jest.fn(),
     update:      jest.fn(),
   },
+  auditLog: {
+    create:   jest.fn(),
+    findMany: jest.fn(),
+  },
   $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(prisma as unknown)),
 };
 

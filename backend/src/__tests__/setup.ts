@@ -15,6 +15,8 @@ process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_phila';
 process.env.TWILIO_ACCOUNT_SID   = 'ACtest000000000000000000000000000000';
 process.env.TWILIO_AUTH_TOKEN    = 'test-auth-token';
 process.env.TWILIO_WHATSAPP_FROM = 'whatsapp:+14155238886';
+process.env.RESEND_API_KEY       = 're_test_dummy_key_for_jest_testing';
+process.env.BACKEND_URL          = 'http://localhost:4001';
 process.env.FRONTEND_URL         = 'http://localhost:5173';
 
 // ─── 2. Mock Prisma ───────────────────────────────────────────────────────────
