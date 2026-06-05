@@ -14,6 +14,28 @@ L'application centralise la gestion des contacts, automatise les communications 
 
 ---
 
+## Aperçu
+
+![Dashboard](assets/dashboard.png)
+*Tableau de bord principal avec KPIs et graphiques en temps réel*
+
+![Contacts](assets/contacts.png)
+*Liste des contacts avec filtres, badges statut et import Excel*
+
+![Fiche contact](assets/fiche-contact.png)
+*Fiche contact avec checklist d'intégration en 7 étapes*
+
+![Statistiques](assets/statistiques.png)
+*Statistiques avancées : taux de conversion et performance par référent*
+
+![Formulaire](assets/formulaire.png)
+*Formulaire public accessible via QR Code*
+
+![Certificat](assets/certificat.png)
+*Certificat d'intégration PDF généré automatiquement*
+
+---
+
 ## Fonctionnalités
 
 **Gestion des contacts**
