@@ -34,6 +34,9 @@ L'application centralise la gestion des contacts, automatise les communications 
 ![Certificat](assets/certificat.png)
 *Certificat d'intégration PDF généré automatiquement*
 
+![Planning](assets/planning.png)
+*Planning des bénévoles*
+
 ---
 
 ## Fonctionnalités
