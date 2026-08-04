@@ -9,7 +9,7 @@ export const loginSchema = z.object({
 });
 
 const VALID_ROLES = ['super_admin', 'admin_campus', 'referent_eglise', 'referent_integration', 'lecteur'] as const;
-const VALID_CAMPUS = ['paris', 'paris_nord'] as const;
+const VALID_CAMPUS = ['paris', 'paris_nord', 'orleans', 'montpellier'] as const;
 
 // Le mot de passe n'est plus fourni par le frontend — il est généré côté serveur.
 export const createUserSchema = z.object({
