@@ -116,6 +116,8 @@ enum StatutContact {
 enum Campus {
   paris
   paris_nord
+  orleans
+  montpellier
 }
 
 /// Niveaux d'accès dans l'interface d'administration
@@ -207,6 +209,8 @@ enum DestinataireEvenement {
   profil_visiteur         // visiteurs_sans_eglise + visiteur_avec_eglise
   campus_paris            // uniquement le campus Paris
   campus_paris_nord       // uniquement le campus Paris Nord
+  campus_orleans          // uniquement le campus Orléans
+  campus_montpellier      // uniquement le campus Montpellier
 }
 
 /// Intention du contact vis-à-vis de l'intégration — renseigné par le référent depuis la fiche contact
