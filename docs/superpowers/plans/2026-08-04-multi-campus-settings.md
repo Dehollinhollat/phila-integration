@@ -2619,10 +2619,26 @@ describe('getCampusSettingsHandler / updateCampusSettingsHandler', () => {
     expect(jsonMock).toHaveBeenCalledWith({ adresse_eglise: '1 rue de la Loire' });
   });
 
+  it('getCampusSettingsHandler rejette un campus inconnu (400, pas de lecture DB)', async () => {
+    const { res, statusMock } = mockRes();
+    await getCampusSettingsHandler({ params: { campus: 'marseille' } } as unknown as Request, res as Response);
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.campusSettings.findMany).not.toHaveBeenCalled();
+  });
+
   it('updateCampusSettingsHandler rejette une cle inconnue', async () => {
     const { res, statusMock } = mockRes();
     await updateCampusSettingsHandler(
       { params: { campus: 'orleans' }, body: [{ key: 'cle_inexistante', value: 'x' }] } as unknown as Request,
+      res as Response
+    );
+    expect(statusMock).toHaveBeenCalledWith(400);
+  });
+
+  it('updateCampusSettingsHandler rejette un campus inconnu avant meme de lire le body', async () => {
+    const { res, statusMock } = mockRes();
+    await updateCampusSettingsHandler(
+      { params: { campus: 'marseille' }, body: [{ key: 'nom_eglise', value: 'x' }] } as unknown as Request,
       res as Response
     );
     expect(statusMock).toHaveBeenCalledWith(400);
@@ -2664,6 +2680,7 @@ Remplacer tout le contenu de `backend/src/controllers/settings.controller.ts` pa
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { Campus } from '../../generated/prisma/client';
 import { CAMPUS_SETTINGS_KEYS, type CampusSettingKey } from '../lib/campusSettings';
 
 // GET /api/settings/global
@@ -2702,6 +2719,10 @@ export async function updateGlobalSettings(req: Request, res: Response): Promise
 // GET /api/settings/campus/:campus
 export async function getCampusSettingsHandler(req: Request, res: Response): Promise<void> {
   const campus = String(req.params.campus);
+  if (!Object.values(Campus).includes(campus as Campus)) {
+    res.status(400).json({ message: `Campus inconnu : ${campus}` });
+    return;
+  }
   const rows = await prisma.campusSettings.findMany({ where: { campus: campus as never } });
   const result: Record<string, string> = {};
   for (const row of rows) result[row.key] = row.value;
@@ -2712,6 +2733,10 @@ export async function getCampusSettingsHandler(req: Request, res: Response): Pro
 // N'écrit que sur le campus de l'URL — impossible d'impacter un autre campus depuis cette route.
 export async function updateCampusSettingsHandler(req: Request, res: Response): Promise<void> {
   const campus = String(req.params.campus);
+  if (!Object.values(Campus).includes(campus as Campus)) {
+    res.status(400).json({ message: `Campus inconnu : ${campus}` });
+    return;
+  }
   const entries = req.body as { key: string; value: string }[];
 
   if (!Array.isArray(entries) || entries.length === 0) {
@@ -2778,10 +2803,14 @@ Remplacer tout le contenu de `backend/src/routes/settings.routes.ts` par :
 // - /global          : seuils d'alerte — super_admin uniquement.
 // - /campus/:campus  : templates messages + infos église — super_admin (tous campus)
 //   ou admin_campus (uniquement les campus de son user.campus[]).
+//
+// requireCampusAccess seul ne vérifie QUE l'appartenance au campus, pas le rôle
+// (un lecteur/referent_integration scopé sur ce campus passerait aussi) — d'où le
+// requireMinRole('admin_campus') systématiquement chaîné avant lui sur ces 2 routes.
 
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware';
-import { requireRole, requireCampusAccess } from '../middlewares/roles.middleware';
+import { requireRole, requireMinRole, requireCampusAccess } from '../middlewares/roles.middleware';
 import {
   getGlobalSettings, updateGlobalSettings,
   getCampusSettingsHandler, updateCampusSettingsHandler,
@@ -2794,11 +2823,15 @@ router.use(authenticate);
 router.get('/global', requireRole('super_admin'), getGlobalSettings);
 router.put('/global', requireRole('super_admin'), updateGlobalSettings);
 
-router.get('/campus/:campus', requireCampusAccess, getCampusSettingsHandler);
-router.put('/campus/:campus', requireCampusAccess, updateCampusSettingsHandler);
+router.get('/campus/:campus', requireMinRole('admin_campus'), requireCampusAccess, getCampusSettingsHandler);
+router.put('/campus/:campus', requireMinRole('admin_campus'), requireCampusAccess, updateCampusSettingsHandler);
 
 export default router;
 ```
+
+- [ ] **Étape 1bis : Note sur les tests**
+
+`requireMinRole` est une fonction existante, déjà utilisée ailleurs dans le backend avant ce plan — son comportement (bloquer les rôles sous le seuil) n'est pas nouveau, seule sa composition avec `requireCampusAccess` sur ces 2 routes l'est. Aucun fichier `*.routes.ts` n'a de test dédié dans ce repo (vérifié pendant le brainstorming) — cohérent avec l'existant, pas de nouveau test de routing ajouté ici. Si `requireMinRole` n'a pas déjà de couverture unitaire directe, ce n'est pas la responsabilité de cette tâche de l'ajouter (elle est réutilisée telle quelle, sans modification).
 
 - [ ] **Étape 2 : Vérifier**
 
