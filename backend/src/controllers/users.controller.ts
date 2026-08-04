@@ -145,6 +145,15 @@ export async function createUser(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // Un admin_campus ne peut assigner que ses propres campus, jamais un campus hors de son périmètre
+  if (req.user!.role === 'admin_campus') {
+    const campusHorsPerimetre = (campus ?? []).some(c => !req.user!.campus.includes(c as never));
+    if (campusHorsPerimetre) {
+      res.status(403).json({ message: 'Non autorisé à assigner un campus hors de votre périmètre' });
+      return;
+    }
+  }
+
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) {
     res.status(409).json({ message: 'Un compte existe déjà avec cet email' });
@@ -178,7 +187,7 @@ export async function updateUser(req: Request, res: Response): Promise<void> {
 
   // Un admin_campus ne peut pas modifier un super_admin ni lui attribuer ce rôle
   if (req.user!.role === 'admin_campus') {
-    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+    const target = await prisma.user.findUnique({ where: { id }, select: { role: true, campus: true } });
     if (target?.role === 'super_admin') {
       res.status(403).json({ message: 'Non autorisé à modifier un Super Administrateur' });
       return;
@@ -186,6 +195,20 @@ export async function updateUser(req: Request, res: Response): Promise<void> {
     if (role === 'super_admin') {
       res.status(403).json({ message: 'Non autorisé à attribuer le rôle Super Administrateur' });
       return;
+    }
+    // Un admin_campus ne peut ni ajouter ni retirer un campus hors de son périmètre —
+    // seuls les campus effectivement modifiés (ajoutés ou retirés) sont vérifiés, pas
+    // l'ensemble du tableau soumis (sinon un simple renommage sur un utilisateur
+    // multi-campus existant serait bloqué s'il a un campus hors du périmètre de l'admin).
+    if (campus !== undefined) {
+      const actuel   = (target?.campus ?? []) as string[];
+      const ajouts   = campus.filter(c => !actuel.includes(c));
+      const retraits = actuel.filter(c => !campus.includes(c));
+      const horsPerimetre = [...ajouts, ...retraits].some(c => !req.user!.campus.includes(c as never));
+      if (horsPerimetre) {
+        res.status(403).json({ message: 'Non autorisé à modifier l\'accès à un campus hors de votre périmètre' });
+        return;
+      }
     }
   }
 

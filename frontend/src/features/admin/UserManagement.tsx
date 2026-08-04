@@ -534,7 +534,7 @@ export default function UserManagement() {
               </Field>
               <Field label="Campus" style={{ gridColumn: '1 / -1' }}>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  {ALL_CAMPUS.map(c => (
+                  {(isAdminCampus ? ALL_CAMPUS.filter(c => currentUser?.campus.includes(c)) : ALL_CAMPUS).map(c => (
                     <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
                       <input type="checkbox" checked={form.campus.includes(c)} onChange={() => toggleCampus(c)} />
                       {CAMPUS_LABELS[c]}
