@@ -1,7 +1,7 @@
 // Tests pour la verification du perimetre campus d'un admin_campus sur
 // createUser/updateUser (Task B3bis).
 
-import { createUser, updateUser } from '../../controllers/users.controller';
+import { createUser, updateUser, resetPassword, toggleStatut } from '../../controllers/users.controller';
 import prisma from '../../lib/prisma';
 
 function mockRes() {
@@ -36,7 +36,7 @@ describe('createUser - perimetre campus admin_campus', () => {
 
 describe('updateUser - perimetre campus admin_campus', () => {
   it('refuse la modification si un campus demande est hors du perimetre', async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur' });
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur', campus: ['paris'] });
     const { res, statusMock } = mockRes();
     const req = {
       params: { id: 'u1' },
@@ -71,5 +71,82 @@ describe('updateUser - perimetre campus admin_campus', () => {
     } as never;
     await updateUser(req, res);
     expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('refuse la modification d\'un compte hors du perimetre meme sans champ campus/role dans le body', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur', campus: ['orleans'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'u1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { prenom: 'Hacked' },
+    } as never;
+    await updateUser(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('resetPassword - perimetre admin_campus', () => {
+  it('refuse la reinitialisation sur un super_admin cible', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'super_admin', campus: ['paris'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { password: 'motdepasse123' },
+    } as never;
+    await resetPassword(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('refuse la reinitialisation sur un compte hors du perimetre campus', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur', campus: ['orleans'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { password: 'motdepasse123' },
+    } as never;
+    await resetPassword(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('autorise la reinitialisation sur un compte du meme perimetre', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur', campus: ['paris'] });
+    (prisma.user.update as jest.Mock).mockResolvedValue({});
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { password: 'motdepasse123' },
+    } as never;
+    await resetPassword(req, res);
+    expect(statusMock).not.toHaveBeenCalledWith(403);
+  });
+});
+
+describe('toggleStatut - perimetre admin_campus', () => {
+  it('refuse le changement de statut sur un compte hors du perimetre campus', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ actif: true, role: 'lecteur', campus: ['montpellier'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+    } as never;
+    await toggleStatut(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('autorise le changement de statut sur un compte du meme perimetre', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ actif: true, role: 'lecteur', campus: ['paris'] });
+    (prisma.user.update as jest.Mock).mockResolvedValue({});
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+    } as never;
+    await toggleStatut(req, res);
+    expect(statusMock).not.toHaveBeenCalledWith(403);
   });
 });
