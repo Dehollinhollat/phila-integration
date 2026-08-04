@@ -127,6 +127,23 @@ Aujourd'hui verrouillée `super_admin` avec redirection immédiate (`navigate('/
 - Test de la migration/seed : les 4 campus ont bien une valeur pour chacune des 9 clés après migration.
 - Test cron : un lot de contacts multi-campus reçoit chacun le template de son propre campus (pas de fuite entre campus).
 
+## Addendum — balayage complet des occurrences codées en dur "2 campus" (ajouté après relecture)
+
+Un balayage plus large que celui fait pendant le brainstorming a révélé que le motif binaire `campus === 'paris' ? 'Paris' : 'Paris Nord'` (ou équivalent) existe dans beaucoup plus d'endroits que les 5 fichiers initialement listés en Volet A. Avec 4 campus, ce motif binaire n'est pas juste incomplet, il est **incorrect** : un contact d'Orléans ou de Montpellier s'y afficherait étiqueté "Paris Nord". Décidé avec l'utilisateur : tout est corrigé dans ce même chantier plutôt que reporté.
+
+Fichiers additionnels concernés (au-delà de ceux déjà listés en Volet A) :
+
+- `backend/src/middlewares/auth.middleware.ts` — `CampusValue = 'paris' | 'paris_nord'`, le type source du JWT (`req.user.campus`), à généraliser.
+- `backend/src/controllers/import.controller.ts` — `mapCampus()`, normalisation Excel/CSV, ne reconnaît que "paris"/variantes "nord".
+- `frontend/src/pages/Dashboard.tsx` — cas le plus lourd : les KPI par campus sont des variables nommées en dur (`paris`, `parisNord`, `parisIntegre`, `parisMembrePhila`, `parisNordIntegre`, `parisNordMembrePhila`), utilisées à la fois dans les cartes KPI à l'écran et le tableau du rapport PDF (`autoTable`). Restructuré en une structure indexée par campus (ex. `Record<Campus, {total, integre, membrePhila}>`) plutôt que 6 variables figées.
+- `frontend/src/features/planning/PlanningTable.tsx`, `PlanningDetail.tsx`, `MesPlannings.tsx` — ternaires d'affichage + `<option>` de filtre.
+- `frontend/src/features/messages/MessageCompose.tsx`, `MessageHistory.tsx` — `<option>` de filtre/ciblage par campus.
+- `frontend/src/features/referents/ReferentList.tsx` — ternaire d'affichage des campus d'un référent.
+- `frontend/src/features/contacts/ContactList.tsx`, `ContactForm.tsx`, `ContactDetail.tsx` — `<option>` de filtre/formulaire.
+- `frontend/src/features/ouvriers/OuvrierForm.tsx` et `OuvrierList.tsx` — formulaire de création/édition et liste : `<option>` figées à 2 valeurs, cast TypeScript `campus as 'paris' | 'paris_nord'`, et pour `OuvrierList.tsx` spécifiquement les cartes KPI (`campusParis`, `campusNord`) qui doivent devenir dynamiques sur les 4 campus — demande explicite de l'utilisateur pour avoir un total et un filtre par campus sur l'écran Ouvriers.
+
+Principe de correction commun : partout où c'est possible, remplacer le ternaire/switch en dur par un lookup dans `CAMPUS_LABELS`/`CAMPUS_OPTIONS` (source unique définie dans `frontend/src/utils/constants.ts`), plutôt que redéfinir localement à chaque fois — c'est ce qui a permis de repérer tous ces cas en cherchant les définitions locales dupliquées.
+
 ## Hors scope
 
 - Création des comptes admin Montpellier/Orléans (fait manuellement ensuite).
