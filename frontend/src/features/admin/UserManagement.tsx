@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { usersAdminEndpoints } from '../../services/endpoints';
 import type { DeleteConflict } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
+import { CAMPUS_LABELS, CAMPUS_OPTIONS } from '../../utils/constants';
 import type { User, Role, Campus, ConnectionLog } from '../../types';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -20,12 +21,7 @@ const ROLE_CONFIG: Record<Role, { label: string; bg: string; text: string; desc:
   lecteur:               { label: 'Lecteur',         bg: 'var(--badge-inactif-bg)',  text: 'var(--badge-inactif-text)',   desc: 'Consultation uniquement' },
 };
 
-const CAMPUS_LABELS: Record<Campus, string> = {
-  paris:      'Paris',
-  paris_nord: 'Paris Nord',
-};
-
-const ALL_CAMPUS: Campus[] = ['paris', 'paris_nord'];
+const ALL_CAMPUS: Campus[] = CAMPUS_OPTIONS.map(o => o.value);
 
 // ─── Composants locaux ────────────────────────────────────────────────────────
 
