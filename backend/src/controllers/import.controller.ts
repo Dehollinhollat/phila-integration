@@ -59,10 +59,12 @@ function mapEtatCivil(raw: string): 'celibataire' | 'marie' | 'fiance' | 'divorc
   return 'celibataire';
 }
 
-function mapCampus(raw: string): 'paris' | 'paris_nord' | null {
+function mapCampus(raw: string): 'paris' | 'paris_nord' | 'orleans' | 'montpellier' | null {
   const v = (raw ?? '').toString().trim().toLowerCase().replace(/\s+/g, '');
-  if (v === 'paris' || v === 'p') return 'paris';
   if (v.includes('nord') || v === 'pn' || v === 'parisnord') return 'paris_nord';
+  if (v === 'paris' || v === 'p') return 'paris';
+  if (v.includes('orlean') || v.includes('orléan')) return 'orleans';
+  if (v.includes('montpellier') || v === 'mtp') return 'montpellier';
   return null;
 }
 
@@ -192,7 +194,7 @@ export async function importContacts(req: Request, res: Response): Promise<void>
       // ── Campus obligatoire ────────────────────────────────────────────────
       const campus = mapCampus(cell(row, 'CAMPUS'));
       if (!campus) {
-        result.erreurs.push({ ligne, raison: `CAMPUS invalide : "${cell(row, 'CAMPUS')}" — attendu Paris ou Paris Nord` });
+        result.erreurs.push({ ligne, raison: `CAMPUS invalide : "${cell(row, 'CAMPUS')}" — attendu Paris, Paris Nord, Orléans ou Montpellier` });
         continue;
       }
 
