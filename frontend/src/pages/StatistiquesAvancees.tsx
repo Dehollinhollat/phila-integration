@@ -21,16 +21,13 @@ const HELP_STATS = [
   { titre: 'Rapport hebdomadaire', description: "Envoyez manuellement un rapport par email aux admins ou attendez l'envoi automatique chaque lundi à 8h.", emoji: '📧' },
 ];
 import type {
+  Campus,
   TauxConversionData,
   TempsIntegrationData,
   PerformanceReferentData,
   EvolutionHebdomadaireData,
 } from '../types';
-
-const CAMPUS_LABELS: Record<string, string> = {
-  paris:      'Paris',
-  paris_nord: 'Paris Nord',
-};
+import { CAMPUS_LABELS } from '../utils/constants';
 
 const TOOLTIP_STYLE: React.CSSProperties = {
   background:   'var(--bg-card)',
@@ -158,7 +155,7 @@ export default function StatistiquesAvancees() {
               ) : tauxData.map(d => (
                 <StatCard
                   key={d.campus}
-                  label={CAMPUS_LABELS[d.campus] ?? d.campus}
+                  label={CAMPUS_LABELS[d.campus as Campus] ?? d.campus}
                   value={`${d.taux}%`}
                   sub={`${d.integres} intégrés / ${d.total} total`}
                   color="var(--accent, #1A56B0)"
