@@ -33,6 +33,23 @@ Changements mécaniques, un enum de suivi à étendre à plusieurs endroits redo
 
 **Hors scope Volet A :** création des comptes `admin_campus` pour Montpellier et Orléans — se fait ensuite via "Gestion utilisateurs", existant et déjà multi-campus, aucun dev requis. Pas de données de démo (`seed.ts`/`seed-demo.ts`) pour les nouveaux campus.
 
+### Formulaires publics d'inscription — angle mort découvert et corrigé
+
+En creusant les 3 formulaires publics, l'état actuel est plus inégal que prévu :
+
+| Formulaire | Aujourd'hui |
+|---|---|
+| `frontend/src/pages/FormOuvrier.tsx` | A déjà un sélecteur de campus (2 `OptionBtn`, Paris/Paris Nord, champ requis) |
+| `frontend/src/pages/FormPresentiel.tsx` | **Aucun champ campus** — payload envoie `campus: 'paris'` en dur (ligne 363), corrigé manuellement par un admin après coup |
+| `frontend/src/pages/FormEnLigne.tsx` | Même chose — "Pas de champ campus dans le formulaire (assigné par un admin après inscription)" |
+
+Ce défaut silencieux vers `'paris'` était tenable avec 2 campus proches gérés par la même équipe. Avec 4 campus dans des villes différentes et le RBAC `admin_campus` qui filtre déjà les contacts par campus (`filtreContactsParRole`), un inscrit à Orléans resterait invisible pour l'admin d'Orléans tant qu'un super_admin ne le réassigne pas manuellement. Décision validée avec l'utilisateur : les personnes doivent pouvoir choisir elles-mêmes leur campus à l'inscription, sur les 3 formulaires — via un sélecteur manuel (les options QR-code-par-campus avec URL pré-remplie sont écartées : ça impliquerait de réimprimer les QR codes déjà en circulation pour Paris et Paris Nord, pas seulement les 2 nouveaux campus).
+
+Changements :
+- `FormPresentiel.tsx` et `FormEnLigne.tsx` : ajout d'un champ "Campus" (4 `OptionBtn`, requis) dans l'étape "Localisation" existante, juste après Ville/Code postal (même endroit dans les deux fichiers). Validation : erreur si non sélectionné, sur le même modèle que la validation `ville` déjà en place. Le payload envoie `campus: form.campus` au lieu de la valeur `'paris'` en dur.
+- `FormOuvrier.tsx` : le sélecteur existant passe de 2 à 4 `OptionBtn` (import `CAMPUS_OPTIONS` si possible pour rester aligné avec `constants.ts`, sinon dupliquer les 2 nouvelles options au même format que l'existant). La ligne de récapitulatif `form.campus === 'paris' ? 'Paris' : 'Paris Nord'` (ligne ~628) est remplacée par un lookup dans `CAMPUS_LABELS` pour couvrir les 4 valeurs.
+- `frontend/e2e/formulaire.spec.ts` : les tests existants s'arrêtent avant la soumission complète du formulaire présentiel/en ligne (ils ne remplissent pas au-delà de l'étape 2) — pas de régression attendue, mais un cas de validation "Campus obligatoire" est ajouté par cohérence avec le test équivalent déjà présent pour "prénom obligatoire".
+
 ## Volet B — Paramètres de messagerie par campus
 
 ### Répartition des paramètres
