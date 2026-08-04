@@ -66,6 +66,8 @@ export function buildDestinataireWhere(
     case 'profil_visiteur':       return { profil: { in: ['visiteur_sans_eglise', 'visiteur_avec_eglise'] } };
     case 'campus_paris':          return { campus: 'paris' };
     case 'campus_paris_nord':     return { campus: 'paris_nord' };
+    case 'campus_orleans':        return { campus: 'orleans' };
+    case 'campus_montpellier':    return { campus: 'montpellier' };
     case 'tous':
     default:
       return campus ? { campus } : {};
