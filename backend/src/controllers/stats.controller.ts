@@ -8,6 +8,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { sendRapportHebdomadaire } from '../lib/email';
+import { Campus } from '../../generated/prisma/client';
 
 // Noms courts des 12 mois en français pour les axes X
 const MOIS_COURTS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -194,7 +195,7 @@ export async function messagesParSemaine(req: Request, res: Response): Promise<v
 export async function tauxConversion(req: Request, res: Response): Promise<void> {
   try {
     const campuses = req.user!.role === 'super_admin'
-      ? ['paris', 'paris_nord']
+      ? Object.values(Campus)
       : (req.user!.campus as string[]);
 
     const INTENTIONS_EXCLUES = ['visite_occasionnelle', 'ne_souhaite_pas_integrer', 'transfere'];
