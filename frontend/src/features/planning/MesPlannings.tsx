@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { affectationsEndpoints } from '../../services/endpoints';
+import { CAMPUS_LABELS } from '../../utils/constants';
 import type { AffectationPlanning, StatutAffectation } from '../../types';
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -76,7 +77,7 @@ export default function MesPlannings() {
           weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
         })
       : '-';
-    const campusLabel = aff.planning?.campus === 'paris_nord' ? 'Paris Nord' : 'Paris';
+    const campusLabel = aff.planning?.campus ? (CAMPUS_LABELS[aff.planning.campus] ?? aff.planning.campus) : 'Paris';
 
     return (
       <div key={aff.id} style={{
