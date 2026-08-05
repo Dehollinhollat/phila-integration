@@ -405,6 +405,13 @@ export async function completeOnboarding(req: Request, res: Response): Promise<v
 // GET /api/users/:id/connexions — historique des connexions (super_admin uniquement)
 export async function listConnexions(req: Request, res: Response): Promise<void> {
   const id = req.params['id'] as string;
+
+  const refus = await verifierPerimetreCible(req, id);
+  if (refus) {
+    res.status(403).json({ message: refus });
+    return;
+  }
+
   const logs = await prisma.connectionLog.findMany({
     where:   { user_id: id },
     orderBy: { created_at: 'desc' },

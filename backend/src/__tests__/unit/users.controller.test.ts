@@ -1,7 +1,7 @@
 // Tests pour la verification du perimetre campus d'un admin_campus sur
 // createUser/updateUser (Task B3bis).
 
-import { createUser, updateUser, resetPassword, toggleStatut } from '../../controllers/users.controller';
+import { createUser, updateUser, resetPassword, toggleStatut, listConnexions } from '../../controllers/users.controller';
 import prisma from '../../lib/prisma';
 
 function mockRes() {
@@ -148,5 +148,18 @@ describe('toggleStatut - perimetre admin_campus', () => {
     } as never;
     await toggleStatut(req, res);
     expect(statusMock).not.toHaveBeenCalledWith(403);
+  });
+});
+
+describe('listConnexions - perimetre admin_campus', () => {
+  it('refuse la consultation de l\'historique sur un compte hors du perimetre', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur', campus: ['orleans'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+    } as never;
+    await listConnexions(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
   });
 });
