@@ -18,7 +18,7 @@ import {
   ROLE_LABELS,
   PROFIL_BADGE, PROFIL_LABELS,
   CANAL_LABELS, CANAL_BADGE,
-  CAMPUS_LABELS,
+  CAMPUS_LABELS, CAMPUS_OPTIONS,
   STATUT_OPTIONS,
   STATUT_PHILA_LABELS,
   ETAT_CIVIL_LABELS,
@@ -1079,8 +1079,7 @@ export default function ContactDetail() {
                     fontSize: 14,
                   }}
                 >
-                  <option value="paris">Paris</option>
-                  <option value="paris_nord">Paris Nord</option>
+                  {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
 
