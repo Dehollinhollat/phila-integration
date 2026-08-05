@@ -13,6 +13,7 @@ import bcrypt from 'bcryptjs';
 import app from '../../server';
 import prisma from '../../lib/prisma';
 import { genererTokenTest } from '../setup';
+import { formRateLimit } from '../../middlewares/rateLimit.middleware';
 
 // Ferme le serveur Express après tous les tests pour éviter les fuites de handles
 afterAll((done) => {
@@ -157,6 +158,7 @@ describe('POST /api/contacts — Création de contact public', () => {
     nom:               'Unitaire',
     telephone:         '+33600000001',
     ville:             'Paris',
+    campus:            'paris',
     etat_civil:        'celibataire',
     statut_phila:      'non',
     autre_eglise:      false,
@@ -167,7 +169,11 @@ describe('POST /api/contacts — Création de contact public', () => {
     turnstile_token:   '1x0000000000000000000000000000000AA',
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // formRateLimit (5 soumissions/heure/IP) est partagé entre tous les tests de ce
+    // fichier via la même instance `app` — sans reset, les tests suivants de ce bloc
+    // se prennent un 429 une fois la 5e requête POST /api/contacts atteinte.
+    await formRateLimit.resetKey('127.0.0.1');
     prismaMock.contact.findUnique.mockResolvedValue(null);   // pas de doublon
     prismaMock.contact.create.mockResolvedValue({
       id:      'new-contact-id',
@@ -212,6 +218,23 @@ describe('POST /api/contacts — Création de contact public', () => {
     const res = await request(app)
       .post('/api/contacts')
       .send({ ...validContact, telephone: '0612345678' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('devrait retourner 400 si campus manquant', async () => {
+    const { campus, ...sansCampus } = validContact;
+    const res = await request(app)
+      .post('/api/contacts')
+      .send(sansCampus);
+
+    expect(res.status).toBe(400);
+  });
+
+  it('devrait retourner 400 si campus invalide', async () => {
+    const res = await request(app)
+      .post('/api/contacts')
+      .send({ ...validContact, campus: 'lyon', telephone: '+33600000003' });
 
     expect(res.status).toBe(400);
   });
