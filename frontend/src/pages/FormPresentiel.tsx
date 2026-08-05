@@ -114,6 +114,7 @@ interface FormState {
   date_naissance:  string;
   ville:           string;
   code_postal:     string;
+  campus:          ExtensionPhila | '';
   etat_civil:   EtatCivil | '';
   statut_phila: StatutPhila | '';
   // Étape 4 - partagé A et B
@@ -135,7 +136,7 @@ interface FormState {
 const INIT: FormState = {
   genre: '', prenom: '', nom: '', prefix: '+33', phone: '', email: '',
   date_naissance: '',
-  ville: '', code_postal: '', etat_civil: '',
+  ville: '', code_postal: '', campus: '', etat_civil: '',
   statut_phila: '',
   extension_phila: '', interet_cellule: '', comment_connu: '',
   souhait: '', besoins: [], autre_eglise: null,
@@ -298,6 +299,7 @@ export default function FormPresentiel() {
     }
     if (s === 2) {
       if (!form.ville.trim()) e.ville     = 'La ville est obligatoire.';
+      if (!form.campus)       e.campus    = 'Le campus est obligatoire.';
       if (!form.etat_civil)   e.etat_civil = "L'état civil est obligatoire.";
     }
     if (s === 3) {
@@ -360,7 +362,7 @@ export default function FormPresentiel() {
       date_consentement: new Date().toISOString(),
       canal:             'presentiel',
       saisi_par_membre:  false,
-      campus:            'paris', // défaut - mis à jour par l'admin après inscription
+      campus:            form.campus,
     };
 
     if (branche === 'A') {
@@ -535,6 +537,15 @@ export default function FormPresentiel() {
 
         <Field label="Code postal" hint="Facultatif">
           <TxtInput value={form.code_postal} onChange={v => set('code_postal', v)} placeholder="75001" />
+        </Field>
+
+        <Field label="Campus" required error={errors.campus}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <OptionBtn selected={form.campus === 'paris'}       onClick={() => set('campus', 'paris')}>Paris</OptionBtn>
+            <OptionBtn selected={form.campus === 'paris_nord'}  onClick={() => set('campus', 'paris_nord')}>Paris Nord</OptionBtn>
+            <OptionBtn selected={form.campus === 'orleans'}     onClick={() => set('campus', 'orleans')}>Orléans</OptionBtn>
+            <OptionBtn selected={form.campus === 'montpellier'} onClick={() => set('campus', 'montpellier')}>Montpellier</OptionBtn>
+          </div>
         </Field>
 
         <Field label="Date de naissance" hint="Facultatif - utilisée pour vous souhaiter un joyeux anniversaire">
