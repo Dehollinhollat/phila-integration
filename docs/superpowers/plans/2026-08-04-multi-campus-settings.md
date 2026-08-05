@@ -844,6 +844,500 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
+### Task B3bis : Scoper `admin_campus` à ses propres campus dans la gestion utilisateurs
+
+Trouvé pendant la revue qualité de B3 : un `admin_campus` peut, dans « Gestion utilisateurs », cocher n'importe quel campus (y compris ceux hors de son périmètre) pour un nouvel utilisateur ou une modification — côté formulaire ET côté API, sans aucune vérification serveur. Le trou est préexistant (déjà vrai avec 2 campus) mais s'aggrave avec 4 campus. Décidé avec l'utilisateur : corrigé maintenant plutôt que reporté.
+
+**Fichiers:**
+- Modify: `backend/src/controllers/users.controller.ts:131-169` (createUser), `:171-217` (updateUser)
+- Modify: `frontend/src/features/admin/UserManagement.tsx:535-544`
+
+- [ ] **Étape 1 : Backend — `createUser` refuse un campus hors du périmètre de l'admin_campus appelant**
+
+Remplacer :
+
+```ts
+  // Un admin_campus ne peut pas créer un super_admin
+  if (req.user!.role === 'admin_campus' && role === 'super_admin') {
+    res.status(403).json({ message: 'Non autorisé à créer un Super Administrateur' });
+    return;
+  }
+
+  const exists = await prisma.user.findUnique({ where: { email } });
+```
+
+Par :
+
+```ts
+  // Un admin_campus ne peut pas créer un super_admin
+  if (req.user!.role === 'admin_campus' && role === 'super_admin') {
+    res.status(403).json({ message: 'Non autorisé à créer un Super Administrateur' });
+    return;
+  }
+
+  // Un admin_campus ne peut assigner que ses propres campus, jamais un campus hors de son périmètre
+  if (req.user!.role === 'admin_campus') {
+    const campusHorsPerimetre = (campus ?? []).some(c => !req.user!.campus.includes(c as never));
+    if (campusHorsPerimetre) {
+      res.status(403).json({ message: 'Non autorisé à assigner un campus hors de votre périmètre' });
+      return;
+    }
+  }
+
+  const exists = await prisma.user.findUnique({ where: { email } });
+```
+
+- [ ] **Étape 2 : Backend — `updateUser` applique la même règle**
+
+Remplacer :
+
+```ts
+  // Un admin_campus ne peut pas modifier un super_admin ni lui attribuer ce rôle
+  if (req.user!.role === 'admin_campus') {
+    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+    if (target?.role === 'super_admin') {
+      res.status(403).json({ message: 'Non autorisé à modifier un Super Administrateur' });
+      return;
+    }
+    if (role === 'super_admin') {
+      res.status(403).json({ message: 'Non autorisé à attribuer le rôle Super Administrateur' });
+      return;
+    }
+  }
+```
+
+Par :
+
+```ts
+  // Un admin_campus ne peut pas modifier un super_admin ni lui attribuer ce rôle
+  if (req.user!.role === 'admin_campus') {
+    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+    if (target?.role === 'super_admin') {
+      res.status(403).json({ message: 'Non autorisé à modifier un Super Administrateur' });
+      return;
+    }
+    if (role === 'super_admin') {
+      res.status(403).json({ message: 'Non autorisé à attribuer le rôle Super Administrateur' });
+      return;
+    }
+    // Un admin_campus ne peut assigner que ses propres campus, jamais un campus hors de son périmètre
+    if (campus !== undefined) {
+      const campusHorsPerimetre = campus.some(c => !req.user!.campus.includes(c as never));
+      if (campusHorsPerimetre) {
+        res.status(403).json({ message: 'Non autorisé à assigner un campus hors de votre périmètre' });
+        return;
+      }
+    }
+  }
+```
+
+- [ ] **Étape 3 : Frontend — la liste de cases à cocher se limite aux campus de l'admin_campus connecté**
+
+Remplacer :
+
+```tsx
+              <Field label="Campus" style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {ALL_CAMPUS.map(c => (
+                    <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                      <input type="checkbox" checked={form.campus.includes(c)} onChange={() => toggleCampus(c)} />
+                      {CAMPUS_LABELS[c]}
+                    </label>
+                  ))}
+                </div>
+              </Field>
+```
+
+Par :
+
+```tsx
+              <Field label="Campus" style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {(isAdminCampus ? ALL_CAMPUS.filter(c => currentUser?.campus.includes(c)) : ALL_CAMPUS).map(c => (
+                    <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                      <input type="checkbox" checked={form.campus.includes(c)} onChange={() => toggleCampus(c)} />
+                      {CAMPUS_LABELS[c]}
+                    </label>
+                  ))}
+                </div>
+              </Field>
+```
+
+- [ ] **Étape 4 : Tests backend (TDD)**
+
+Créer/étendre `backend/src/__tests__/unit/users.controller.test.ts` (créer le fichier s'il n'existe pas déjà — vérifier d'abord) avec au minimum :
+
+```ts
+// Ajout aux tests existants de users.controller.ts, ou nouveau fichier si aucun n'existe.
+// Vérifie qu'un admin_campus ne peut pas assigner un campus hors de son perimetre.
+
+import { createUser, updateUser } from '../../controllers/users.controller';
+import prisma from '../../lib/prisma';
+
+function mockRes() {
+  const jsonMock = jest.fn();
+  const statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+  return { res: { status: statusMock, json: jsonMock } as never, statusMock, jsonMock };
+}
+
+describe('createUser - perimetre campus admin_campus', () => {
+  it('refuse la creation si un campus demande est hors du perimetre de l\'admin_campus', async () => {
+    const { res, statusMock } = mockRes();
+    const req = {
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { prenom: 'Jean', nom: 'Dupont', email: 'jean@test.fr', role: 'lecteur', campus: ['paris', 'orleans'] },
+    } as never;
+    await createUser(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('autorise la creation si tous les campus demandes sont dans le perimetre', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.user.create as jest.Mock).mockResolvedValue({ id: 'u1', email: 'jean@test.fr', prenom: 'Jean', role: 'lecteur' });
+    const { res, statusMock } = mockRes();
+    const req = {
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris', 'paris_nord'] },
+      body: { prenom: 'Jean', nom: 'Dupont', email: 'jean@test.fr', role: 'lecteur', campus: ['paris'] },
+    } as never;
+    await createUser(req, res);
+    expect(statusMock).not.toHaveBeenCalledWith(403);
+  });
+});
+
+describe('updateUser - perimetre campus admin_campus', () => {
+  it('refuse la modification si un campus demande est hors du perimetre', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur' });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'u1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { campus: ['montpellier'] },
+    } as never;
+    await updateUser(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+});
+```
+
+Note : si `backend/src/__tests__/unit/users.controller.test.ts` existe déjà avec un mock `prisma.user` différent, adapter les mocks ci-dessus au pattern déjà en place dans ce fichier plutôt que de le dupliquer — vérifier d'abord avec `Read`/`Glob`.
+
+Run : `npm test -- users.controller.test.ts` (depuis `backend/`) → doit passer.
+
+- [ ] **Étape 5 : Vérifier**
+
+Run (depuis `backend/`) : `npm run typecheck && npm test`
+Run (depuis `frontend/`) : `npm run build`
+Expected : aucune erreur, suite verte.
+
+- [ ] **Étape 6 : Commit**
+
+```bash
+git add backend/src/controllers/users.controller.ts frontend/src/features/admin/UserManagement.tsx backend/src/__tests__/unit/users.controller.test.ts
+git commit -m "fix(security): admin_campus ne peut plus assigner un campus hors de son perimetre
+
+Trouve pendant la revue qualite de Task B3. Cote backend (createUser/updateUser)
+et frontend (case a cocher campus), un admin_campus pouvait jusqu'ici assigner
+n'importe quel campus a un compte, pas seulement les siens.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task B3ter : `resetPassword` — combler l'absence totale de garde-fou (Critical)
+
+Trouvé pendant la revue qualité de B3bis : `resetPassword` (PATCH /api/users/:id/password) n'a **aucune** vérification — ni de rôle cible, ni de campus. Un `admin_campus` peut réinitialiser le mot de passe de n'importe quel compte, y compris un `super_admin`, et donc se connecter à sa place. `toggleStatut` a déjà la vérification de rôle (bloque un `admin_campus` sur une cible `super_admin`) mais pas la vérification de campus. Décidé avec l'utilisateur : corrigé dans ce même chantier.
+
+**Fichiers:**
+- Modify: `backend/src/controllers/users.controller.ts` (nouvel helper + `resetPassword` + `toggleStatut`)
+- Modify: `backend/src/__tests__/unit/users.controller.test.ts` (tests ajoutés)
+
+- [ ] **Étape 1 : Ajouter un helper partagé**
+
+Ajouter, avant `export async function createUser` (avec les autres helpers en haut du fichier, après `genererMotDePasseProvisoire`) :
+
+```ts
+// Vérifie qu'un admin_campus a le droit d'agir sur le compte cible : ni un super_admin,
+// ni un compte hors de son propre périmètre de campus. Retourne un message d'erreur si
+// refusé, ou null si autorisé. Le super_admin (appelant) n'est jamais restreint.
+// La cible introuvable (404) reste gérée séparément par chaque appelant.
+async function verifierPerimetreCible(req: Request, targetId: string): Promise<string | null> {
+  if (req.user!.role !== 'admin_campus') return null;
+
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { role: true, campus: true } });
+  if (!target) return null;
+
+  if (target.role === 'super_admin') {
+    return 'Non autorisé à agir sur un Super Administrateur';
+  }
+  const horsPerimetre = !target.campus.some(c => req.user!.campus.includes(c as never));
+  if (horsPerimetre) {
+    return 'Non autorisé à agir sur un compte hors de votre périmètre';
+  }
+  return null;
+}
+```
+
+- [ ] **Étape 2 : `resetPassword` utilise le helper**
+
+Remplacer :
+
+```ts
+// PATCH /api/users/:id/password
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  const id = req.params['id'] as string;
+  const { password } = req.body as { password: string };
+
+  if (!password || password.length < 8) {
+    res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères' });
+    return;
+  }
+
+  const hashed = await bcrypt.hash(password, 12);
+  await prisma.user.update({ where: { id }, data: { password: hashed } });
+  res.json({ message: 'Mot de passe réinitialisé' });
+}
+```
+
+Par :
+
+```ts
+// PATCH /api/users/:id/password
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  const id = req.params['id'] as string;
+  const { password } = req.body as { password: string };
+
+  if (!password || password.length < 8) {
+    res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères' });
+    return;
+  }
+
+  const refus = await verifierPerimetreCible(req, id);
+  if (refus) {
+    res.status(403).json({ message: refus });
+    return;
+  }
+
+  const hashed = await bcrypt.hash(password, 12);
+  await prisma.user.update({ where: { id }, data: { password: hashed } });
+  res.json({ message: 'Mot de passe réinitialisé' });
+}
+```
+
+- [ ] **Étape 3 : `toggleStatut` — ajouter la vérification de campus manquante (le rôle est déjà vérifié)**
+
+Remplacer :
+
+```ts
+  const current = await prisma.user.findUnique({ where: { id }, select: { actif: true, role: true } });
+  if (!current) {
+    res.status(404).json({ message: 'Utilisateur introuvable' });
+    return;
+  }
+
+  // Un admin_campus ne peut pas désactiver un super_admin
+  if (req.user!.role === 'admin_campus' && current.role === 'super_admin') {
+    res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un Super Administrateur' });
+    return;
+  }
+```
+
+Par :
+
+```ts
+  const current = await prisma.user.findUnique({ where: { id }, select: { actif: true, role: true, campus: true } });
+  if (!current) {
+    res.status(404).json({ message: 'Utilisateur introuvable' });
+    return;
+  }
+
+  // Un admin_campus ne peut pas désactiver un super_admin, ni un compte hors de son périmètre
+  if (req.user!.role === 'admin_campus') {
+    if (current.role === 'super_admin') {
+      res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un Super Administrateur' });
+      return;
+    }
+    const horsPerimetre = !current.campus.some(c => req.user!.campus.includes(c as never));
+    if (horsPerimetre) {
+      res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un compte hors de votre périmètre' });
+      return;
+    }
+  }
+```
+
+- [ ] **Étape 4 : Tests**
+
+Ajouter à `backend/src/__tests__/unit/users.controller.test.ts` :
+
+```ts
+import { resetPassword, toggleStatut } from '../../controllers/users.controller';
+
+describe('resetPassword - perimetre admin_campus', () => {
+  it('refuse la reinitialisation sur un super_admin cible', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'super_admin', campus: ['paris'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { password: 'motdepasse123' },
+    } as never;
+    await resetPassword(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('refuse la reinitialisation sur un compte hors du perimetre campus', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur', campus: ['orleans'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { password: 'motdepasse123' },
+    } as never;
+    await resetPassword(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('autorise la reinitialisation sur un compte du meme perimetre', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur', campus: ['paris'] });
+    (prisma.user.update as jest.Mock).mockResolvedValue({});
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { password: 'motdepasse123' },
+    } as never;
+    await resetPassword(req, res);
+    expect(statusMock).not.toHaveBeenCalledWith(403);
+  });
+});
+
+describe('toggleStatut - perimetre admin_campus', () => {
+  it('refuse le changement de statut sur un compte hors du perimetre campus', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ actif: true, role: 'lecteur', campus: ['montpellier'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+    } as never;
+    await toggleStatut(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+});
+```
+
+Note : si `mockRes` est déjà défini en haut du fichier de test (créé dans Task B3bis), le réutiliser tel quel plutôt que de le redéfinir.
+
+Run : `npm test -- users.controller.test.ts` (depuis `backend/`) → doit passer.
+
+- [ ] **Étape 5 : Vérifier**
+
+Run (depuis `backend/`) : `npm run typecheck && npm test`
+Expected : aucune erreur, suite verte.
+
+- [ ] **Étape 6 : Commit**
+
+```bash
+git add backend/src/controllers/users.controller.ts backend/src/__tests__/unit/users.controller.test.ts
+git commit -m "fix(security): resetPassword et toggleStatut verifient desormais le perimetre admin_campus
+
+resetPassword n'avait aucune verification (ni role cible, ni campus) - un
+admin_campus pouvait reinitialiser le mot de passe de n'importe quel compte,
+y compris un super_admin. toggleStatut verifiait deja le role mais pas le
+campus. Trouve pendant la revue qualite de Task B3bis.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task B3quater : `listConnexions` — dernier correctif de la série sécurité users.controller.ts
+
+Trouvé pendant la revue qualité de B3ter : `listConnexions` (lecture seule) n'a aucune vérification — un `admin_campus` peut consulter l'historique de connexion (IP, user-agent, échecs) de n'importe quel compte, y compris hors de son campus ou un `super_admin`. Dernier correctif de cette série avant de reprendre le plan multi-campus.
+
+**Fichiers:**
+- Modify: `backend/src/controllers/users.controller.ts` (fonction `listConnexions` uniquement)
+- Modify: `backend/src/__tests__/unit/users.controller.test.ts`
+
+- [ ] **Étape 1 : `listConnexions` réutilise le helper existant**
+
+Remplacer :
+
+```ts
+export async function listConnexions(req: Request, res: Response): Promise<void> {
+  const id = req.params['id'] as string;
+  const logs = await prisma.connectionLog.findMany({
+    where:   { user_id: id },
+    orderBy: { created_at: 'desc' },
+    take:    20,
+    select: { id: true, ip: true, user_agent: true, succes: true, raison: true, created_at: true },
+  });
+  res.json(logs);
+}
+```
+
+Par :
+
+```ts
+export async function listConnexions(req: Request, res: Response): Promise<void> {
+  const id = req.params['id'] as string;
+
+  const refus = await verifierPerimetreCible(req, id);
+  if (refus) {
+    res.status(403).json({ message: refus });
+    return;
+  }
+
+  const logs = await prisma.connectionLog.findMany({
+    where:   { user_id: id },
+    orderBy: { created_at: 'desc' },
+    take:    20,
+    select: { id: true, ip: true, user_agent: true, succes: true, raison: true, created_at: true },
+  });
+  res.json(logs);
+}
+```
+
+- [ ] **Étape 2 : Test**
+
+Ajouter à `backend/src/__tests__/unit/users.controller.test.ts` (import `listConnexions` en plus des fonctions déjà importées) :
+
+```ts
+describe('listConnexions - perimetre admin_campus', () => {
+  it('refuse la consultation de l\'historique sur un compte hors du perimetre', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'lecteur', campus: ['orleans'] });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'target-1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+    } as never;
+    await listConnexions(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+});
+```
+
+- [ ] **Étape 3 : Vérifier**
+
+Run (depuis `backend/`) : `npm run typecheck && npm test`
+Expected : aucune erreur, suite verte.
+
+- [ ] **Étape 4 : Commit**
+
+```bash
+git add backend/src/controllers/users.controller.ts backend/src/__tests__/unit/users.controller.test.ts
+git commit -m "fix(security): listConnexions verifie desormais le perimetre admin_campus
+
+Dernier correctif de la serie users.controller.ts (B3 -> B3bis -> B3ter ->
+B3quater). Un admin_campus pouvait consulter l'historique de connexion
+(IP, user-agent, echecs) de n'importe quel compte.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+Cette tâche clôt définitivement le volet sécurité de `users.controller.ts` — la suite du plan (Task B4 et après) reprend le balayage "2 campus codés en dur" sur le reste du frontend.
+
+---
+
 ### Task B4 : `OuvrierList.tsx` — labels, KPI dynamiques par campus, filtre
 
 Demande explicite de l'utilisateur : total et filtre par campus sur l'écran Ouvriers. Le filtre existe déjà structurellement (état `campus`, appel API) mais le `<select>` et les cartes KPI sont figés à 2 campus.
