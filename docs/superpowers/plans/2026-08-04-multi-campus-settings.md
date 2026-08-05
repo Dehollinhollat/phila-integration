@@ -2819,6 +2819,101 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
+### Task C1bis : Backend — valider `campus` sur la création publique de contact (Critical)
+
+Trouvé pendant la revue qualité de C1 : `POST /api/contacts` (endpoint public, non authentifié) ne valide jamais `campus` — ni dans le schéma Zod (`createContactSchema`, `.passthrough()` laisse passer n'importe quoi), ni dans la liste `required` vérifiée manuellement dans le contrôleur. Conséquence concrète : le champ ajouté en C1 peut être contourné par n'importe quel appel direct à l'API (pas seulement via le formulaire) — une requête sans `campus` retombe silencieusement sur `'paris'` (exactement le problème que C1 est censé résoudre), et une requête avec un `campus` invalide fait planter `prisma.contact.create` et renvoie une erreur 500 avec le détail Prisma brut à un appelant non authentifié. Corrigé avant de continuer sur C2 (qui a exactement le même point d'entrée).
+
+**Fichiers:**
+- Modify: `backend/src/schemas/contacts.schema.ts`
+- Modify: `backend/src/controllers/contacts.controller.ts:199` (liste `required`), `:226` (fallback)
+
+- [ ] **Étape 1 : Valider `campus` dans le schéma Zod**
+
+Remplacer :
+
+```ts
+const GENRES       = ['homme', 'femme'] as const;
+const ETATS_CIVILS = ['celibataire', 'fiance', 'marie', 'divorce', 'veuf'] as const;
+const STATUTS      = ['oui', 'non', 'premiere_visite'] as const;
+const CANAUX       = ['presentiel', 'en_ligne'] as const;
+```
+
+Par :
+
+```ts
+const GENRES       = ['homme', 'femme'] as const;
+const ETATS_CIVILS = ['celibataire', 'fiance', 'marie', 'divorce', 'veuf'] as const;
+const STATUTS      = ['oui', 'non', 'premiere_visite'] as const;
+const CANAUX       = ['presentiel', 'en_ligne'] as const;
+const CAMPUS_VALUES = ['paris', 'paris_nord', 'orleans', 'montpellier'] as const;
+```
+
+Puis remplacer :
+
+```ts
+  // Localisation
+  ville:       z.string().min(1, 'Ville requise').max(100).trim(),
+  code_postal: z.string().max(20).optional().nullable(),
+```
+
+Par :
+
+```ts
+  // Localisation
+  ville:       z.string().min(1, 'Ville requise').max(100).trim(),
+  code_postal: z.string().max(20).optional().nullable(),
+  campus:      z.enum(CAMPUS_VALUES),
+```
+
+- [ ] **Étape 2 : Contrôleur — ajouter `campus` à la liste des champs obligatoires vérifiés manuellement**
+
+Remplacer :
+
+```ts
+    const required = ['genre', 'prenom', 'nom', 'telephone', 'ville', 'etat_civil', 'statut_phila', 'canal'];
+```
+
+Par :
+
+```ts
+    const required = ['genre', 'prenom', 'nom', 'telephone', 'ville', 'campus', 'etat_civil', 'statut_phila', 'canal'];
+```
+
+- [ ] **Étape 3 : Retirer le fallback devenu inutile (campus est maintenant garanti présent et valide en amont)**
+
+Remplacer :
+
+```ts
+      campus:           b.campus          ?? 'paris',
+```
+
+Par :
+
+```ts
+      campus:           b.campus,
+```
+
+- [ ] **Étape 4 : Vérifier**
+
+Run (depuis `backend/`) : `npm run typecheck && npm test`
+Expected : aucune erreur, suite verte (vérifier en particulier qu'aucun test existant ne postait un contact sans `campus` — si un test casse pour cette raison, lui ajouter `campus: 'paris'` dans son payload plutôt que d'affaiblir la validation).
+
+- [ ] **Étape 5 : Commit**
+
+```bash
+git add backend/src/schemas/contacts.schema.ts backend/src/controllers/contacts.controller.ts
+git commit -m "fix(security): valider le champ campus sur la creation publique de contact
+
+POST /api/contacts (endpoint public non authentifie) ne validait jamais
+campus - une requete sans ce champ retombait silencieusement sur 'paris',
+une requete avec une valeur invalide provoquait une 500 avec detail Prisma
+brut. Trouve pendant la revue qualite de Task C1.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+---
+
 ### Task C2 : `FormEnLigne.tsx` — champ Campus dans l'étape Localisation
 
 **Fichiers:**
