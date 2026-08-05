@@ -2575,6 +2575,102 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
+### Task B14bis : `ContactDetail.tsx` — le sélecteur "Promouvoir en ouvrier" est décoratif, le rendre lecture seule
+
+Trouvé pendant la revue qualité de B14 : le sélecteur de campus dans la fenêtre « Promouvoir en ouvrier » n'a jamais eu d'effet réel — `createOuvrier` (branche promotion, `backend/src/controllers/ouvriers.controller.ts`) crée toujours l'ouvrier avec `contact.campus`, jamais avec le `campus` soumis dans le corps de la requête. Ce n'est pas une régression de B14 (déjà vrai avec 2 campus), juste rendu plus visible avec 4 options. Décidé avec l'utilisateur : rendre le champ lecture seule plutôt que de faire fonctionner la réassignation (pas de changement backend nécessaire).
+
+**Fichiers:**
+- Modify: `frontend/src/features/contacts/ContactDetail.tsx`
+
+- [ ] **Étape 1 : Retirer `CAMPUS_OPTIONS` de l'import (redevient inutilisé après cette tâche) et ajouter le type `Campus`**
+
+Remplacer :
+
+```ts
+import type {
+  Contact, Commentaire, HistoriqueStatut, Message,
+  ChecklistItem, EtapeIntegration, StatutContact, User, AuditLog, AuditAction, SuggestionReferent, Intention,
+} from '../../types';
+```
+
+Par :
+
+```ts
+import type {
+  Contact, Commentaire, HistoriqueStatut, Message,
+  ChecklistItem, EtapeIntegration, StatutContact, User, AuditLog, AuditAction, SuggestionReferent, Intention, Campus,
+} from '../../types';
+```
+
+Remplacer :
+
+```ts
+  CAMPUS_LABELS, CAMPUS_OPTIONS,
+```
+
+Par :
+
+```ts
+  CAMPUS_LABELS,
+```
+
+- [ ] **Étape 2 : Remplacer le `<select>` par un affichage lecture seule**
+
+Remplacer :
+
+```tsx
+                <select
+                  value={promoteCampus}
+                  onChange={e => setPromoteCampus(e.target.value)}
+                  style={{
+                    width: '100%', padding: '8px 10px', borderRadius: 6,
+                    border: '1px solid var(--bg-card-border)',
+                    background: 'var(--bg-card)', color: 'var(--text-primary)',
+                    fontSize: 14,
+                  }}
+                >
+                  {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+```
+
+Par :
+
+```tsx
+                <div style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 6,
+                  border: '1px solid var(--bg-card-border)',
+                  background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
+                  fontSize: 14,
+                }}>
+                  {CAMPUS_LABELS[promoteCampus as Campus] ?? promoteCampus}
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                  L'ouvrier est créé sur le campus actuel du contact.
+                </p>
+```
+
+Note : `promoteCampus`/`setPromoteCampus` restent inchangés ailleurs dans le fichier (l'état est toujours peuplé depuis `contact.campus` au chargement et toujours envoyé dans le payload de création — seul le contrôle devient non-éditable).
+
+- [ ] **Étape 3 : Vérifier**
+
+Run : `npm run build` (depuis `frontend/`)
+Expected: build réussi. Confirmer qu'aucun import ne devient inutilisé (`CAMPUS_OPTIONS` retiré proprement, `Campus` bien utilisé).
+
+- [ ] **Étape 4 : Commit**
+
+```bash
+git add frontend/src/features/contacts/ContactDetail.tsx
+git commit -m "fix(campus): champ campus en lecture seule a la promotion en ouvrier
+
+Le selecteur n'avait jamais d'effet reel - createOuvrier (branche promotion)
+utilise toujours le campus du contact d'origine, jamais une valeur soumise.
+Trouve pendant la revue qualite de Task B14.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+---
+
 ## Partie C — Formulaires publics
 
 ### Task C1 : `FormPresentiel.tsx` — champ Campus dans l'étape Localisation
