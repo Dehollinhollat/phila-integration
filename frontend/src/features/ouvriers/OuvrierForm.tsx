@@ -6,6 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ouvriersEndpoints } from '../../services/endpoints';
+import { CAMPUS_OPTIONS } from '../../utils/constants';
+import type { Campus } from '../../types';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -221,7 +223,7 @@ export default function OuvrierForm() {
           nom:                 nom.trim(),
           telephone,
           email:               email.trim() || undefined,
-          campus:              campus as 'paris' | 'paris_nord',
+          campus:              campus as Campus,
           services,
           date_debut_service:  dateDebut     || undefined,
           date_naissance:      dateNaissance || undefined,
@@ -357,8 +359,7 @@ export default function OuvrierForm() {
           <div>
             <FieldLabel required>Campus</FieldLabel>
             <Select value={campus} onChange={e => setCampus(e.target.value)}>
-              <option value="paris">Paris</option>
-              <option value="paris_nord">Paris Nord</option>
+              {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </Select>
           </div>
 
