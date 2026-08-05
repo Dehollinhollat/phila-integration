@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { contactsEndpoints, checklistEndpoints, messagesEndpoints, referentsEndpoints, ouvriersEndpoints, auditEndpoints } from '../../services/endpoints';
 import type {
   Contact, Commentaire, HistoriqueStatut, Message,
-  ChecklistItem, EtapeIntegration, StatutContact, User, AuditLog, AuditAction, SuggestionReferent, Intention,
+  ChecklistItem, EtapeIntegration, StatutContact, User, AuditLog, AuditAction, SuggestionReferent, Intention, Campus,
 } from '../../types';
 import {
   ROLE_RANK,
@@ -18,7 +18,7 @@ import {
   ROLE_LABELS,
   PROFIL_BADGE, PROFIL_LABELS,
   CANAL_LABELS, CANAL_BADGE,
-  CAMPUS_LABELS, CAMPUS_OPTIONS,
+  CAMPUS_LABELS,
   STATUT_OPTIONS,
   STATUT_PHILA_LABELS,
   ETAT_CIVIL_LABELS,
@@ -1069,18 +1069,17 @@ export default function ContactDetail() {
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                   Campus
                 </label>
-                <select
-                  value={promoteCampus}
-                  onChange={e => setPromoteCampus(e.target.value)}
-                  style={{
-                    width: '100%', padding: '8px 10px', borderRadius: 6,
-                    border: '1px solid var(--bg-card-border)',
-                    background: 'var(--bg-card)', color: 'var(--text-primary)',
-                    fontSize: 14,
-                  }}
-                >
-                  {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+                <div style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 6,
+                  border: '1px solid var(--bg-card-border)',
+                  background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
+                  fontSize: 14,
+                }}>
+                  {CAMPUS_LABELS[promoteCampus as Campus] ?? promoteCampus}
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                  L'ouvrier est créé sur le campus actuel du contact.
+                </p>
               </div>
 
               {/* Services */}
