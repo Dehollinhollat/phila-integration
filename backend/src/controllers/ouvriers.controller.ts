@@ -392,6 +392,11 @@ export async function candidatureOuvrier(req: Request, res: Response): Promise<v
       res.status(400).json({ message: 'Champs obligatoires manquants : prenom, nom, telephone, campus' });
       return;
     }
+    const CAMPUS_VALIDES = ['paris', 'paris_nord', 'orleans', 'montpellier'];
+    if (!CAMPUS_VALIDES.includes(campus)) {
+      res.status(400).json({ message: 'Campus invalide' });
+      return;
+    }
     if (!consentement_rgpd) {
       res.status(400).json({ message: 'Le consentement RGPD est obligatoire.' });
       return;

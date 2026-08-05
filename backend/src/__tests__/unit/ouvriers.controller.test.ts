@@ -1,7 +1,7 @@
 // Tests pour la verification du perimetre campus d'un admin_campus sur
 // createOuvrier/updateOuvrier/toggleStatut/deactivateOuvrier/deleteOuvrier (Task B5bis).
 
-import { createOuvrier, updateOuvrier, toggleStatut, deactivateOuvrier, deleteOuvrier, getOuvrier } from '../../controllers/ouvriers.controller';
+import { createOuvrier, updateOuvrier, toggleStatut, deactivateOuvrier, deleteOuvrier, getOuvrier, candidatureOuvrier } from '../../controllers/ouvriers.controller';
 import prisma from '../../lib/prisma';
 
 function mockRes() {
@@ -156,5 +156,36 @@ describe('createOuvrier - branche promotion (contact_id)', () => {
     await createOuvrier(req, res);
     expect(statusMock).toHaveBeenCalledWith(403);
     expect(prisma.ouvrier.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+describe('candidatureOuvrier - validation du campus', () => {
+  it('refuse une candidature avec un campus invalide', async () => {
+    const { res, statusMock } = mockRes();
+    const req = {
+      body: {
+        prenom: 'Jean', nom: 'Dupont', telephone: '+33612345678',
+        campus: 'lyon', consentement_rgpd: true,
+      },
+    } as never;
+    await candidatureOuvrier(req, res);
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.ouvrier.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('accepte une candidature avec un campus valide (orleans)', async () => {
+    (prisma.ouvrier.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.ouvrier.create as jest.Mock).mockResolvedValue({ id: 'o1', campus: 'orleans' });
+    (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
+    const { res, statusMock } = mockRes();
+    const req = {
+      body: {
+        prenom: 'Jean', nom: 'Dupont', telephone: '+33612345679',
+        campus: 'orleans', consentement_rgpd: true,
+      },
+    } as never;
+    await candidatureOuvrier(req, res);
+    expect(statusMock).toHaveBeenCalledWith(201);
+    expect(prisma.ouvrier.create).toHaveBeenCalled();
   });
 });
