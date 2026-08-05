@@ -1521,6 +1521,372 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
+### Task B5bis : `ouvriers.controller.ts` — même faille de périmètre que users.controller.ts
+
+Trouvé pendant la revue qualité de B5 : `createOuvrier`, `updateOuvrier`, `toggleStatut`, `deactivateOuvrier`, `deleteOuvrier` n'ont aucune vérification de périmètre campus pour un `admin_campus` — exactement la même classe de faille que celle corrigée sur `users.controller.ts` (B3bis → B3quater). Décidé avec l'utilisateur : corrigé ici, sans étendre l'audit à d'autres controllers (contacts, planning) dans ce chantier.
+
+**Fichiers:**
+- Modify: `backend/src/controllers/ouvriers.controller.ts`
+- Create: `backend/src/__tests__/unit/ouvriers.controller.test.ts` (n'existe pas encore)
+- Modify: `frontend/src/features/ouvriers/OuvrierForm.tsx`
+
+- [ ] **Étape 1 : Ajouter un helper de périmètre**
+
+Ajouter, juste après les imports en tête de `backend/src/controllers/ouvriers.controller.ts` :
+
+```ts
+// Vérifie qu'un admin_campus a le droit d'agir sur un ouvrier de ce campus.
+// Retourne true si refusé (hors périmètre). Le super_admin n'est jamais restreint.
+// Les ouvriers n'ont pas de rôle (contrairement à User) — seule la vérification
+// de campus s'applique ici.
+function horsPerimetreCampus(req: Request, campusCible: string): boolean {
+  return req.user!.role === 'admin_campus' && !req.user!.campus.includes(campusCible as never);
+}
+```
+
+- [ ] **Étape 2 : `createOuvrier` — vérifier le campus dans les deux branches (promotion et inscription directe)**
+
+Dans la branche promotion (après le `if (!contact) { ... }`), remplacer :
+
+```ts
+      const alreadyOuvrier = await prisma.ouvrier.findUnique({ where: { contact_id } });
+      if (alreadyOuvrier) {
+        res.status(409).json({ message: 'Ce contact est déjà ouvrier' });
+        return;
+      }
+```
+
+Par :
+
+```ts
+      if (horsPerimetreCampus(req, contact.campus)) {
+        res.status(403).json({ message: 'Non autorisé à créer un ouvrier hors de votre périmètre' });
+        return;
+      }
+
+      const alreadyOuvrier = await prisma.ouvrier.findUnique({ where: { contact_id } });
+      if (alreadyOuvrier) {
+        res.status(409).json({ message: 'Ce contact est déjà ouvrier' });
+        return;
+      }
+```
+
+Dans la branche inscription directe, remplacer :
+
+```ts
+    // ── Mode inscription directe ─────────────────────────────────────────────
+    const ouvrier = await prisma.ouvrier.create({
+```
+
+Par :
+
+```ts
+    // ── Mode inscription directe ─────────────────────────────────────────────
+    if (horsPerimetreCampus(req, campus)) {
+      res.status(403).json({ message: 'Non autorisé à créer un ouvrier hors de votre périmètre' });
+      return;
+    }
+
+    const ouvrier = await prisma.ouvrier.create({
+```
+
+- [ ] **Étape 3 : `updateOuvrier` — vérifier le campus actuel ET le nouveau campus demandé**
+
+Remplacer :
+
+```ts
+    const exists = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!exists) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+
+    const data: Record<string, unknown> = {};
+```
+
+Par :
+
+```ts
+    const exists = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!exists) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    // Le campus ACTUEL de l'ouvrier doit être dans le périmètre de l'admin (sinon il ne
+    // peut même pas éditer cette fiche), et s'il change de campus, le NOUVEAU campus
+    // demandé doit aussi être dans son périmètre (sinon il pourrait "voler" un ouvrier
+    // vers un campus qu'il ne gère pas).
+    if (horsPerimetreCampus(req, exists.campus)) {
+      res.status(403).json({ message: 'Non autorisé à modifier un ouvrier hors de votre périmètre' });
+      return;
+    }
+    if (campus !== undefined && horsPerimetreCampus(req, campus)) {
+      res.status(403).json({ message: 'Non autorisé à déplacer un ouvrier vers un campus hors de votre périmètre' });
+      return;
+    }
+
+    const data: Record<string, unknown> = {};
+```
+
+- [ ] **Étape 4 : `toggleStatut` — vérifier le campus**
+
+Remplacer :
+
+```ts
+    const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!ouvrier) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+
+    // Si statut fourni → forcer ; sinon toggle
+```
+
+Par :
+
+```ts
+    const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!ouvrier) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    if (horsPerimetreCampus(req, ouvrier.campus)) {
+      res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un ouvrier hors de votre périmètre' });
+      return;
+    }
+
+    // Si statut fourni → forcer ; sinon toggle
+```
+
+- [ ] **Étape 5 : `deactivateOuvrier` — ajouter la lecture préalable + vérification (n'existait pas du tout)**
+
+Remplacer :
+
+```ts
+export async function deactivateOuvrier(req: Request, res: Response): Promise<void> {
+  try {
+    const id = req.params['id'] as string;
+    await prisma.ouvrier.update({ where: { id }, data: { statut: false } });
+    res.json({ message: 'Ouvrier désactivé' });
+  } catch (err) {
+    console.error('[deactivateOuvrier]', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+}
+```
+
+Par :
+
+```ts
+export async function deactivateOuvrier(req: Request, res: Response): Promise<void> {
+  try {
+    const id = req.params['id'] as string;
+    const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!ouvrier) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    if (horsPerimetreCampus(req, ouvrier.campus)) {
+      res.status(403).json({ message: 'Non autorisé à désactiver un ouvrier hors de votre périmètre' });
+      return;
+    }
+    await prisma.ouvrier.update({ where: { id }, data: { statut: false } });
+    res.json({ message: 'Ouvrier désactivé' });
+  } catch (err) {
+    console.error('[deactivateOuvrier]', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+}
+```
+
+- [ ] **Étape 6 : `deleteOuvrier` — vérifier le campus (l'ouvrier est déjà chargé)**
+
+Remplacer :
+
+```ts
+    const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!ouvrier) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    await prisma.$transaction([
+```
+
+Par :
+
+```ts
+    const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!ouvrier) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    if (horsPerimetreCampus(req, ouvrier.campus)) {
+      res.status(403).json({ message: 'Non autorisé à supprimer un ouvrier hors de votre périmètre' });
+      return;
+    }
+    await prisma.$transaction([
+```
+
+- [ ] **Étape 7 : Frontend — filtrer les campus proposés dans `OuvrierForm.tsx` pour un admin_campus**
+
+En tête de fichier, ajouter l'import du hook d'auth (le fichier ne l'utilise pas encore) :
+
+```ts
+import { useAuth } from '../../context/AuthContext';
+```
+
+Dans le composant, ajouter (juste après les autres `useState`/hooks existants en haut de la fonction du composant) :
+
+```ts
+  const { user } = useAuth();
+  const isAdminCampus = user?.role === 'admin_campus';
+  const campusOptions = isAdminCampus
+    ? CAMPUS_OPTIONS.filter(o => user?.campus.includes(o.value))
+    : CAMPUS_OPTIONS;
+```
+
+Remplacer :
+
+```tsx
+            <Select value={campus} onChange={e => setCampus(e.target.value)}>
+              {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </Select>
+```
+
+Par :
+
+```tsx
+            <Select value={campus} onChange={e => setCampus(e.target.value)}>
+              {campusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </Select>
+```
+
+- [ ] **Étape 8 : Tests backend (TDD)**
+
+Créer `backend/src/__tests__/unit/ouvriers.controller.test.ts` :
+
+```ts
+// Tests pour la verification du perimetre campus d'un admin_campus sur
+// createOuvrier/updateOuvrier/toggleStatut/deactivateOuvrier/deleteOuvrier (Task B5bis).
+
+import { createOuvrier, updateOuvrier, toggleStatut, deactivateOuvrier, deleteOuvrier } from '../../controllers/ouvriers.controller';
+import prisma from '../../lib/prisma';
+
+function mockRes() {
+  const jsonMock = jest.fn();
+  const statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+  return { res: { status: statusMock, json: jsonMock } as never, statusMock, jsonMock };
+}
+
+describe('createOuvrier - perimetre campus admin_campus', () => {
+  it('refuse la creation directe si le campus demande est hors du perimetre', async () => {
+    const { res, statusMock } = mockRes();
+    const req = {
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { prenom: 'Jean', nom: 'Dupont', telephone: '+33612345678', campus: 'orleans', inscription_directe: true },
+    } as never;
+    await createOuvrier(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+});
+
+describe('updateOuvrier - perimetre campus admin_campus', () => {
+  it('refuse la modification si le campus actuel de l\'ouvrier est hors du perimetre', async () => {
+    (prisma.ouvrier.findUnique as jest.Mock).mockResolvedValue({ id: 'o1', campus: 'montpellier' });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'o1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { prenom: 'Nouveau nom' },
+    } as never;
+    await updateOuvrier(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('refuse de deplacer un ouvrier vers un campus hors du perimetre', async () => {
+    (prisma.ouvrier.findUnique as jest.Mock).mockResolvedValue({ id: 'o1', campus: 'paris' });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'o1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: { campus: 'orleans' },
+    } as never;
+    await updateOuvrier(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+});
+
+describe('toggleStatut - perimetre campus admin_campus', () => {
+  it('refuse le changement de statut sur un ouvrier hors du perimetre', async () => {
+    (prisma.ouvrier.findUnique as jest.Mock).mockResolvedValue({ id: 'o1', campus: 'orleans', statut: true });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'o1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: {},
+    } as never;
+    await toggleStatut(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+});
+
+describe('deactivateOuvrier - perimetre campus admin_campus', () => {
+  it('refuse la desactivation sur un ouvrier hors du perimetre', async () => {
+    (prisma.ouvrier.findUnique as jest.Mock).mockResolvedValue({ id: 'o1', campus: 'montpellier' });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'o1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+    } as never;
+    await deactivateOuvrier(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+});
+
+describe('deleteOuvrier - perimetre campus admin_campus', () => {
+  it('refuse la suppression sur un ouvrier hors du perimetre', async () => {
+    (prisma.ouvrier.findUnique as jest.Mock).mockResolvedValue({ id: 'o1', campus: 'orleans' });
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'o1' },
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+    } as never;
+    await deleteOuvrier(req, res);
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+});
+```
+
+Note : vérifier d'abord le mock Prisma existant (`backend/src/__tests__/__mocks__/prisma.ts`) — `ouvrier` y est déjà défini avec `findUnique`/`create`/`update` (utilisé par d'autres tests du projet). Si `$transaction` doit être mocké pour la branche promotion de `createOuvrier`, réutiliser le mock générique déjà en place.
+
+Run : `npm test -- ouvriers.controller.test.ts` (depuis `backend/`) → doit passer.
+
+- [ ] **Étape 9 : Vérifier**
+
+Run (depuis `backend/`) : `npm run typecheck && npm test`
+Run (depuis `frontend/`) : `npm run build`
+Expected : aucune erreur, suite verte.
+
+- [ ] **Étape 10 : Commit**
+
+```bash
+git add backend/src/controllers/ouvriers.controller.ts backend/src/__tests__/unit/ouvriers.controller.test.ts frontend/src/features/ouvriers/OuvrierForm.tsx
+git commit -m "fix(security): ouvriers.controller.ts verifie desormais le perimetre admin_campus
+
+Meme classe de faille que celle corrigee sur users.controller.ts (B3bis a
+B3quater) : createOuvrier, updateOuvrier, toggleStatut, deactivateOuvrier
+et deleteOuvrier ne verifiaient pas que l'ouvrier cible appartient au
+perimetre campus de l'admin_campus appelant. Trouve pendant la revue
+qualite de Task B5. Le formulaire cote frontend limite aussi les campus
+proposes a un admin_campus a son propre perimetre.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+Décidé avec l'utilisateur : l'audit ne s'étend pas à d'autres controllers (contacts, planning) dans ce chantier — signalé comme risque à vérifier séparément si le même schéma s'y répète.
+
+---
+
 ### Task B6 : `Dashboard.tsx` — KPI par campus restructurés
 
 Le cas le plus lourd du balayage : `kpi.paris`/`kpi.parisNord`/etc. sont des variables nommées en dur, utilisées uniquement dans le tableau "Répartition par campus" du rapport PDF annuel (pas de cartes à l'écran pour ces valeurs — vérifié, seul le PDF les consomme). Restructuré en une liste indexée par campus.
