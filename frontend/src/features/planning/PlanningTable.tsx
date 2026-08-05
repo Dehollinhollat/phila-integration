@@ -16,7 +16,7 @@ import autoTable from 'jspdf-autotable';
 import logoUrl from '../../assets/images/LOGO-PHILA-BLEU.png';
 import { planningEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
-import { ROLE_RANK } from '../../utils/constants';
+import { ROLE_RANK, CAMPUS_LABELS, CAMPUS_OPTIONS } from '../../utils/constants';
 import { HelpButton } from '../../components/common/HelpButton';
 
 const HELP_PLANNING = [
@@ -164,7 +164,7 @@ export default function PlanningTable() {
 
     const doc         = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const BLUE        = [26, 86, 176] as [number, number, number];
-    const campusLabel = campus === 'paris' ? 'Paris' : 'Paris Nord';
+    const campusLabel = CAMPUS_LABELS[campus] ?? campus;
     const pageW       = doc.internal.pageSize.getWidth();
     const pageH       = doc.internal.pageSize.getHeight();
     const today       = new Date().toLocaleDateString('fr-FR');
@@ -307,8 +307,7 @@ export default function PlanningTable() {
                 fontSize: 14, cursor: 'pointer',
               }}
             >
-              <option value="paris">Paris</option>
-              <option value="paris_nord">Paris Nord</option>
+              {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           )}
         </div>
