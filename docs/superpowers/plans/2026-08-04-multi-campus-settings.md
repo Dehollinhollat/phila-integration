@@ -3154,6 +3154,107 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
+### Task C3bis : Backend — valider `campus` sur la candidature ouvrier publique (Important)
+
+Trouvé pendant la revue qualité de C3 : `POST /api/ouvriers/candidature` (endpoint public, non authentifié) a la même faille que celle corrigée en C1bis pour `/api/contacts`, jamais déclenchée jusqu'ici mais préexistante — `candidatureOuvrier` ne vérifie que `!campus` (non-vide), pas que la valeur fait partie des 4 campus valides. Un `campus` invalide fait planter `prisma.ouvrier.create` et renvoie une 500 avec le détail Prisma brut à un appelant non authentifié. Ce contrôleur n'utilise pas Zod (contrairement à `contacts.controller.ts`) — correctif en style cohérent avec le reste de la fonction (vérification manuelle), pas d'introduction d'un nouveau schéma Zod pour une seule fonction.
+
+**Fichiers:**
+- Modify: `backend/src/controllers/ouvriers.controller.ts` (fonction `candidatureOuvrier` uniquement)
+- Modify: `backend/src/__tests__/unit/ouvriers.controller.test.ts`
+
+- [ ] **Étape 1 : Ajouter la vérification du campus**
+
+Remplacer :
+
+```ts
+    if (!prenom || !nom || !telephone || !campus) {
+      res.status(400).json({ message: 'Champs obligatoires manquants : prenom, nom, telephone, campus' });
+      return;
+    }
+    if (!consentement_rgpd) {
+      res.status(400).json({ message: 'Le consentement RGPD est obligatoire.' });
+      return;
+    }
+```
+
+Par :
+
+```ts
+    if (!prenom || !nom || !telephone || !campus) {
+      res.status(400).json({ message: 'Champs obligatoires manquants : prenom, nom, telephone, campus' });
+      return;
+    }
+    const CAMPUS_VALIDES = ['paris', 'paris_nord', 'orleans', 'montpellier'];
+    if (!CAMPUS_VALIDES.includes(campus)) {
+      res.status(400).json({ message: 'Campus invalide' });
+      return;
+    }
+    if (!consentement_rgpd) {
+      res.status(400).json({ message: 'Le consentement RGPD est obligatoire.' });
+      return;
+    }
+```
+
+- [ ] **Étape 2 : Test**
+
+Ajouter à `backend/src/__tests__/unit/ouvriers.controller.test.ts` (importer `candidatureOuvrier` en plus des fonctions déjà importées) :
+
+```ts
+describe('candidatureOuvrier - validation du campus', () => {
+  it('refuse une candidature avec un campus invalide', async () => {
+    const { res, statusMock } = mockRes();
+    const req = {
+      body: {
+        prenom: 'Jean', nom: 'Dupont', telephone: '+33612345678',
+        campus: 'lyon', consentement_rgpd: true,
+      },
+    } as never;
+    await candidatureOuvrier(req, res);
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.ouvrier.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('accepte une candidature avec un campus valide (orleans)', async () => {
+    (prisma.ouvrier.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.ouvrier.create as jest.Mock).mockResolvedValue({ id: 'o1', campus: 'orleans' });
+    const { res, statusMock } = mockRes();
+    const req = {
+      body: {
+        prenom: 'Jean', nom: 'Dupont', telephone: '+33612345679',
+        campus: 'orleans', consentement_rgpd: true,
+      },
+    } as never;
+    await candidatureOuvrier(req, res);
+    expect(statusMock).not.toHaveBeenCalledWith(400);
+  });
+});
+```
+
+Note : si `mockRes` n'est pas déjà défini dans ce fichier de test (créé en Task B5bis), le réutiliser tel quel — il devrait déjà exister.
+
+Run : `npm test -- ouvriers.controller.test.ts` (depuis `backend/`) → doit passer.
+
+- [ ] **Étape 3 : Vérifier**
+
+Run (depuis `backend/`) : `npm run typecheck && npm test`
+Expected : aucune erreur, suite verte.
+
+- [ ] **Étape 4 : Commit**
+
+```bash
+git add backend/src/controllers/ouvriers.controller.ts backend/src/__tests__/unit/ouvriers.controller.test.ts
+git commit -m "fix(security): candidatureOuvrier valide desormais le campus
+
+Meme classe de faille que celle corrigee en C1bis pour /api/contacts.
+candidatureOuvrier (endpoint public) ne verifiait que la presence du
+champ campus, pas sa validite - une valeur invalide provoquait une 500
+avec detail Prisma brut. Trouve pendant la revue qualite de Task C3.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+---
+
 ### Task C4 : `e2e/formulaire.spec.ts` — cas de validation Campus
 
 **Fichiers:**
