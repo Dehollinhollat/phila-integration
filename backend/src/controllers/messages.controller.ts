@@ -6,8 +6,8 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
-import { sendWhatsApp, sendWhatsAppBulk } from '../lib/twilio';
-import { DEFAULT_BIENVENUE_TEMPLATE, getCampusSettingsWithDefaults } from '../lib/campusSettings';
+import { sendWhatsApp } from '../lib/twilio';
+import { DEFAULT_BIENVENUE_TEMPLATE, getCampusSettingsWithDefaults, getCampusSettingsForMany } from '../lib/campusSettings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -307,23 +307,36 @@ export async function createEvenement(req: Request, res: Response): Promise<void
 
       // ── Envoi aux contacts ────────────────────────────────────────────────
       if (dest_type === 'contacts' || dest_type === 'tous') {
-        // 'paris' = maison mère, utilisée si aucun campus n'est ciblé sur ce filtre.
-        // Résolu indépendamment du campus ouvriers pour éviter qu'un envoi
-        // multi-campus (dest_type='tous') ne mélange les adresses des deux campus.
-        const campusContacts = filtres.campus ?? 'paris';
-        const { adresse_eglise: adresseEgliseContacts } = await getCampusSettingsWithDefaults(campusContacts, ['adresse_eglise']);
-        const msgTextContacts = message_template
-          .replace(/\[Date\]/g,    dateStr)
-          .replace(/\[Campus\]/g,  filtres.campus ?? 'Phila')
-          .replace(/\[Adresse\]/g, adresseEgliseContacts);
-
         const contacts = await prisma.contact.findMany({
           where:  buildFiltresWhere(filtres),
-          select: { id: true, prenom: true, telephone: true },
+          select: { id: true, prenom: true, telephone: true, campus: true },
         });
 
         if (contacts.length > 0) {
-          const results = await sendWhatsAppBulk(contacts, msgTextContacts);
+          // Charge l'adresse de CHAQUE campus présent dans le lot en un seul aller-retour DB —
+          // un seul groupe (contacts) peut lui-même couvrir plusieurs campus dès que
+          // filtres.campus n'est pas précisé (filtre optionnel), donc chaque contact doit
+          // recevoir l'adresse de SON propre campus, jamais une valeur unique pour tout le groupe.
+          const settingsByCampus = await getCampusSettingsForMany(
+            contacts.map((c) => c.campus),
+            ['adresse_eglise'],
+          );
+
+          const results = await Promise.all(
+            contacts.map(async (c) => {
+              const s = settingsByCampus.get(c.campus)!;
+              const contenu = message_template
+                .replace(/\[Date\]/g,    dateStr)
+                .replace(/\[Campus\]/g,  filtres.campus ?? c.campus ?? 'Phila')
+                .replace(/\[Prénom\]/g,  c.prenom)
+                .replace(/\[prenom\]/gi, c.prenom)
+                .replace(/\[Adresse\]/g, s.adresse_eglise);
+
+              const { sid, error } = await sendWhatsApp(c.telephone, contenu);
+              return { id: c.id, sid, error };
+            }),
+          );
+
           await prisma.message.createMany({
             data: results.map((r) => ({
               contact_id:   r.id,
@@ -343,25 +356,39 @@ export async function createEvenement(req: Request, res: Response): Promise<void
 
       // ── Envoi aux ouvriers ────────────────────────────────────────────────
       if (dest_type === 'ouvriers' || dest_type === 'tous') {
-        // Résolution indépendante du campus contacts (voir commentaire ci-dessus).
-        const campusOuvriers = filtres_ouvriers.campus ?? 'paris';
-        const { adresse_eglise: adresseEgliseOuvriers } = await getCampusSettingsWithDefaults(campusOuvriers, ['adresse_eglise']);
-        const msgTextOuvriers = message_template
-          .replace(/\[Date\]/g,    dateStr)
-          .replace(/\[Campus\]/g,  filtres_ouvriers.campus ?? 'Phila')
-          .replace(/\[Adresse\]/g, adresseEgliseOuvriers);
-
         const ouvrierWhere: Record<string, unknown> = { statut: true };
         if (filtres_ouvriers.campus) ouvrierWhere.campus = filtres_ouvriers.campus;
         if (filtres_ouvriers.service) ouvrierWhere.services = { hasSome: [filtres_ouvriers.service] };
 
         const ouvriers = await prisma.ouvrier.findMany({
           where:  ouvrierWhere,
-          select: { id: true, prenom: true, telephone: true },
+          select: { id: true, prenom: true, telephone: true, campus: true },
         });
 
         if (ouvriers.length > 0) {
-          const results = await sendWhatsAppBulk(ouvriers, msgTextOuvriers);
+          // Même logique que pour les contacts (voir commentaire ci-dessus) : un seul
+          // groupe (ouvriers) peut lui-même couvrir plusieurs campus dès que
+          // filtres_ouvriers.campus n'est pas précisé.
+          const settingsByCampus = await getCampusSettingsForMany(
+            ouvriers.map((o) => o.campus),
+            ['adresse_eglise'],
+          );
+
+          const results = await Promise.all(
+            ouvriers.map(async (o) => {
+              const s = settingsByCampus.get(o.campus)!;
+              const contenu = message_template
+                .replace(/\[Date\]/g,    dateStr)
+                .replace(/\[Campus\]/g,  filtres_ouvriers.campus ?? o.campus ?? 'Phila')
+                .replace(/\[Prénom\]/g,  o.prenom)
+                .replace(/\[prenom\]/gi, o.prenom)
+                .replace(/\[Adresse\]/g, s.adresse_eglise);
+
+              const { sid, error } = await sendWhatsApp(o.telephone, contenu);
+              return { id: o.id, sid, error };
+            }),
+          );
+
           await prisma.message.createMany({
             data: results.map((r) => ({
               contact_id:   null,
