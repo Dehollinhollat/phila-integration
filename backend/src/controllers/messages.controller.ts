@@ -7,7 +7,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { sendWhatsApp, sendWhatsAppBulk } from '../lib/twilio';
-import { DEFAULT_BIENVENUE_TEMPLATE } from '../lib/campusSettings';
+import { DEFAULT_BIENVENUE_TEMPLATE, getCampusSettingsWithDefaults } from '../lib/campusSettings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -206,19 +206,15 @@ export async function sendBienvenue(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Charge le template et les settings de l'église
-    const [settingTemplate, settingTelEglise, settingAdresse] = await Promise.all([
-      prisma.settings.findUnique({ where: { key: 'message_bienvenue' } }),
-      prisma.settings.findUnique({ where: { key: 'telephone_eglise' } }),
-      prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }),
-    ]);
+    // Charge les réglages du campus de CE contact (pas une valeur globale)
+    const s = await getCampusSettingsWithDefaults(contact.campus, ['message_bienvenue', 'telephone_eglise', 'adresse_eglise']);
 
     const contenu = buildBienvenueMessage(
       contact.prenom,
       referent,
-      settingTelEglise?.value ?? '',
-      settingTemplate?.value  ?? undefined,
-      settingAdresse?.value   ?? '',
+      s.telephone_eglise,
+      s.message_bienvenue,
+      s.adresse_eglise,
     );
 
     const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
@@ -307,8 +303,10 @@ export async function createEvenement(req: Request, res: Response): Promise<void
     });
 
     if (envoyer_maintenant) {
-      const dateStr       = new Date(date_evenement).toLocaleDateString('fr-FR');
-      const adresseEglise = (await prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }))?.value ?? '';
+      const dateStr        = new Date(date_evenement).toLocaleDateString('fr-FR');
+      // 'paris' = maison mère, utilisée si aucun campus n'est ciblé (envoi multi-campus)
+      const templateCampus = filtres.campus ?? filtres_ouvriers.campus ?? 'paris';
+      const { adresse_eglise: adresseEglise } = await getCampusSettingsWithDefaults(templateCampus, ['adresse_eglise']);
       const msgText = message_template
         .replace(/\[Date\]/g,    dateStr)
         .replace(/\[Campus\]/g,  filtres.campus ?? filtres_ouvriers.campus ?? 'Phila')
