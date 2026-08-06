@@ -6,15 +6,30 @@
 // Technique de capture du callback : le mock global de node-cron (jest.fn() dans
 // __tests__/setup.ts) enregistre bel et bien chaque appel a cron.schedule(pattern, callback),
 // callback inclus. On appelle startCronJobs() pour declencher tous les enregistrements,
-// puis on recupere le callback de la Tache 2 via mock.calls[1][1] (Tache 2 est le
-// DEUXIEME appel cron.schedule(...) dans l'ordre d'enregistrement de cron.ts — voir
-// le commentaire d'en-tete de cron.ts : Tache 1 = '0 9 * * *' bienvenue J+3,
-// Tache 2 = '* * * * *' envois planifies) et on l'invoque directement.
+// puis on recupere le callback de la Tache 2 via getTache2Callback(), qui recherche
+// l'appel cron.schedule(...) dont le pattern est '* * * * *' (au lieu d'indexer le
+// tableau des appels) : ainsi la recuperation reste correcte meme si cron.ts change
+// l'ordre d'enregistrement des taches ou en ajoute d'autres, et echoue bruyamment
+// (via expect) si aucun appel ne correspond au lieu de recuperer silencieusement le
+// mauvais callback.
 
 import cron from 'node-cron';
 import prisma from '../../lib/prisma';
 import { sendWhatsApp } from '../../lib/twilio';
 import { startCronJobs } from '../../lib/cron';
+
+/**
+ * Recupere le callback enregistre pour la Tache 2 ('* * * * *' — envois planifies)
+ * en recherchant par pattern cron plutot que par index de tableau. Auto-verifiante :
+ * echoue avec un message clair si aucun appel cron.schedule(...) ne correspond, plutot
+ * que de risquer de renvoyer silencieusement le callback d'une autre tache.
+ */
+function getTache2Callback(scheduleMock: jest.Mock): () => Promise<void> {
+  const calls = scheduleMock.mock.calls;
+  const tache2Call = calls.find((c) => c[0] === '* * * * *');
+  expect(tache2Call).toBeDefined();
+  return tache2Call![1];
+}
 
 const ADRESSES_PAR_CAMPUS: Record<string, string> = {
   orleans:     '1 rue de la Loire',
@@ -37,15 +52,14 @@ describe('cron.ts - Tache 2 (envois groupes planifies) - resolution par destinat
     jest.clearAllMocks();
   });
 
-  it('capture bel et bien le callback de la Tache 2 via le mock node-cron', () => {
+  it('enregistre bel et bien la Tache 1 (bienvenue J+3) et la Tache 2 (envois planifies)', () => {
     startCronJobs();
 
     const scheduleMock = cron.schedule as jest.Mock;
-    // Verifie l'hypothese de l'ordre d'enregistrement avant de s'appuyer dessus :
-    // Tache 1 = '0 9 * * *' (bienvenue J+3), Tache 2 = '* * * * *' (envois planifies).
-    expect(scheduleMock.mock.calls[0][0]).toBe('0 9 * * *');
-    expect(scheduleMock.mock.calls[1][0]).toBe('* * * * *');
-    expect(typeof scheduleMock.mock.calls[1][1]).toBe('function');
+    // Sanity check independante de l'ordre : les deux patterns attendus sont bien
+    // enregistres, quel que soit l'ordre dans lequel cron.ts les declare.
+    expect(scheduleMock.mock.calls.some((c) => c[0] === '0 9 * * *')).toBe(true);
+    expect(typeof getTache2Callback(scheduleMock)).toBe('function');
   });
 
   it("chaque contact recoit l'adresse de SON PROPRE campus pour un evenement planifie multi-campus", async () => {
@@ -81,7 +95,7 @@ describe('cron.ts - Tache 2 (envois groupes planifies) - resolution par destinat
     startCronJobs();
 
     const scheduleMock = cron.schedule as jest.Mock;
-    const tache2Callback = scheduleMock.mock.calls[1][1] as () => Promise<void>;
+    const tache2Callback = getTache2Callback(scheduleMock);
 
     await tache2Callback();
 
