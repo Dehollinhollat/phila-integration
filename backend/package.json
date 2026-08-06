@@ -10,6 +10,7 @@
     "build": "npm run copy-assets || true && prisma generate && tsc --project tsconfig.build.json",
     "start:prod": "node dist/src/server.js",
     "seed": "tsx scripts/seed.ts",
+    "migrate-campus-settings": "tsx scripts/migrate-campus-settings.ts",
     "reset-checklist": "tsx scripts/reset-checklist.ts",
     "typecheck": "tsc --noEmit",
     "test": "jest",
