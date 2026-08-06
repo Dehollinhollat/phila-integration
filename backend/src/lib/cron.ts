@@ -16,10 +16,10 @@
 
 import cron from 'node-cron';
 import prisma from './prisma';
-import { sendWhatsApp, sendWhatsAppBulk } from './twilio';
+import { sendWhatsApp } from './twilio';
 import { sendRapportHebdomadaire } from './email';
 import { applyVariables, buildDestinataireWhere, buildFiltresWhere } from '../controllers/messages.controller';
-import { getCampusSettingsForMany, getCampusSettingsWithDefaults } from './campusSettings';
+import { getCampusSettingsForMany } from './campusSettings';
 import crypto from 'crypto';
 
 export function startCronJobs(): void {
@@ -112,10 +112,6 @@ export function startCronJobs(): void {
     for (const ev of evenements) {
       console.log(`[Cron] Envoi événement: ${ev.titre}`);
 
-      // 'paris' = maison mère, utilisée si l'événement cible plusieurs/tous les campus (ev.campus null)
-      const templateCampus = (ev.campus as string | null) ?? 'paris';
-      const { adresse_eglise: adresseEglise } = await getCampusSettingsWithDefaults(templateCampus, ['adresse_eglise']);
-
       // Construit le filtre destinataires.
       // Les événements créés avec le nouveau système stockent leurs filtres dans filtres_json.
       // Les anciens événements (avant migration) utilisent le champ destinataires enum.
@@ -145,12 +141,28 @@ export function startCronJobs(): void {
       }
 
       const dateStr = ev.date_evenement.toLocaleDateString('fr-FR');
-      const results = await sendWhatsAppBulk(
-        contacts,
-        ev.message_template
-          .replace(/\[Date\]/g,    dateStr)
-          .replace(/\[Campus\]/g,  ev.campus ?? 'Phila')
-          .replace(/\[Adresse\]/g, adresseEglise)
+
+      // Charge l'adresse de CHAQUE campus présent dans le lot en un seul aller-retour DB —
+      // un événement peut cibler plusieurs campus à la fois (ev.campus null / filtres multi-campus),
+      // donc chaque contact doit recevoir l'adresse de SON propre campus, jamais une valeur unique.
+      const settingsByCampus = await getCampusSettingsForMany(
+        contacts.map(c => c.campus),
+        ['adresse_eglise'],
+      );
+
+      const results = await Promise.all(
+        contacts.map(async (contact) => {
+          const s = settingsByCampus.get(contact.campus)!;
+          const contenu = ev.message_template
+            .replace(/\[Date\]/g, dateStr)
+            .replace(/\[Campus\]/g, ev.campus ?? contact.campus ?? 'Phila')
+            .replace(/\[Prénom\]/g, contact.prenom)
+            .replace(/\[prenom\]/gi, contact.prenom)
+            .replace(/\[Adresse\]/g, s.adresse_eglise);
+
+          const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
+          return { id: contact.id, sid, error };
+        }),
       );
 
       // Crée un Message par destinataire
