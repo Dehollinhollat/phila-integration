@@ -247,12 +247,6 @@ export default function Settings() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Guard : admin_campus minimum - redirection immédiate sinon
-  if (user && ROLE_RANK[user.role] < ROLE_RANK['admin_campus']) {
-    navigate('/dashboard', { replace: true });
-    return null;
-  }
-
   const isSuperAdmin = user?.role === 'super_admin';
   const availableCampus: Campus[] = isSuperAdmin
     ? CAMPUS_OPTIONS.map(o => o.value)
@@ -292,11 +286,14 @@ export default function Settings() {
   // ── Bloc par campus — rechargé à chaque changement d'onglet ────────────────
   const [campusValues, setCampusValues] = useState<Record<string, string>>({});
   const [campusSaved,  setCampusSaved]  = useState<Record<string, string>>({});
-  const [campusLoading, setCampusLoading] = useState(true);
+  const [campusLoading, setCampusLoading] = useState(!!activeCampus);
   const [campusSaving,  setCampusSaving]  = useState(false);
 
   useEffect(() => {
-    if (!activeCampus) return;
+    if (!activeCampus) {
+      setCampusLoading(false);
+      return;
+    }
     setCampusLoading(true);
     settingsEndpoints.getCampus(activeCampus).then(res => {
       setCampusValues(res.data);
@@ -344,6 +341,18 @@ export default function Settings() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  // Guard : admin_campus minimum - redirection sinon (effect, pas un early return
+  // avant les hooks ci-dessus — cf. Rules of Hooks)
+  useEffect(() => {
+    if (user && ROLE_RANK[user.role] < ROLE_RANK['admin_campus']) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
+  if (user && ROLE_RANK[user.role] < ROLE_RANK['admin_campus']) {
+    return null;
+  }
+
   if (globalLoading || campusLoading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
@@ -363,12 +372,21 @@ export default function Settings() {
       </div>
 
       {/* Onglets campus */}
-      {availableCampus.length > 0 && (
+      {availableCampus.length > 0 ? (
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           {availableCampus.map(c => (
             <button
               key={c}
-              onClick={() => setActiveCampus(c)}
+              onClick={() => {
+                if (c === activeCampus) return;
+                if (campusDirty) {
+                  const confirmed = window.confirm(
+                    'Vous avez des modifications non enregistrées sur ce campus. Les abandonner et changer de campus ?'
+                  );
+                  if (!confirmed) return;
+                }
+                setActiveCampus(c);
+              }}
               style={{
                 padding: '8px 16px', borderRadius: 8,
                 border: `1px solid ${activeCampus === c ? 'var(--accent-teal)' : 'var(--bg-card-border)'}`,
@@ -381,6 +399,19 @@ export default function Settings() {
               {CAMPUS_LABELS[c]}
             </button>
           ))}
+        </div>
+      ) : (
+        <div style={{
+          padding:      '20px',
+          marginBottom: 20,
+          textAlign:    'center',
+          fontSize:     13,
+          color:        'var(--text-secondary)',
+          background:   'var(--bg-card)',
+          border:       '1px solid var(--bg-card-border)',
+          borderRadius: 12,
+        }}>
+          Aucun campus assigné à votre compte — contactez un administrateur.
         </div>
       )}
 
