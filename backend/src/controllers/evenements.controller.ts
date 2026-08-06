@@ -4,8 +4,9 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
-import { sendWhatsAppBulk } from '../lib/twilio';
+import { sendWhatsApp } from '../lib/twilio';
 import { buildDestinataireWhere, buildFiltresWhere } from './messages.controller';
+import { getCampusSettingsForMany } from '../lib/campusSettings';
 
 // GET /api/evenements
 export async function listEvenements(req: Request, res: Response): Promise<void> {
@@ -120,11 +121,28 @@ export async function envoyerEvenement(req: Request, res: Response): Promise<voi
   }
 
   const dateStr = ev.date_evenement.toLocaleDateString('fr-FR');
-  const results = await sendWhatsAppBulk(
-    contacts,
-    ev.message_template
-      .replace(/\[Date\]/g, dateStr)
-      .replace(/\[Campus\]/g, ev.campus ?? 'Phila'),
+
+  // Charge l'adresse de CHAQUE campus présent dans le lot en un seul aller-retour DB —
+  // un événement peut cibler plusieurs campus à la fois (ev.campus null / filtres multi-campus),
+  // donc chaque contact doit recevoir l'adresse de SON propre campus, jamais une valeur unique.
+  const settingsByCampus = await getCampusSettingsForMany(
+    contacts.map(c => c.campus),
+    ['adresse_eglise'],
+  );
+
+  const results = await Promise.all(
+    contacts.map(async (contact) => {
+      const s = settingsByCampus.get(contact.campus)!;
+      const contenu = ev.message_template
+        .replace(/\[Date\]/g, dateStr)
+        .replace(/\[Campus\]/g, ev.campus ?? contact.campus ?? 'Phila')
+        .replace(/\[Prénom\]/g, contact.prenom)
+        .replace(/\[prenom\]/gi, contact.prenom)
+        .replace(/\[Adresse\]/g, s.adresse_eglise);
+
+      const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
+      return { id: contact.id, sid, error };
+    }),
   );
 
   await prisma.message.createMany({
