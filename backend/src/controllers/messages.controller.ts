@@ -7,6 +7,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { sendWhatsApp, sendWhatsAppBulk } from '../lib/twilio';
+import { DEFAULT_BIENVENUE_TEMPLATE } from '../lib/campusSettings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -405,14 +406,10 @@ export async function twilioWebhook(req: Request, res: Response): Promise<void> 
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Template par défaut utilisé si la clé 'message_bienvenue' n'est pas encore configurée en BDD.
-export const DEFAULT_BIENVENUE_TEMPLATE =
-  `Bonjour [Prenom], en espérant que votre semaine se passe très bien par la grâce de Dieu. ` +
-  `L'église Phila Cité des Adorateurs est ravie de vous compter parmi ses fidèles ! ` +
-  `Je suis [Referent], votre référent d'intégration. ` +
-  `N'hésitez pas à me contacter au [Telephone_Referent]. ` +
-  `Vous pouvez aussi joindre l'église au [Telephone_Eglise]. ` +
-  `Nous allons prier pour vous. Avez-vous des sujets particuliers de prière ?`;
+// Déplacé vers lib/campusSettings.ts (source de vérité, avec DEFAULT_CAMPUS_SETTINGS).
+// Ré-exporté ici (via l'import ci-dessus) pour ne pas casser les imports existants
+// (cron.ts notamment) qui font `import { DEFAULT_BIENVENUE_TEMPLATE } from './messages.controller'`.
+export { DEFAULT_BIENVENUE_TEMPLATE };
 
 // Substitue toutes les variables [Variable] dans un template de message.
 // Appelé par le cron (bienvenue J+3, anniversaire) et par les envois manuels.
