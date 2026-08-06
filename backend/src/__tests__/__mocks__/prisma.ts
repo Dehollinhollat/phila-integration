@@ -82,6 +82,14 @@ const prisma = {
     create:   jest.fn(),
     findMany: jest.fn(),
   },
+  evenement: {
+    findUnique:  jest.fn(),
+    findMany:    jest.fn(),
+    create:      jest.fn(),
+    update:      jest.fn(),
+    delete:      jest.fn(),
+    count:       jest.fn(),
+  },
   $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(prisma as unknown)),
 };
 
