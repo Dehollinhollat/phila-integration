@@ -18,7 +18,8 @@ import cron from 'node-cron';
 import prisma from './prisma';
 import { sendWhatsApp, sendWhatsAppBulk } from './twilio';
 import { sendRapportHebdomadaire } from './email';
-import { applyVariables, DEFAULT_BIENVENUE_TEMPLATE, buildDestinataireWhere, buildFiltresWhere } from '../controllers/messages.controller';
+import { applyVariables, buildDestinataireWhere, buildFiltresWhere } from '../controllers/messages.controller';
+import { getCampusSettingsForMany, getCampusSettingsWithDefaults } from './campusSettings';
 import crypto from 'crypto';
 
 export function startCronJobs(): void {
@@ -52,24 +53,22 @@ export function startCronJobs(): void {
 
     console.log(`[Cron] ${contacts.length} message(s) bienvenue à envoyer`);
 
-    // Charge le template et les settings de l'église une seule fois pour tous les contacts du batch
-    const [settingTemplate, settingTelEglise, settingAdresse] = await Promise.all([
-      prisma.settings.findUnique({ where: { key: 'message_bienvenue' } }),
-      prisma.settings.findUnique({ where: { key: 'telephone_eglise' } }),
-      prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }),
-    ]);
-    const bienvenueTemplate = settingTemplate?.value ?? DEFAULT_BIENVENUE_TEMPLATE;
-    const telephoneEglise   = settingTelEglise?.value ?? '';
-    const adresseEglise     = settingAdresse?.value   ?? '';
+    // Charge les réglages de chaque campus présent dans le lot en un seul aller-retour DB —
+    // chaque contact reçoit le template/les infos de SON campus, pas une valeur unique pour tous.
+    const settingsByCampus = await getCampusSettingsForMany(
+      contacts.map(c => c.campus),
+      ['message_bienvenue', 'telephone_eglise', 'adresse_eglise']
+    );
 
     for (const contact of contacts) {
       const ref = contact.referent_integration;
-      const contenu = applyVariables(bienvenueTemplate, {
+      const s   = settingsByCampus.get(contact.campus)!;
+      const contenu = applyVariables(s.message_bienvenue, {
         prenom:            contact.prenom,
         referentNom:       ref ? `${ref.prenom} ${ref.nom}` : '',
         referentTelephone: ref?.telephone ?? '',
-        telephoneEglise,
-        adresseEglise,
+        telephoneEglise:   s.telephone_eglise,
+        adresseEglise:     s.adresse_eglise,
       });
       const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
 
@@ -110,10 +109,12 @@ export function startCronJobs(): void {
 
     if (evenements.length === 0) return;
 
-    const adresseEglise = (await prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }))?.value ?? '';
-
     for (const ev of evenements) {
       console.log(`[Cron] Envoi événement: ${ev.titre}`);
+
+      // 'paris' = maison mère, utilisée si l'événement cible plusieurs/tous les campus (ev.campus null)
+      const templateCampus = (ev.campus as string | null) ?? 'paris';
+      const { adresse_eglise: adresseEglise } = await getCampusSettingsWithDefaults(templateCampus, ['adresse_eglise']);
 
       // Construit le filtre destinataires.
       // Les événements créés avec le nouveau système stockent leurs filtres dans filtres_json.
@@ -304,52 +305,6 @@ export function startCronJobs(): void {
     }
   });
 
-  // ── Initialisation : créer les settings par défaut s'ils n'existent pas ─────
-  Promise.all([
-    prisma.settings.upsert({
-      where:  { key: 'template_anniversaire' },
-      create: {
-        key:   'template_anniversaire',
-        value: 'Joyeux anniversaire [Prenom] ! 🎂 Toute l\'équipe Phila vous souhaite une excellente journée. Que Dieu vous bénisse abondamment.',
-      },
-      update: {},
-    }),
-    prisma.settings.upsert({
-      where:  { key: 'message_bienvenue' },
-      create: { key: 'message_bienvenue', value: DEFAULT_BIENVENUE_TEMPLATE },
-      update: {},
-    }),
-    prisma.settings.upsert({
-      where:  { key: 'telephone_eglise' },
-      create: { key: 'telephone_eglise', value: '' },
-      update: {},
-    }),
-    prisma.settings.upsert({
-      where:  { key: 'template_nouvel_an' },
-      create: {
-        key:   'template_nouvel_an',
-        value: "Bonne année [Prenom] ! 🎉 Toute l'équipe de Phila Cité des Adorateurs vous souhaite une excellente année, pleine de grâce, de santé et de victoires. Que Dieu vous comble de Ses bénédictions en cette nouvelle année !",
-      },
-      update: {},
-    }),
-    prisma.settings.upsert({
-      where:  { key: 'template_evenement' },
-      create: {
-        key:   'template_evenement',
-        value: "Bonjour [Prenom] ! 👋\n\nNous avons le plaisir de vous inviter à notre prochain événement à l'église Phila Cité des Adorateurs.\n\n📅 Date : [Date]\n🎯 Thème : [Theme]\n📍 Adresse : [Adresse]\n\nNous serions ravis de vous y retrouver. Votre présence sera une bénédiction pour toute la communauté.\n\nPour toute information, contactez-nous au [Telephone_Eglise].\n\nQue Dieu vous bénisse ! 🙏\nL'équipe Phila Cité des Adorateurs",
-      },
-      update: {},
-    }),
-    prisma.settings.upsert({
-      where:  { key: 'certificat_verset' },
-      update: {},
-      create: {
-        key:   'certificat_verset',
-        value: "\"Car je connais les projets que j'ai formés sur vous, dit l'Éternel, projets de paix et non de malheur, afin de vous donner un avenir et de l'espérance.\" - Jérémie 29:11",
-      },
-    }),
-  ]).catch(() => {/* ignore si settings non disponibles au démarrage */});
-
   // ── Tâche 5 : Messages d'anniversaire (tous les jours à 09h00) ──────────────
   cron.schedule('0 9 * * *', async () => {
     console.log('[Cron] Vérification anniversaires...');
@@ -360,7 +315,7 @@ export function startCronJobs(): void {
 
     const contacts = await prisma.contact.findMany({
       where:  { date_naissance: { not: null } },
-      select: { id: true, prenom: true, telephone: true, date_naissance: true },
+      select: { id: true, prenom: true, telephone: true, date_naissance: true, campus: true },
     });
 
     const anniversaires = contacts.filter((c: { id: string; prenom: string; telephone: string; date_naissance: Date | null }) => {
@@ -370,17 +325,16 @@ export function startCronJobs(): void {
 
     console.log(`[Cron] ${anniversaires.length} anniversaire(s) aujourd'hui`);
 
-    const [setting, settingAdresse] = await Promise.all([
-      prisma.settings.findUnique({ where: { key: 'template_anniversaire' } }),
-      prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }),
-    ]);
-    const template      = setting?.value        ?? 'Joyeux anniversaire [Prenom] ! 🎂 Que Dieu vous bénisse abondamment.';
-    const adresseEglise = settingAdresse?.value ?? '';
+    const settingsByCampus = await getCampusSettingsForMany(
+      anniversaires.map(c => c.campus),
+      ['template_anniversaire', 'adresse_eglise']
+    );
 
     for (const contact of anniversaires) {
-      const contenu    = template
+      const s       = settingsByCampus.get(contact.campus)!;
+      const contenu = s.template_anniversaire
         .replace(/\[Prenom\]/gi,  contact.prenom)
-        .replace(/\[Adresse\]/gi, adresseEglise);
+        .replace(/\[Adresse\]/gi, s.adresse_eglise);
       const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
 
       await prisma.message.create({
@@ -411,10 +365,15 @@ export function startCronJobs(): void {
       return d.getDate() === todayDay && (d.getMonth() + 1) === todayMonth;
     });
     console.log(`[Cron] ${ouvriersAujourdHui.length} anniversaire(s) ouvrier(s) aujourd'hui`);
+    const settingsByCampusOuvriers = await getCampusSettingsForMany(
+      ouvriersAujourdHui.map(o => o.campus),
+      ['template_anniversaire', 'adresse_eglise']
+    );
     for (const ouvrier of ouvriersAujourdHui) {
-      const message = template
+      const s       = settingsByCampusOuvriers.get(ouvrier.campus)!;
+      const message = s.template_anniversaire
         .replace(/\[Prenom\]/g,  ouvrier.prenom)
-        .replace(/\[Adresse\]/g, adresseEglise);
+        .replace(/\[Adresse\]/g, s.adresse_eglise);
       const { error } = await sendWhatsApp(ouvrier.telephone, message);
       if (error) console.error(`[ANNIVERSAIRE] Erreur ouvrier ${ouvrier.prenom}:`, error);
     }
@@ -557,39 +516,37 @@ export function startCronJobs(): void {
   cron.schedule('0 9 1 1 *', async () => {
     console.log('[CRON][NOUVEL_AN] Envoi messages Nouvel An...');
 
-    const [setting, settingAdresse] = await Promise.all([
-      prisma.settings.findUnique({ where: { key: 'template_nouvel_an' } }),
-      prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }),
-    ]);
-    const template      = setting?.value
-      ?? "Bonne année [Prenom] ! 🎉 Toute l'équipe de Phila Cité des Adorateurs vous souhaite une excellente année, pleine de grâce, de santé et de victoires. Que Dieu vous comble de Ses bénédictions en cette nouvelle année !";
-    const adresseEglise = settingAdresse?.value ?? '';
-
     const [contacts, ouvriers] = await Promise.all([
       prisma.contact.findMany({
         where:  {},
-        select: { prenom: true, telephone: true },
+        select: { prenom: true, telephone: true, campus: true },
       }),
       prisma.ouvrier.findMany({
         where:  {},
-        select: { prenom: true, telephone: true },
+        select: { prenom: true, telephone: true, campus: true },
       }),
     ]);
 
     const seen = new Set<string>();
     const destinataires = [
-      ...contacts.map(c => ({ prenom: c.prenom, telephone: c.telephone })),
-      ...ouvriers.map(o => ({ prenom: o.prenom, telephone: o.telephone })),
+      ...contacts.map(c => ({ prenom: c.prenom, telephone: c.telephone, campus: c.campus })),
+      ...ouvriers.map(o => ({ prenom: o.prenom, telephone: o.telephone, campus: o.campus })),
     ].filter(d => {
       if (seen.has(d.telephone)) return false;
       seen.add(d.telephone);
       return true;
     });
 
+    const settingsByCampus = await getCampusSettingsForMany(
+      destinataires.map(d => d.campus),
+      ['template_nouvel_an', 'adresse_eglise']
+    );
+
     for (const dest of destinataires) {
-      const message = template
+      const s       = settingsByCampus.get(dest.campus)!;
+      const message = s.template_nouvel_an
         .replace(/\[Prenom\]/g,  dest.prenom)
-        .replace(/\[Adresse\]/g, adresseEglise);
+        .replace(/\[Adresse\]/g, s.adresse_eglise);
       const { error } = await sendWhatsApp(dest.telephone, message);
       if (error) {
         console.error(`[NOUVEL_AN] Erreur pour ${dest.telephone}:`, error);
