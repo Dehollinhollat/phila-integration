@@ -103,6 +103,28 @@ test.describe('Formulaire en ligne', () => {
     await page.goto('/form/en-ligne');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 5_000 });
   });
+
+  test('validation étape 2 — bouton Suivant bloqué sans campus', async ({ page }) => {
+    await page.goto('/form/en-ligne');
+    await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 5_000 });
+
+    // Étape 1 : remplir le minimum requis pour avancer (genre, prénom, nom, téléphone)
+    await page.click('text=Homme');
+    await page.fill('input[placeholder="Votre prénom"]', 'Test');
+    await page.fill('input[placeholder="Votre nom de famille"]', 'Playwright');
+    await page.selectOption('select[aria-label="Indicatif téléphonique du pays"]', '+33');
+    await page.fill('input[placeholder="0612345678"]', '0612345678');
+    await page.click('button:has-text("Suivant")');
+    await expect(page.getByText(/[ÉE]tape 2/)).toBeVisible({ timeout: 8_000 });
+
+    // Étape 2 : remplir la ville et l'état civil (tous deux requis) mais pas le campus
+    await page.fill('input[placeholder="Ex : Paris"]', 'Paris');
+    await page.click('text=Célibataire');
+    await page.click('button:has-text("Suivant")');
+
+    // Doit rester sur étape 2 — erreur "campus obligatoire" visible
+    await expect(page.getByText('Le campus est obligatoire.')).toBeVisible();
+  });
 });
 
 test.describe('Formulaire ouvrier', () => {
