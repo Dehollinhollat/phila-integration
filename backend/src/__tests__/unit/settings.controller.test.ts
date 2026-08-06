@@ -68,17 +68,32 @@ describe('getCampusSettingsHandler / updateCampusSettingsHandler', () => {
     expect(statusMock).toHaveBeenCalledWith(400);
   });
 
-  it('updateCampusSettingsHandler n\'ecrit que sur le campus de l\'URL', async () => {
+  it('updateCampusSettingsHandler n\'ecrit que sur le campus de l\'URL, meme si le body tente d\'en indiquer un autre', async () => {
     (prisma.$transaction as jest.Mock).mockResolvedValue([]);
     (prisma.campusSettings.findMany as jest.Mock).mockResolvedValue([
       { campus: 'orleans', key: 'nom_eglise', value: 'Phila Orleans' },
     ]);
     const { res } = mockRes();
     await updateCampusSettingsHandler(
-      { params: { campus: 'orleans' }, body: [{ key: 'nom_eglise', value: 'Phila Orleans' }] } as unknown as Request,
+      {
+        params: { campus: 'orleans' },
+        // Le body contient un champ 'campus' etranger — doit etre ignore, seul req.params.campus compte.
+        body: [{ key: 'nom_eglise', value: 'Phila Orleans', campus: 'paris' }],
+      } as unknown as Request,
       res as Response
     );
     const upsertCalls = (prisma.campusSettings.upsert as jest.Mock).mock.calls;
     expect(upsertCalls.length).toBeGreaterThan(0);
+    for (const call of upsertCalls) {
+      expect(call[0]).toMatchObject({
+        where:  { campus_key: { campus: 'orleans', key: 'nom_eglise' } },
+        update: { value: 'Phila Orleans' },
+        create: { campus: 'orleans', key: 'nom_eglise', value: 'Phila Orleans' },
+      });
+    }
+    // Aucun upsert ne doit jamais cibler 'paris', quoi que le body ait tente de soumettre.
+    expect(
+      upsertCalls.some((c: unknown[]) => (c[0] as { where: { campus_key: { campus: string } } }).where.campus_key.campus === 'paris')
+    ).toBe(false);
   });
 });
