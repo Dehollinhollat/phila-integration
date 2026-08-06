@@ -36,6 +36,12 @@ const prisma = {
     findUnique:  jest.fn(),
     findMany:    jest.fn(),
     upsert:      jest.fn(),
+    deleteMany:  jest.fn(),
+  },
+  campusSettings: {
+    findUnique:  jest.fn(),
+    findMany:    jest.fn(),
+    upsert:      jest.fn(),
   },
   notification: {
     findFirst:   jest.fn(),
