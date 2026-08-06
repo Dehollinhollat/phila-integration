@@ -3301,6 +3301,60 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
+### Task C4bis : `e2e/formulaire.spec.ts` — même cas de validation Campus pour le formulaire en ligne
+
+**Contexte :** ajoutée suite à la revue qualité de C4, qui a signalé que `FormEnLigne.tsx` a reçu exactement la même validation `if (!form.campus) e.campus = 'Le campus est obligatoire.'` que `FormPresentiel.tsx` (étape 2, ajoutée en Task C2), mais qu'aucun test e2e ne la couvre — seul un test de chargement de page existe pour `/form/en-ligne`. La validation serveur (C1bis) reste un filet de sécurité, mais sans ce test une régression du gating côté client (mauvais index d'étape, faute de frappe dans le nom de champ, payload qui perd `campus`) ne serait détectée qu'en production sous forme de 400.
+
+**Fichiers:**
+- Modify: `frontend/e2e/formulaire.spec.ts:101-106` (describe `'Formulaire en ligne'`)
+
+- [ ] **Étape 1 : Ajouter le test de validation**
+
+Dans le describe `'Formulaire en ligne'`, après le test `'chargement de la page formulaire en ligne'`, insérer :
+
+```ts
+  test('validation étape 2 — bouton Suivant bloqué sans campus', async ({ page }) => {
+    await page.goto('/form/en-ligne');
+    await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 5_000 });
+
+    // Étape 1 : remplir le minimum requis pour avancer (genre, prénom, nom, téléphone)
+    await page.click('text=Homme');
+    await page.fill('input[placeholder="Votre prénom"]', 'Test');
+    await page.fill('input[placeholder="Votre nom de famille"]', 'Playwright');
+    await page.selectOption('select[aria-label="Indicatif téléphonique du pays"]', '+33');
+    await page.fill('input[placeholder="0612345678"]', '0612345678');
+    await page.click('button:has-text("Suivant")');
+    await expect(page.getByText(/[ÉE]tape 2/)).toBeVisible({ timeout: 8_000 });
+
+    // Étape 2 : remplir la ville et l'état civil (tous deux requis) mais pas le campus
+    await page.fill('input[placeholder="Ex : Paris"]', 'Paris');
+    await page.click('text=Célibataire');
+    await page.click('button:has-text("Suivant")');
+
+    // Doit rester sur étape 2 — erreur "campus obligatoire" visible
+    await expect(page.getByText('Le campus est obligatoire.')).toBeVisible();
+  });
+
+```
+
+Note : contrairement au describe `'Formulaire présentiel'`, ce describe n'a pas de `beforeEach` qui navigue vers la page — chaque test fait son propre `page.goto('/form/en-ligne')`. Suivre ce pattern existant (ne pas ajouter de `beforeEach`).
+
+- [ ] **Étape 2 : Lancer le test**
+
+Run : `npm run test:e2e -- formulaire.spec.ts` (depuis `frontend/`)
+Expected: PASS (9/9 tests au total dans le fichier). Nécessite que le backend et le frontend de dev tournent, comme pour C4.
+
+- [ ] **Étape 3 : Commit**
+
+```bash
+git add frontend/e2e/formulaire.spec.ts
+git commit -m "test(campus): validation du champ campus obligatoire sur formulaire en ligne
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+---
+
 ## Partie D — Backend : CampusSettings (modèle, helper, migration, controllers, cron)
 
 ### Task D1 : Modèle Prisma `CampusSettings`
