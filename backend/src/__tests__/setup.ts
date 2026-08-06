@@ -28,7 +28,6 @@ jest.mock('../lib/prisma');
 // sendWhatsApp est wrappé dans lib/twilio.ts — on mock le module entier.
 jest.mock('../lib/twilio', () => ({
   sendWhatsApp: jest.fn().mockResolvedValue({ sid: 'SM_test_sid', error: null }),
-  sendWhatsAppBulk: jest.fn().mockResolvedValue([]),
 }));
 
 // ─── 4. Mock Turnstile ───────────────────────────────────────────────────────
