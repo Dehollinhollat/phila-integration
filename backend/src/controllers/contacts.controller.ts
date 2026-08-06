@@ -15,6 +15,7 @@ import { logAudit } from '../lib/audit';
 import { sendEmailAssignation } from '../lib/email';
 import { genererCertificat } from '../lib/certificat';
 import { peutAccederContact, filtreContactsParRole } from '../lib/authorization';
+import { getCampusSettingsWithDefaults } from '../lib/campusSettings';
 
 const PROFIL_LABELS: Record<string, string> = {
   membre_phila:          'Membre Phila',
@@ -1078,8 +1079,7 @@ export async function telechargerCertificat(req: Request, res: Response): Promis
 
   const dateIntegration = contact.updated_at || new Date();
 
-  const settingVerset = await prisma.settings.findUnique({ where: { key: 'certificat_verset' } });
-  const verset = settingVerset?.value || "\"Car je connais les projets que j'ai formés sur vous...\" — Jérémie 29:11";
+  const { certificat_verset: verset } = await getCampusSettingsWithDefaults(contact.campus, ['certificat_verset']);
 
   const pdfBuffer = await genererCertificat({
     prenom:           contact.prenom,
