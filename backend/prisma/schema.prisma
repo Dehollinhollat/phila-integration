@@ -600,6 +600,24 @@ model Settings {
 }
 
 // ─────────────────────────────────────────
+// CAMPUS SETTINGS
+// Paramètres de messagerie scopés par campus (templates WhatsApp, infos église,
+// verset du certificat). Une ligne par [campus, key]. Contrairement à Settings
+// (globale, seuils d'alerte uniquement), chaque campus a ses propres valeurs —
+// un admin_campus ne peut modifier que les lignes de son propre campus.
+// ─────────────────────────────────────────
+
+model CampusSettings {
+  id         String   @id @default(cuid())
+  campus     Campus
+  key        String
+  value      String
+  updated_at DateTime @updatedAt
+
+  @@unique([campus, key])
+}
+
+// ─────────────────────────────────────────
 // CONNECTION LOG
 // Historique des tentatives de connexion (succès et échecs).
 // user_id nullable pour pouvoir logguer les tentatives sur comptes inactifs
