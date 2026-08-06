@@ -64,6 +64,24 @@ test.describe('Formulaire présentiel', () => {
     await expect(page.locator('input[placeholder="Ex : Paris"]')).toBeVisible();
   });
 
+  test('validation étape 2 — bouton Suivant bloqué sans campus', async ({ page }) => {
+    // Étape 1 : remplir le minimum requis pour avancer
+    await page.click('text=Homme');
+    await page.fill('input[placeholder="Votre prénom"]', 'Test');
+    await page.fill('input[placeholder="Votre nom de famille"]', 'Playwright');
+    await page.selectOption('select[aria-label="Indicatif téléphonique du pays"]', '+33');
+    await page.fill('input[placeholder="0612345678"]', '0612345678');
+    await page.click('button:has-text("Suivant")');
+    await expect(page.getByText(/[ÉE]tape 2/)).toBeVisible({ timeout: 8_000 });
+
+    // Étape 2 : remplir la ville mais pas le campus, puis tenter de continuer
+    await page.fill('input[placeholder="Ex : Paris"]', 'Paris');
+    await page.click('button:has-text("Suivant")');
+
+    // Doit rester sur étape 2 — erreur "campus obligatoire" visible
+    await expect(page.getByText('Le campus est obligatoire.')).toBeVisible();
+  });
+
   test('détection doublon téléphone', async ({ page }) => {
     // Remplir le champ téléphone avec un numéro existant
     const phoneInput = page.locator('input[placeholder*="0612" i], input[type="tel"]').first();
