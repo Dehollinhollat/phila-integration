@@ -1,6 +1,6 @@
 # Backlog — reste à faire
 
-Dernière mise à jour : 7 août 2026, après la fusion du chantier multi-campus (`feature/multi-campus-settings`, 53 commits).
+Dernière mise à jour : 7 août 2026, après correctif de sécurité périmètre campus (3 passes de revue).
 
 Chaque point indique où intervenir. Les priorités vont de P0 (bloquant) à P5 (confort).
 
@@ -27,20 +27,20 @@ remote: Repository not found.
 
 ---
 
+## ✅ Corrigé le 7 août 2026 — Périmètre campus sur les envois et les événements
+
+Un `admin_campus` limité à un campus pouvait agir **en dehors de son périmètre** : envoyer un WhatsApp à tous les campus (`filtres: {}` / `dest_type: 'tous'`), déclencher le message de bienvenue de n'importe quel contact, lire n'importe quel message. Faille pré-existante (antérieure au chantier multi-campus), corrigée en 3 passes après revue à chaque étape (commits `2b28400`, `a3a32eb`, `0ad2615`) :
+
+- `backend/src/lib/authorization.ts` — helpers partagés `horsPerimetreCampus` / `resoudreCampusCible`, utilisés par `evenements.controller.ts`, `messages.controller.ts` et `ouvriers.controller.ts`.
+- Le campus de l'événement borne désormais la requête destinataires **au point d'envoi** (`envoyerEvenement` + `cron.ts`), pas seulement à la création — protège aussi les lignes déjà en base.
+- `updateEvenement` : liste blanche des champs modifiables (`filtres_json`/`destinataires`/`statut` n'étaient pas censés être réécrivables après coup).
+- `getMessage`, `getMessagesByContact` : ajout de `peutAccederContact` (fuite de PII inter-campus, trouvée en cours de revue).
+- `cron.ts` Tâche 2 : un événement multi-campus (`campus: null`) n'est envoyé que si le créateur est **encore** super_admin au moment de l'envoi.
+- 123 tests, plusieurs vérifiés empiriquement comme échouant sur le code d'avant.
+
+**Suivi mineur, non sécuritaire (échoue de façon sûre — voir P3 ci-dessous) :** un super_admin qui repasse un événement d'un autre utilisateur en multi-campus (`campus: null`) puis le planifie peut se le voir annulé silencieusement par le cron, qui vérifie le rôle du *créateur* d'origine, pas celui de la personne qui a autorisé le passage en multi-campus.
+
 ## 🔴 P1 — Sécurité
-
-### Périmètre campus absent sur les envois et les événements
-
-Un `admin_campus` limité à un campus peut aujourd'hui agir **en dehors de son périmètre**. Faille pré-existante (antérieure au chantier multi-campus), confirmée par la revue finale.
-
-Endpoints concernés, tous sans vérification que le campus visé appartient à `req.user.campus` :
-
-- `backend/src/controllers/evenements.controller.ts` — `createEvenement`, `updateEvenement`, `deleteEvenement`, `planifierEvenement`, `envoyerEvenement`
-- `backend/src/controllers/messages.controller.ts` — `createEvenement` (les `filtres` / `filtres_ouvriers` du corps de requête ne sont pas contrôlés), `sendBienvenue` (récupère le contact par identifiant sans appeler `peutAccederContact`, alors que `contacts.controller.ts` l'appelle sur 7 autres endpoints de la même ressource)
-
-**Impact concret :** un admin scopé sur Paris peut envoyer un WhatsApp à tous les contacts et ouvriers des 4 campus (`filtres: {}` ou `dest_type: 'tous'`), ou déclencher le message de bienvenue de n'importe quel contact.
-
-**À faire :** appliquer le pattern déjà éprouvé dans `ouvriers.controller.ts` (`horsPerimetreCampus`) et `contacts.controller.ts` (`peutAccederContact`). Couvrir de tests.
 
 ### Vérifier la signature des webhooks Twilio
 
@@ -81,6 +81,14 @@ Le modèle `Evenement` ne persiste ni `dest_type` ni `filtres_ouvriers` — ces 
 1. `window.confirm()` natif pour la confirmation de changement d'onglet, alors que le projet a un composant `Modal` et un motif de modale personnalisée (voir `OuvrierList.tsx`). Incohérent avec le reste de l'interface.
 2. Aucune garde si l'utilisateur **quitte la page** avec des modifications non enregistrées (seul le changement d'onglet campus est protégé).
 3. Changement d'onglet rapide : pas d'annulation de la requête précédente, une réponse tardive peut écraser les données de l'onglet courant.
+
+### Événement multi-campus silencieusement repassé en brouillon
+
+`backend/src/lib/cron.ts`, Tâche 2 — le garde-fou qui vérifie le rôle du créateur avant un envoi multi-campus (voir la faille de périmètre corrigée ci-dessus) regarde `evenement.created_by`, pas la personne qui a le plus récemment autorisé le ciblage multi-campus. Scénario : un `admin_campus` crée un événement sur son campus ; un super_admin l'édite ensuite pour le passer en multi-campus (`campus: null`) et le planifie — parfaitement légitime. Au moment de l'envoi, le cron regarde le rôle du créateur d'origine (`admin_campus`), pas celui du super_admin qui a autorisé le passage en multi-campus, et annule silencieusement l'envoi (repasse en `brouillon`, log une erreur).
+
+Pas une faille de sécurité — l'échec est toujours du côté sûr (rien ne part), juste une perte de fonctionnalité silencieuse pour un usage légitime.
+
+**À faire :** soit tracer qui a autorisé le ciblage multi-campus (ex. transférer `created_by` au super_admin qui fait le changement), soit notifier plutôt que logger silencieusement.
 
 ---
 
