@@ -116,6 +116,8 @@ enum StatutContact {
 enum Campus {
   paris
   paris_nord
+  orleans
+  montpellier
 }
 
 /// Niveaux d'accès dans l'interface d'administration
@@ -207,6 +209,8 @@ enum DestinataireEvenement {
   profil_visiteur         // visiteurs_sans_eglise + visiteur_avec_eglise
   campus_paris            // uniquement le campus Paris
   campus_paris_nord       // uniquement le campus Paris Nord
+  campus_orleans          // uniquement le campus Orléans
+  campus_montpellier      // uniquement le campus Montpellier
 }
 
 /// Intention du contact vis-à-vis de l'intégration — renseigné par le référent depuis la fiche contact
@@ -593,6 +597,24 @@ model Settings {
   key        String   @unique
   value      String
   updated_at DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
+// CAMPUS SETTINGS
+// Paramètres de messagerie scopés par campus (templates WhatsApp, infos église,
+// verset du certificat). Une ligne par [campus, key]. Contrairement à Settings
+// (globale, seuils d'alerte uniquement), chaque campus a ses propres valeurs —
+// un admin_campus ne peut modifier que les lignes de son propre campus.
+// ─────────────────────────────────────────
+
+model CampusSettings {
+  id         String   @id @default(cuid())
+  campus     Campus
+  key        String
+  value      String
+  updated_at DateTime @updatedAt
+
+  @@unique([campus, key])
 }
 
 // ─────────────────────────────────────────

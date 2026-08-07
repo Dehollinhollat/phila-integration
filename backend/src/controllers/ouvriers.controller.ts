@@ -12,6 +12,15 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
+// Vérifie que l'appelant a le droit d'agir sur un ouvrier de ce campus.
+// Retourne true si refusé (hors périmètre). Le super_admin n'est jamais restreint ;
+// tout rôle non super_admin (admin_campus, referent_*, lecteur…) est limité à ses
+// propres campus. Les ouvriers n'ont pas de rôle (contrairement à User) — seule la
+// vérification de campus s'applique ici.
+function horsPerimetreCampus(req: Request, campusCible: string): boolean {
+  return req.user!.role !== 'super_admin' && !req.user!.campus.includes(campusCible as never);
+}
+
 // ─── Liste ───────────────────────────────────────────────────────────────────
 
 // GET /api/ouvriers?campus=&statut=&service=&search=
@@ -98,6 +107,10 @@ export async function getOuvrier(req: Request, res: Response): Promise<void> {
       res.status(404).json({ message: 'Ouvrier introuvable' });
       return;
     }
+    if (horsPerimetreCampus(req, ouvrier.campus)) {
+      res.status(403).json({ message: 'Non autorisé à consulter un ouvrier hors de votre périmètre' });
+      return;
+    }
     res.json(ouvrier);
   } catch (err) {
     console.error('[getOuvrier]', err);
@@ -146,6 +159,11 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
         return;
       }
 
+      if (horsPerimetreCampus(req, contact.campus)) {
+        res.status(403).json({ message: 'Non autorisé à créer un ouvrier hors de votre périmètre' });
+        return;
+      }
+
       const alreadyOuvrier = await prisma.ouvrier.findUnique({ where: { contact_id } });
       if (alreadyOuvrier) {
         res.status(409).json({ message: 'Ce contact est déjà ouvrier' });
@@ -188,6 +206,11 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
     }
 
     // ── Mode inscription directe ─────────────────────────────────────────────
+    if (horsPerimetreCampus(req, campus)) {
+      res.status(403).json({ message: 'Non autorisé à créer un ouvrier hors de votre périmètre' });
+      return;
+    }
+
     const ouvrier = await prisma.ouvrier.create({
       data: {
         prenom, nom, telephone,
@@ -233,6 +256,18 @@ export async function updateOuvrier(req: Request, res: Response): Promise<void> 
       res.status(404).json({ message: 'Ouvrier introuvable' });
       return;
     }
+    // Le campus ACTUEL de l'ouvrier doit être dans le périmètre de l'admin (sinon il ne
+    // peut même pas éditer cette fiche), et s'il change de campus, le NOUVEAU campus
+    // demandé doit aussi être dans son périmètre (sinon il pourrait "voler" un ouvrier
+    // vers un campus qu'il ne gère pas).
+    if (horsPerimetreCampus(req, exists.campus)) {
+      res.status(403).json({ message: 'Non autorisé à modifier un ouvrier hors de votre périmètre' });
+      return;
+    }
+    if (campus !== undefined && horsPerimetreCampus(req, campus)) {
+      res.status(403).json({ message: 'Non autorisé à déplacer un ouvrier vers un campus hors de votre périmètre' });
+      return;
+    }
 
     const data: Record<string, unknown> = {};
     if (prenom             !== undefined) data.prenom            = prenom;
@@ -267,6 +302,10 @@ export async function toggleStatut(req: Request, res: Response): Promise<void> {
     const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
     if (!ouvrier) {
       res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    if (horsPerimetreCampus(req, ouvrier.campus)) {
+      res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un ouvrier hors de votre périmètre' });
       return;
     }
 
@@ -353,6 +392,11 @@ export async function candidatureOuvrier(req: Request, res: Response): Promise<v
       res.status(400).json({ message: 'Champs obligatoires manquants : prenom, nom, telephone, campus' });
       return;
     }
+    const CAMPUS_VALIDES = ['paris', 'paris_nord', 'orleans', 'montpellier'];
+    if (!CAMPUS_VALIDES.includes(campus)) {
+      res.status(400).json({ message: 'Campus invalide' });
+      return;
+    }
     if (!consentement_rgpd) {
       res.status(400).json({ message: 'Le consentement RGPD est obligatoire.' });
       return;
@@ -436,6 +480,15 @@ export async function candidatureOuvrier(req: Request, res: Response): Promise<v
 export async function deactivateOuvrier(req: Request, res: Response): Promise<void> {
   try {
     const id = req.params['id'] as string;
+    const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
+    if (!ouvrier) {
+      res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    if (horsPerimetreCampus(req, ouvrier.campus)) {
+      res.status(403).json({ message: 'Non autorisé à désactiver un ouvrier hors de votre périmètre' });
+      return;
+    }
     await prisma.ouvrier.update({ where: { id }, data: { statut: false } });
     res.json({ message: 'Ouvrier désactivé' });
   } catch (err) {
@@ -454,6 +507,10 @@ export async function deleteOuvrier(req: Request, res: Response): Promise<void> 
     const ouvrier = await prisma.ouvrier.findUnique({ where: { id } });
     if (!ouvrier) {
       res.status(404).json({ message: 'Ouvrier introuvable' });
+      return;
+    }
+    if (horsPerimetreCampus(req, ouvrier.campus)) {
+      res.status(403).json({ message: 'Non autorisé à supprimer un ouvrier hors de votre périmètre' });
       return;
     }
     await prisma.$transaction([

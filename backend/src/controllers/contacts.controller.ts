@@ -15,6 +15,7 @@ import { logAudit } from '../lib/audit';
 import { sendEmailAssignation } from '../lib/email';
 import { genererCertificat } from '../lib/certificat';
 import { peutAccederContact, filtreContactsParRole } from '../lib/authorization';
+import { getCampusSettingsWithDefaults } from '../lib/campusSettings';
 
 const PROFIL_LABELS: Record<string, string> = {
   membre_phila:          'Membre Phila',
@@ -196,7 +197,7 @@ export async function createContact(req: Request, res: Response): Promise<void> 
     }
 
     // Champs obligatoires — vérification manuelle pour un message d'erreur clair
-    const required = ['genre', 'prenom', 'nom', 'telephone', 'ville', 'etat_civil', 'statut_phila', 'canal'];
+    const required = ['genre', 'prenom', 'nom', 'telephone', 'ville', 'campus', 'etat_civil', 'statut_phila', 'canal'];
     const missing = required.filter(f => !b[f]);
     if (missing.length) {
       res.status(400).json({ message: `Champs obligatoires manquants : ${missing.join(', ')}` });
@@ -223,7 +224,7 @@ export async function createContact(req: Request, res: Response): Promise<void> 
       etat_civil:       b.etat_civil,
       statut_phila:     b.statut_phila,
       profil,
-      campus:           b.campus          ?? 'paris',
+      campus:           b.campus,
       canal:            b.canal,
       saisi_par_membre: b.saisi_par_membre ?? false,
       rdv_pasteur:      b.rdv_pasteur      ?? false,
@@ -1078,8 +1079,7 @@ export async function telechargerCertificat(req: Request, res: Response): Promis
 
   const dateIntegration = contact.updated_at || new Date();
 
-  const settingVerset = await prisma.settings.findUnique({ where: { key: 'certificat_verset' } });
-  const verset = settingVerset?.value || "\"Car je connais les projets que j'ai formés sur vous...\" — Jérémie 29:11";
+  const { certificat_verset: verset } = await getCampusSettingsWithDefaults(contact.campus, ['certificat_verset']);
 
   const pdfBuffer = await genererCertificat({
     prenom:           contact.prenom,

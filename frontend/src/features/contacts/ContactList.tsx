@@ -11,7 +11,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import type { ContactRow, Canal, StatutContact, Campus, Profil, Intention } from '../../types';
 import {
-  CAMPUS_LABELS, STATUT_LABELS, STATUT_COLORS,
+  CAMPUS_LABELS, CAMPUS_OPTIONS, STATUT_LABELS, STATUT_COLORS,
   CANAL_LABELS, CANAL_BADGE, PROFIL_BADGE, PROFIL_LABELS, ROLE_RANK,
   INTENTION_LABELS, INTENTION_COLORS,
 } from '../../utils/constants';
@@ -540,8 +540,7 @@ export default function ContactList() {
 
         <select value={filterCampus} onChange={(e) => { setCampus(e.target.value as Campus | ''); setPage(1); }} style={S.sel}>
           <option value="">Tous les campus</option>
-          <option value="paris">Paris</option>
-          <option value="paris_nord">Paris Nord</option>
+          {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
 
         <select value={filterProfil} onChange={(e) => { setProfil(e.target.value as Profil | ''); setPage(1); }} style={S.sel}>

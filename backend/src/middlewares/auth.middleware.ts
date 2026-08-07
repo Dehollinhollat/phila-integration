@@ -11,7 +11,7 @@ export type UserRole =
   | 'referent_integration'
   | 'lecteur';
 
-export type CampusValue = 'paris' | 'paris_nord';
+export type CampusValue = 'paris' | 'paris_nord' | 'orleans' | 'montpellier';
 
 export interface JwtPayload {
   id: string;

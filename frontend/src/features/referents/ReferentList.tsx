@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ClipboardList } from 'lucide-react';
 import { referentsEndpoints } from '../../services/endpoints';
 import type { ChargeReferent } from '../../services/endpoints';
+import { CAMPUS_LABELS } from '../../utils/constants';
 import type { StatutContact } from '../../types';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -319,7 +320,7 @@ function Section({
                     {ref.email}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
-                    {ref.campus.map(c => c === 'paris' ? 'Paris' : 'Paris Nord').join(', ') || '-'}
+                    {ref.campus.map(c => CAMPUS_LABELS[c] ?? c).join(', ') || '-'}
                   </div>
                 </div>
 

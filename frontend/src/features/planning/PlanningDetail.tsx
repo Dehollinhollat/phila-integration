@@ -11,7 +11,7 @@ import autoTable from 'jspdf-autotable';
 import logoUrl from '../../assets/images/LOGO-PHILA-BLEU.png';
 import { planningEndpoints, affectationsEndpoints, ouvriersEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
-import { ROLE_RANK } from '../../utils/constants';
+import { ROLE_RANK, CAMPUS_LABELS } from '../../utils/constants';
 import type { PlanningService, AffectationPlanning, RoleService, Ouvrier } from '../../types';
 
 // ─── Helpers PDF ─────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ export default function PlanningDetail() {
 
     const doc        = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const BLUE       = [26, 86, 176] as [number, number, number];
-    const campusLabel = planning.campus === 'paris' ? 'Paris' : 'Paris Nord';
+    const campusLabel = CAMPUS_LABELS[planning.campus] ?? planning.campus;
     const dateStr    = planning.date_dimanche.slice(0, 10);
     const dateLabel  = formatDateLong(dateStr);
     const pageW      = doc.internal.pageSize.getWidth();
@@ -283,7 +283,7 @@ export default function PlanningDetail() {
               padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
               background: 'var(--badge-presentiel-bg)', color: 'var(--badge-presentiel-text)',
             }}>
-              {planning.campus === 'paris' ? 'Paris' : 'Paris Nord'}
+              {CAMPUS_LABELS[planning.campus] ?? planning.campus}
             </span>
             {estVerrouille && (
               <span style={{

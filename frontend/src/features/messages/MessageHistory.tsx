@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { messagesEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
-import { ROLE_RANK } from '../../utils/constants';
+import { ROLE_RANK, CAMPUS_OPTIONS } from '../../utils/constants';
 import type { Message } from '../../types';
 
 const PAGE_SIZE = 50;
@@ -336,8 +336,7 @@ export default function MessageHistory() {
             style={selectStyle}
           >
             <option value="">Tous les campus</option>
-            <option value="paris">Paris</option>
-            <option value="paris_nord">Paris Nord</option>
+            {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         )}
 

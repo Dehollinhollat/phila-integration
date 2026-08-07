@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { messagesEndpoints, contactsEndpoints, ouvriersEndpoints } from '../../services/endpoints';
 import type { FiltresDestinataires } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
-import { ROLE_RANK } from '../../utils/constants';
+import { ROLE_RANK, CAMPUS_OPTIONS } from '../../utils/constants';
 
 // ─── Variables disponibles dans le template ───────────────────────────────────
 
@@ -383,8 +383,7 @@ export default function MessageCompose() {
                   <label style={labelStyle}>Campus</label>
                   <select value={fCampus} onChange={(e) => setFCampus(e.target.value)} style={inputStyle}>
                     <option value="">Tous les campus</option>
-                    <option value="paris">Paris uniquement</option>
-                    <option value="paris_nord">Paris Nord uniquement</option>
+                    {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label} uniquement</option>)}
                   </select>
                 </div>
 
@@ -506,8 +505,7 @@ export default function MessageCompose() {
                   <label style={labelStyle}>Campus (ouvriers)</label>
                   <select value={fOuvrierCampus} onChange={(e) => setFOuvrierCampus(e.target.value)} style={inputStyle}>
                     <option value="">Tous les campus</option>
-                    <option value="paris">Paris</option>
-                    <option value="paris_nord">Paris Nord</option>
+                    {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
 

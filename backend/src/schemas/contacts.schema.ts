@@ -9,6 +9,7 @@ const GENRES       = ['homme', 'femme'] as const;
 const ETATS_CIVILS = ['celibataire', 'fiance', 'marie', 'divorce', 'veuf'] as const;
 const STATUTS      = ['oui', 'non', 'premiere_visite'] as const;
 const CANAUX       = ['presentiel', 'en_ligne'] as const;
+const CAMPUS_VALUES = ['paris', 'paris_nord', 'orleans', 'montpellier'] as const;
 
 export const createContactSchema = z.object({
   // Identité
@@ -24,6 +25,7 @@ export const createContactSchema = z.object({
   // Localisation
   ville:       z.string().min(1, 'Ville requise').max(100).trim(),
   code_postal: z.string().max(20).optional().nullable(),
+  campus:      z.enum(CAMPUS_VALUES),
 
   // Statut
   etat_civil:   z.enum(ETATS_CIVILS),

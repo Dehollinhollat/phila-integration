@@ -9,19 +9,31 @@ import type {
   Souhait, BesoinSpirituel, InteretCellule,
   DisponibiliteSuivi, Extension,
   StatutMessage, TypeMessage, StatutEvenement,
-  Intention,
+  Intention, DestinataireEvenement,
 } from '../types';
 
 // ─── Campus ──────────────────────────────────────────────────────────────────
 
 export const CAMPUS_LABELS: Record<Campus, string> = {
-  paris:      'Paris',
-  paris_nord: 'Paris Nord',
+  paris:       'Paris',
+  paris_nord:  'Paris Nord',
+  orleans:     'Orléans',
+  montpellier: 'Montpellier',
 };
 
 export const CAMPUS_OPTIONS = Object.entries(CAMPUS_LABELS).map(
   ([value, label]) => ({ value: value as Campus, label })
 );
+
+export const DESTINATAIRE_LABELS: Record<DestinataireEvenement, string> = {
+  tous:                  'Tous',
+  profil_membre_phila:   'Membres Phila',
+  profil_visiteur:       'Visiteurs',
+  campus_paris:          'Paris',
+  campus_paris_nord:     'Paris Nord',
+  campus_orleans:        'Orléans',
+  campus_montpellier:    'Montpellier',
+};
 
 // ─── Rôles ───────────────────────────────────────────────────────────────────
 

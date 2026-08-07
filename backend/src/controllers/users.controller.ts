@@ -22,6 +22,26 @@ function genererMotDePasseProvisoire(): string {
   return `Phila${random}!`;
 }
 
+// Vérifie qu'un admin_campus a le droit d'agir sur le compte cible : ni un super_admin,
+// ni un compte hors de son propre périmètre de campus. Retourne un message d'erreur si
+// refusé, ou null si autorisé. Le super_admin (appelant) n'est jamais restreint.
+// La cible introuvable (404) reste gérée séparément par chaque appelant.
+async function verifierPerimetreCible(req: Request, targetId: string): Promise<string | null> {
+  if (req.user!.role !== 'admin_campus') return null;
+
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { role: true, campus: true } });
+  if (!target) return null;
+
+  if (target.role === 'super_admin') {
+    return 'Non autorisé à agir sur un Super Administrateur';
+  }
+  const horsPerimetre = !target.campus.some(c => req.user!.campus.includes(c as never));
+  if (horsPerimetre) {
+    return 'Non autorisé à agir sur un compte hors de votre périmètre';
+  }
+  return null;
+}
+
 const USER_SELECT = {
   id: true, prenom: true, nom: true, email: true,
   role: true, campus: true, actif: true, created_at: true, onboarding_complete: true,
@@ -145,6 +165,15 @@ export async function createUser(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // Un admin_campus ne peut assigner que ses propres campus, jamais un campus hors de son périmètre
+  if (req.user!.role === 'admin_campus') {
+    const campusHorsPerimetre = (campus ?? []).some(c => !req.user!.campus.includes(c as never));
+    if (campusHorsPerimetre) {
+      res.status(403).json({ message: 'Non autorisé à assigner un campus hors de votre périmètre' });
+      return;
+    }
+  }
+
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) {
     res.status(409).json({ message: 'Un compte existe déjà avec cet email' });
@@ -178,7 +207,14 @@ export async function updateUser(req: Request, res: Response): Promise<void> {
 
   // Un admin_campus ne peut pas modifier un super_admin ni lui attribuer ce rôle
   if (req.user!.role === 'admin_campus') {
-    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+    const target = await prisma.user.findUnique({ where: { id }, select: { role: true, campus: true } });
+    // Un admin_campus ne peut agir sur AUCUN compte hors de son périmètre de campus —
+    // vérifié indépendamment du contenu de la requête (même si `campus` n'est pas dans
+    // le body, ex: renommage seul), sinon email/actif resteraient modifiables sans limite.
+    if (target && !target.campus.some(c => req.user!.campus.includes(c as never))) {
+      res.status(403).json({ message: 'Non autorisé à modifier un compte hors de votre périmètre' });
+      return;
+    }
     if (target?.role === 'super_admin') {
       res.status(403).json({ message: 'Non autorisé à modifier un Super Administrateur' });
       return;
@@ -186,6 +222,20 @@ export async function updateUser(req: Request, res: Response): Promise<void> {
     if (role === 'super_admin') {
       res.status(403).json({ message: 'Non autorisé à attribuer le rôle Super Administrateur' });
       return;
+    }
+    // Un admin_campus ne peut ni ajouter ni retirer un campus hors de son périmètre —
+    // seuls les campus effectivement modifiés (ajoutés ou retirés) sont vérifiés, pas
+    // l'ensemble du tableau soumis (sinon un simple renommage sur un utilisateur
+    // multi-campus existant serait bloqué s'il a un campus hors du périmètre de l'admin).
+    if (campus !== undefined) {
+      const actuel   = (target?.campus ?? []) as string[];
+      const ajouts   = campus.filter(c => !actuel.includes(c));
+      const retraits = actuel.filter(c => !campus.includes(c));
+      const horsPerimetre = [...ajouts, ...retraits].some(c => !req.user!.campus.includes(c as never));
+      if (horsPerimetre) {
+        res.status(403).json({ message: 'Non autorisé à modifier l\'accès à un campus hors de votre périmètre' });
+        return;
+      }
     }
   }
 
@@ -226,16 +276,23 @@ export async function toggleStatut(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const current = await prisma.user.findUnique({ where: { id }, select: { actif: true, role: true } });
+  const current = await prisma.user.findUnique({ where: { id }, select: { actif: true, role: true, campus: true } });
   if (!current) {
     res.status(404).json({ message: 'Utilisateur introuvable' });
     return;
   }
 
-  // Un admin_campus ne peut pas désactiver un super_admin
-  if (req.user!.role === 'admin_campus' && current.role === 'super_admin') {
-    res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un Super Administrateur' });
-    return;
+  // Un admin_campus ne peut pas désactiver un super_admin, ni un compte hors de son périmètre
+  if (req.user!.role === 'admin_campus') {
+    if (current.role === 'super_admin') {
+      res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un Super Administrateur' });
+      return;
+    }
+    const horsPerimetre = !current.campus.some(c => req.user!.campus.includes(c as never));
+    if (horsPerimetre) {
+      res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un compte hors de votre périmètre' });
+      return;
+    }
   }
 
   const user = await prisma.user.update({
@@ -348,6 +405,13 @@ export async function completeOnboarding(req: Request, res: Response): Promise<v
 // GET /api/users/:id/connexions — historique des connexions (super_admin uniquement)
 export async function listConnexions(req: Request, res: Response): Promise<void> {
   const id = req.params['id'] as string;
+
+  const refus = await verifierPerimetreCible(req, id);
+  if (refus) {
+    res.status(403).json({ message: refus });
+    return;
+  }
+
   const logs = await prisma.connectionLog.findMany({
     where:   { user_id: id },
     orderBy: { created_at: 'desc' },
@@ -364,6 +428,12 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
 
   if (!password || password.length < 8) {
     res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères' });
+    return;
+  }
+
+  const refus = await verifierPerimetreCible(req, id);
+  if (refus) {
+    res.status(403).json({ message: refus });
     return;
   }
 

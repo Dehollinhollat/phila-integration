@@ -13,7 +13,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ouvriersEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
-import { ROLE_RANK } from '../../utils/constants';
+import { ROLE_RANK, CAMPUS_LABELS, CAMPUS_OPTIONS } from '../../utils/constants';
 import type { Ouvrier } from '../../types';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -38,8 +38,6 @@ const SERVICES_LIST = [
 const SERVICE_LABELS: Record<string, string> = Object.fromEntries(
   SERVICES_LIST.map(s => [s.value, s.label])
 );
-
-const CAMPUS_LABELS: Record<string, string> = { paris: 'Paris', paris_nord: 'Paris Nord' };
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
@@ -183,8 +181,10 @@ export default function OuvrierList() {
   // ── Stats calculées depuis les données ───────────────────────────────────
   const actifs       = ouvriers.filter(o => o.statut);
   const totalActifs  = actifs.length;
-  const campusParis  = actifs.filter(o => o.campus === 'paris').length;
-  const campusNord   = actifs.filter(o => o.campus === 'paris_nord').length;
+  const parCampus    = CAMPUS_OPTIONS.map(({ value, label }) => ({
+    label,
+    count: actifs.filter(o => o.campus === value).length,
+  }));
 
   // Service le plus représenté
   const serviceCount: Record<string, number> = {};
@@ -234,9 +234,10 @@ export default function OuvrierList() {
 
       {/* Stats */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        <KpiCard value={totalActifs}  label="Ouvriers actifs" />
-        <KpiCard value={campusParis}  label="Paris" />
-        <KpiCard value={campusNord}   label="Paris Nord" />
+        <KpiCard value={totalActifs} label="Ouvriers actifs" />
+        {parCampus.map(pc => (
+          <KpiCard key={pc.label} value={pc.count} label={pc.label} />
+        ))}
         {topService && (
           <KpiCard
             value={SERVICE_LABELS[topService[0]] ?? topService[0]}
@@ -264,8 +265,7 @@ export default function OuvrierList() {
         />
         <select value={campus} onChange={e => setCampus(e.target.value)} style={selectStyle}>
           <option value="">Tous les campus</option>
-          <option value="paris">Paris</option>
-          <option value="paris_nord">Paris Nord</option>
+          {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <select value={statut} onChange={e => setStatut(e.target.value)} style={selectStyle}>
           <option value="">Actifs et inactifs</option>

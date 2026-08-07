@@ -6,7 +6,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { evenementsEndpoints } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
-import type { Evenement, Campus, StatutEvenement, DestinataireEvenement } from '../../types';
+import { CAMPUS_LABELS, CAMPUS_OPTIONS, DESTINATAIRE_LABELS } from '../../utils/constants';
+import type { Evenement, Campus, StatutEvenement } from '../../types';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -14,19 +15,6 @@ const STATUT_CFG: Record<StatutEvenement, { label: string; bg: string; text: str
   brouillon: { label: 'Brouillon', bg: 'var(--bg-secondary)',   text: 'var(--text-secondary)' },
   planifie:  { label: 'Planifié',  bg: '#fef3c7',               text: '#b45309' },
   envoye:    { label: 'Envoyé',    bg: '#dcfce7',               text: '#15803d' },
-};
-
-const DESTINATAIRE_LABELS: Record<DestinataireEvenement, string> = {
-  tous:                  'Tous',
-  profil_membre_phila:   'Membres Phila',
-  profil_visiteur:       'Visiteurs',
-  campus_paris:          'Paris',
-  campus_paris_nord:     'Paris Nord',
-};
-
-const CAMPUS_LABELS: Record<string, string> = {
-  paris:      'Paris',
-  paris_nord: 'Paris Nord',
 };
 
 function fmtDate(s?: string | null): string {
@@ -194,8 +182,7 @@ export default function EventScheduler() {
         </select>
         <select value={filterCampus} onChange={e => setFilterCampus(e.target.value as Campus | '')} style={selectStyle}>
           <option value="">Tous les campus</option>
-          <option value="paris">Paris</option>
-          <option value="paris_nord">Paris Nord</option>
+          {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <select value={filterPeriode} onChange={e => setFilterPeriode(e.target.value)} style={selectStyle}>
           <option value="">Toutes les périodes</option>

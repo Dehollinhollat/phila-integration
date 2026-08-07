@@ -51,25 +51,24 @@ export function requireMinRole(minRole: UserRole) {
 }
 
 /**
- * Vérifie que l'utilisateur a accès au campus du contact demandé.
- * Le super_admin a accès à tous les campus.
+ * Vérifie que l'utilisateur a accès au campus passé en paramètre de route (:campus).
+ * Le super_admin a accès à tous les campus. Utilisé par les routes /settings/campus/:campus.
  */
-export function requireCampusAccess(campusParam: 'paris' | 'paris_nord') {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      res.status(401).json({ message: 'Non authentifié' });
-      return;
-    }
-    if (req.user.role === 'super_admin') {
-      next();
-      return;
-    }
-    if (!req.user.campus.includes(campusParam)) {
-      res.status(403).json({ message: 'Accès refusé — campus non autorisé' });
-      return;
-    }
+export function requireCampusAccess(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    res.status(401).json({ message: 'Non authentifié' });
+    return;
+  }
+  if (req.user.role === 'super_admin') {
     next();
-  };
+    return;
+  }
+  const campusParam = req.params.campus;
+  if (!req.user.campus.includes(campusParam as never)) {
+    res.status(403).json({ message: 'Accès refusé — campus non autorisé' });
+    return;
+  }
+  next();
 }
 
 /**

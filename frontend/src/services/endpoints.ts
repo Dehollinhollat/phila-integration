@@ -274,9 +274,12 @@ export const usersAdminEndpoints = {
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export const settingsEndpoints = {
-  get:    ()                                     => api.get<Record<string, string>>('/settings'),
-  update: (entries: { key: string; value: string }[]) =>
-    api.put<Record<string, string>>('/settings', entries),
+  getGlobal:    ()                                         => api.get<Record<string, string>>('/settings/global'),
+  updateGlobal: (entries: { key: string; value: string }[]) =>
+    api.put<Record<string, string>>('/settings/global', entries),
+  getCampus:    (campus: string)                            => api.get<Record<string, string>>(`/settings/campus/${campus}`),
+  updateCampus: (campus: string, entries: { key: string; value: string }[]) =>
+    api.put<Record<string, string>>(`/settings/campus/${campus}`, entries),
 };
 
 // ─── Affectations ─────────────────────────────────────────────────────────────

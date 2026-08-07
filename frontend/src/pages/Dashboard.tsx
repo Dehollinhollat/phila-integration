@@ -17,7 +17,7 @@ import api from '../services/api';
 import { typography, spacing, radius, layout } from '../components/ui/tokens';
 import { useCountUp } from '../hooks/useCountUp';
 import {
-  STATUT_LABELS, STATUT_COLORS, CAMPUS_LABELS, PROFIL_BADGE, PROFIL_LABELS, CANAL_BADGE,
+  STATUT_LABELS, STATUT_COLORS, CAMPUS_LABELS, CAMPUS_OPTIONS, PROFIL_BADGE, PROFIL_LABELS, CANAL_BADGE,
 } from '../utils/constants';
 import { HelpButton } from '../components/common/HelpButton';
 import type { ContactRow, Campus, InscriptionMoisData, ProfilData, StatutData, MessageSemaineData } from '../types';
@@ -751,19 +751,20 @@ export default function Dashboard() {
     const presentiel  = filteredContacts.filter(c => c.canal === 'presentiel').length;
     const integre              = filteredContacts.filter(c => c.statut === 'integre').length;
     const ouvrier              = filteredContacts.filter(c => c.statut === 'ouvrier').length;
-    const paris                = filteredContacts.filter(c => c.campus === 'paris').length;
-    const parisNord            = filteredContacts.filter(c => c.campus === 'paris_nord').length;
-    const parisIntegre         = filteredContacts.filter(c => c.campus === 'paris' && c.statut === 'integre').length;
-    const parisMembrePhila     = filteredContacts.filter(c => c.campus === 'paris' && c.profil === 'membre_phila').length;
-    const parisNordIntegre     = filteredContacts.filter(c => c.campus === 'paris_nord' && c.statut === 'integre').length;
-    const parisNordMembrePhila = filteredContacts.filter(c => c.campus === 'paris_nord' && c.profil === 'membre_phila').length;
+    const parCampus = CAMPUS_OPTIONS.map(({ value, label }) => ({
+      campus:      value,
+      label,
+      total:       filteredContacts.filter(c => c.campus === value).length,
+      integre:     filteredContacts.filter(c => c.campus === value && c.statut === 'integre').length,
+      membrePhila: filteredContacts.filter(c => c.campus === value && c.profil === 'membre_phila').length,
+    }));
     const byStatut: Record<string, number> = {};
     for (const c of filteredContacts) {
       byStatut[c.statut] = (byStatut[c.statut] ?? 0) + 1;
     }
     return {
       total, membrePhila, visiteurSansEglise, visiteurAvecEglise, sansRef, enLigne, presentiel, byStatut,
-      integre, ouvrier, paris, parisNord, parisIntegre, parisMembrePhila, parisNordIntegre, parisNordMembrePhila,
+      integre, ouvrier, parCampus,
     };
   }, [filteredContacts]);
 
@@ -865,7 +866,7 @@ export default function Dashboard() {
         c.nom,
         PROFIL_LABELS[c.profil] || c.profil,
         STATUT_LABELS[c.statut] || c.statut,
-        c.campus === 'paris' ? 'Paris' : 'Paris Nord',
+        CAMPUS_LABELS[c.campus] ?? c.campus,
         new Date(c.date_inscription).toLocaleDateString('fr-FR'),
       ]),
       styles:              { fontSize: 9, cellPadding: 3 },
@@ -935,10 +936,7 @@ export default function Dashboard() {
     autoTable(doc, {
       startY: 125,
       head: [['Campus', 'Total', 'Integres', 'Membres Phila']],
-      body: [
-        ['Paris',      String(kpi.paris),      String(kpi.parisIntegre),     String(kpi.parisMembrePhila)    ],
-        ['Paris Nord', String(kpi.parisNord),  String(kpi.parisNordIntegre), String(kpi.parisNordMembrePhila)],
-      ],
+      body: kpi.parCampus.map(pc => [pc.label, String(pc.total), String(pc.integre), String(pc.membrePhila)]),
       styles:             { fontSize: 9, cellPadding: 3 },
       headStyles:         { fillColor: [26, 86, 176], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [245, 247, 250] },
@@ -960,7 +958,7 @@ export default function Dashboard() {
         c.nom,
         PROFIL_LABELS[c.profil] || c.profil,
         STATUT_LABELS[c.statut] || c.statut,
-        c.campus === 'paris' ? 'Paris' : 'Paris Nord',
+        CAMPUS_LABELS[c.campus] ?? c.campus,
         new Date(c.date_inscription).toLocaleDateString('fr-FR'),
       ]),
       styles:             { fontSize: 8, cellPadding: 2 },
@@ -992,9 +990,8 @@ export default function Dashboard() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   const campusOpts: Array<{ value: CampusFilter; label: string }> = [
-    { value: 'all',       label: 'Tous les campus' },
-    { value: 'paris',     label: 'Paris' },
-    { value: 'paris_nord',label: 'Paris Nord' },
+    { value: 'all', label: 'Tous les campus' },
+    ...CAMPUS_OPTIONS,
   ];
   const periodOpts: Array<{ value: PeriodFilter; label: string }> = [
     { value: 'month',   label: 'Ce mois' },

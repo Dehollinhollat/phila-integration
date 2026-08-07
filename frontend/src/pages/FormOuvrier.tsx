@@ -18,6 +18,8 @@ import api from '../services/api';
 import Logo from '../components/ui/Logo';
 import Footer from '../components/common/Footer';
 import { validatePhone, normalizePhone } from '../utils/phone';
+import { CAMPUS_LABELS } from '../utils/constants';
+import type { Campus } from '../types';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -513,12 +515,18 @@ export default function FormOuvrier() {
         </Field>
 
         <Field label="Campus" required error={errors.campus}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <OptionBtn selected={form.campus === 'paris'} onClick={() => set('campus', 'paris')}>
               Paris
             </OptionBtn>
             <OptionBtn selected={form.campus === 'paris_nord'} onClick={() => set('campus', 'paris_nord')}>
               Paris Nord
+            </OptionBtn>
+            <OptionBtn selected={form.campus === 'orleans'} onClick={() => set('campus', 'orleans')}>
+              Orléans
+            </OptionBtn>
+            <OptionBtn selected={form.campus === 'montpellier'} onClick={() => set('campus', 'montpellier')}>
+              Montpellier
             </OptionBtn>
           </div>
         </Field>
@@ -625,7 +633,7 @@ export default function FormOuvrier() {
             <div><strong>Téléphone :</strong> {form.prefix}{form.phone}</div>
             {form.email && <div><strong>Email :</strong> {form.email}</div>}
             <div><strong>Ville :</strong> {form.ville}</div>
-            <div><strong>Campus :</strong> {form.campus === 'paris' ? 'Paris' : 'Paris Nord'}</div>
+            <div><strong>Campus :</strong> {CAMPUS_LABELS[form.campus as Campus] ?? form.campus}</div>
             <div><strong>Services :</strong> {form.services.map(s =>
               SERVICES_CANDIDATURE.find(x => x.value === s)?.label).join(', ')}</div>
           </div>

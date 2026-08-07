@@ -6,7 +6,8 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
-import { sendWhatsApp, sendWhatsAppBulk } from '../lib/twilio';
+import { sendWhatsApp } from '../lib/twilio';
+import { DEFAULT_BIENVENUE_TEMPLATE, getCampusSettingsWithDefaults, getCampusSettingsForMany } from '../lib/campusSettings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,6 +67,8 @@ export function buildDestinataireWhere(
     case 'profil_visiteur':       return { profil: { in: ['visiteur_sans_eglise', 'visiteur_avec_eglise'] } };
     case 'campus_paris':          return { campus: 'paris' };
     case 'campus_paris_nord':     return { campus: 'paris_nord' };
+    case 'campus_orleans':        return { campus: 'orleans' };
+    case 'campus_montpellier':    return { campus: 'montpellier' };
     case 'tous':
     default:
       return campus ? { campus } : {};
@@ -203,19 +206,15 @@ export async function sendBienvenue(req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Charge le template et les settings de l'église
-    const [settingTemplate, settingTelEglise, settingAdresse] = await Promise.all([
-      prisma.settings.findUnique({ where: { key: 'message_bienvenue' } }),
-      prisma.settings.findUnique({ where: { key: 'telephone_eglise' } }),
-      prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }),
-    ]);
+    // Charge les réglages du campus de CE contact (pas une valeur globale)
+    const s = await getCampusSettingsWithDefaults(contact.campus, ['message_bienvenue', 'telephone_eglise', 'adresse_eglise']);
 
     const contenu = buildBienvenueMessage(
       contact.prenom,
       referent,
-      settingTelEglise?.value ?? '',
-      settingTemplate?.value  ?? undefined,
-      settingAdresse?.value   ?? '',
+      s.telephone_eglise,
+      s.message_bienvenue,
+      s.adresse_eglise,
     );
 
     const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
@@ -304,22 +303,40 @@ export async function createEvenement(req: Request, res: Response): Promise<void
     });
 
     if (envoyer_maintenant) {
-      const dateStr       = new Date(date_evenement).toLocaleDateString('fr-FR');
-      const adresseEglise = (await prisma.settings.findUnique({ where: { key: 'adresse_eglise' } }))?.value ?? '';
-      const msgText = message_template
-        .replace(/\[Date\]/g,    dateStr)
-        .replace(/\[Campus\]/g,  filtres.campus ?? filtres_ouvriers.campus ?? 'Phila')
-        .replace(/\[Adresse\]/g, adresseEglise);
+      const dateStr = new Date(date_evenement).toLocaleDateString('fr-FR');
 
       // ── Envoi aux contacts ────────────────────────────────────────────────
       if (dest_type === 'contacts' || dest_type === 'tous') {
         const contacts = await prisma.contact.findMany({
           where:  buildFiltresWhere(filtres),
-          select: { id: true, prenom: true, telephone: true },
+          select: { id: true, prenom: true, telephone: true, campus: true },
         });
 
         if (contacts.length > 0) {
-          const results = await sendWhatsAppBulk(contacts, msgText);
+          // Charge l'adresse de CHAQUE campus présent dans le lot en un seul aller-retour DB —
+          // un seul groupe (contacts) peut lui-même couvrir plusieurs campus dès que
+          // filtres.campus n'est pas précisé (filtre optionnel), donc chaque contact doit
+          // recevoir l'adresse de SON propre campus, jamais une valeur unique pour tout le groupe.
+          const settingsByCampus = await getCampusSettingsForMany(
+            contacts.map((c) => c.campus),
+            ['adresse_eglise'],
+          );
+
+          const results = await Promise.all(
+            contacts.map(async (c) => {
+              const s = settingsByCampus.get(c.campus)!;
+              const contenu = message_template
+                .replace(/\[Date\]/g,    dateStr)
+                .replace(/\[Campus\]/g,  filtres.campus ?? c.campus ?? 'Phila')
+                .replace(/\[Prénom\]/g,  c.prenom)
+                .replace(/\[prenom\]/gi, c.prenom)
+                .replace(/\[Adresse\]/g, s.adresse_eglise);
+
+              const { sid, error } = await sendWhatsApp(c.telephone, contenu);
+              return { id: c.id, sid, error };
+            }),
+          );
+
           await prisma.message.createMany({
             data: results.map((r) => ({
               contact_id:   r.id,
@@ -345,11 +362,33 @@ export async function createEvenement(req: Request, res: Response): Promise<void
 
         const ouvriers = await prisma.ouvrier.findMany({
           where:  ouvrierWhere,
-          select: { id: true, prenom: true, telephone: true },
+          select: { id: true, prenom: true, telephone: true, campus: true },
         });
 
         if (ouvriers.length > 0) {
-          const results = await sendWhatsAppBulk(ouvriers, msgText);
+          // Même logique que pour les contacts (voir commentaire ci-dessus) : un seul
+          // groupe (ouvriers) peut lui-même couvrir plusieurs campus dès que
+          // filtres_ouvriers.campus n'est pas précisé.
+          const settingsByCampus = await getCampusSettingsForMany(
+            ouvriers.map((o) => o.campus),
+            ['adresse_eglise'],
+          );
+
+          const results = await Promise.all(
+            ouvriers.map(async (o) => {
+              const s = settingsByCampus.get(o.campus)!;
+              const contenu = message_template
+                .replace(/\[Date\]/g,    dateStr)
+                .replace(/\[Campus\]/g,  filtres_ouvriers.campus ?? o.campus ?? 'Phila')
+                .replace(/\[Prénom\]/g,  o.prenom)
+                .replace(/\[prenom\]/gi, o.prenom)
+                .replace(/\[Adresse\]/g, s.adresse_eglise);
+
+              const { sid, error } = await sendWhatsApp(o.telephone, contenu);
+              return { id: o.id, sid, error };
+            }),
+          );
+
           await prisma.message.createMany({
             data: results.map((r) => ({
               contact_id:   null,
@@ -403,14 +442,10 @@ export async function twilioWebhook(req: Request, res: Response): Promise<void> 
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Template par défaut utilisé si la clé 'message_bienvenue' n'est pas encore configurée en BDD.
-export const DEFAULT_BIENVENUE_TEMPLATE =
-  `Bonjour [Prenom], en espérant que votre semaine se passe très bien par la grâce de Dieu. ` +
-  `L'église Phila Cité des Adorateurs est ravie de vous compter parmi ses fidèles ! ` +
-  `Je suis [Referent], votre référent d'intégration. ` +
-  `N'hésitez pas à me contacter au [Telephone_Referent]. ` +
-  `Vous pouvez aussi joindre l'église au [Telephone_Eglise]. ` +
-  `Nous allons prier pour vous. Avez-vous des sujets particuliers de prière ?`;
+// Déplacé vers lib/campusSettings.ts (source de vérité, avec DEFAULT_CAMPUS_SETTINGS).
+// Ré-exporté ici (via l'import ci-dessus) pour ne pas casser les imports existants
+// (cron.ts notamment) qui font `import { DEFAULT_BIENVENUE_TEMPLATE } from './messages.controller'`.
+export { DEFAULT_BIENVENUE_TEMPLATE };
 
 // Substitue toutes les variables [Variable] dans un template de message.
 // Appelé par le cron (bienvenue J+3, anniversaire) et par les envois manuels.

@@ -59,26 +59,3 @@ export async function sendWhatsApp(to: string, body: string): Promise<SendResult
   }
 }
 
-/**
- * Envoie un message en masse vers une liste de numéros.
- * Retourne les résultats individuels pour chaque destinataire.
- */
-export async function sendWhatsAppBulk(
-  recipients: Array<{ id: string; telephone: string; prenom: string }>,
-  template: string
-): Promise<Array<{ id: string; sid?: string; error?: string }>> {
-  const results = await Promise.allSettled(
-    recipients.map(async (r) => {
-      const body = template
-        .replace(/\[Prénom\]/g, r.prenom)
-        .replace(/\[prenom\]/gi, r.prenom);
-      const result = await sendWhatsApp(r.telephone, body);
-      return { id: r.id, ...result };
-    })
-  );
-
-  return results.map((r, i) => {
-    if (r.status === 'fulfilled') return r.value;
-    return { id: recipients[i].id, error: r.reason?.message ?? 'Erreur inconnue' };
-  });
-}

@@ -6,6 +6,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ouvriersEndpoints } from '../../services/endpoints';
+import { CAMPUS_OPTIONS } from '../../utils/constants';
+import type { Campus } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -153,6 +156,12 @@ export default function OuvrierForm() {
   const navigate  = useNavigate();
   const isEdit    = !!id;
 
+  const { user } = useAuth();
+  const isAdminCampus = user?.role === 'admin_campus';
+  const campusOptions = isAdminCampus
+    ? CAMPUS_OPTIONS.filter(o => user?.campus.includes(o.value))
+    : CAMPUS_OPTIONS;
+
   const [loading, setLoading] = useState(isEdit);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState<string | null>(null);
@@ -163,7 +172,7 @@ export default function OuvrierForm() {
   const [prefix,       setPrefix]       = useState('+33');
   const [localPhone,   setLocalPhone]   = useState('');
   const [email,        setEmail]        = useState('');
-  const [campus,       setCampus]       = useState('paris');
+  const [campus,       setCampus]       = useState<string>(() => campusOptions[0]?.value ?? 'paris');
   const [services,     setServices]     = useState<string[]>([]);
   const [dateDebut,       setDateDebut]       = useState('');
   const [dateNaissance,   setDateNaissance]   = useState('');
@@ -221,7 +230,7 @@ export default function OuvrierForm() {
           nom:                 nom.trim(),
           telephone,
           email:               email.trim() || undefined,
-          campus:              campus as 'paris' | 'paris_nord',
+          campus:              campus as Campus,
           services,
           date_debut_service:  dateDebut     || undefined,
           date_naissance:      dateNaissance || undefined,
@@ -357,8 +366,7 @@ export default function OuvrierForm() {
           <div>
             <FieldLabel required>Campus</FieldLabel>
             <Select value={campus} onChange={e => setCampus(e.target.value)}>
-              <option value="paris">Paris</option>
-              <option value="paris_nord">Paris Nord</option>
+              {campusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </Select>
           </div>
 

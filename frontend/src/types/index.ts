@@ -30,7 +30,7 @@ export type Intention =
   | 'ne_souhaite_pas_integrer'
   | 'transfere';
 
-export type Campus = 'paris' | 'paris_nord';
+export type Campus = 'paris' | 'paris_nord' | 'orleans' | 'montpellier';
 
 export type Role =
   | 'super_admin'
@@ -87,7 +87,9 @@ export type DestinataireEvenement =
   | 'profil_membre_phila'
   | 'profil_visiteur'
   | 'campus_paris'
-  | 'campus_paris_nord';
+  | 'campus_paris_nord'
+  | 'campus_orleans'
+  | 'campus_montpellier';
 
 // ─── Modèles ─────────────────────────────────────────────────────────────────
 
