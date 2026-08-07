@@ -40,6 +40,10 @@ Un `admin_campus` limité à un campus pouvait agir **en dehors de son périmèt
 
 **Suivi mineur, non sécuritaire (échoue de façon sûre — voir P3 ci-dessous) :** un super_admin qui repasse un événement d'un autre utilisateur en multi-campus (`campus: null`) puis le planifie peut se le voir annulé silencieusement par le cron, qui vérifie le rôle du *créateur* d'origine, pas celui de la personne qui a autorisé le passage en multi-campus.
 
+## ✅ Corrigé le 7 août 2026 — « Identifiants invalides » alors que le serveur est injoignable
+
+`frontend/src/pages/Login.tsx` distingue désormais explicitement une erreur réseau (`err.response === undefined`, backend injoignable → « Impossible de contacter le serveur ») d'un vrai refus d'authentification. Repéré deux fois pendant cette session : le backend local n'était simplement pas démarré, mais le message laissait croire à un mauvais mot de passe.
+
 ## 🔴 P1 — Sécurité
 
 ### Vérifier la signature des webhooks Twilio
@@ -67,12 +71,6 @@ Le modèle `Evenement` ne persiste ni `dest_type` ni `filtres_ouvriers` — ces 
 ---
 
 ## 🟡 P3 — Bugs d'expérience utilisateur
-
-### « Identifiants invalides » alors que le serveur est injoignable
-
-`frontend/src/pages/Login.tsx` — le message d'erreur d'authentification sert aussi de repli à toute erreur Axios sans corps de réponse, y compris un backend éteint. L'utilisateur croit s'être trompé de mot de passe alors que le serveur ne répond pas.
-
-**À faire :** distinguer l'erreur réseau (`err.response === undefined`) et afficher « Impossible de contacter le serveur ».
 
 ### Paramètres — trois points
 
