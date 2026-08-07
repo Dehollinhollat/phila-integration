@@ -8,6 +8,7 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { sendWhatsApp } from '../lib/twilio';
 import { DEFAULT_BIENVENUE_TEMPLATE, getCampusSettingsWithDefaults, getCampusSettingsForMany } from '../lib/campusSettings';
+import { peutAccederContact, resoudreCampusCible } from '../lib/authorization';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -180,6 +181,14 @@ export async function sendBienvenue(req: Request, res: Response): Promise<void> 
   try {
     const contactId = String(req.params.contactId);
 
+    // Même contrôle de périmètre que les 7 autres endpoints de la ressource Contact
+    // (voir contacts.controller.ts) — sans quoi n'importe quel contact serait joignable.
+    const autorise = await peutAccederContact(req.user!, contactId);
+    if (!autorise) {
+      res.status(403).json({ message: 'Contact hors de votre périmètre' });
+      return;
+    }
+
     const contact = await prisma.contact.findUnique({ where: { id: contactId } });
     if (!contact) {
       res.status(404).json({ message: 'Contact introuvable' });
@@ -279,6 +288,20 @@ export async function createEvenement(req: Request, res: Response): Promise<void
       return;
     }
 
+    // Le ciblage est contraint au périmètre de l'appelant, séparément pour chaque
+    // audience — sans quoi un admin_campus pourrait diffuser à tous les campus en
+    // laissant simplement le filtre campus vide.
+    const cibleContacts = resoudreCampusCible(req.user!, filtres.campus);
+    if (!cibleContacts.ok) {
+      res.status(403).json({ message: cibleContacts.message });
+      return;
+    }
+    const cibleOuvriers = resoudreCampusCible(req.user!, filtres_ouvriers.campus);
+    if (!cibleOuvriers.ok) {
+      res.status(403).json({ message: cibleOuvriers.message });
+      return;
+    }
+
     let statut: 'brouillon' | 'planifie' | 'envoye' = 'brouillon';
     if (envoyer_maintenant) statut = 'envoye';
     else if (planifie_le)   statut = 'planifie';
@@ -292,7 +315,7 @@ export async function createEvenement(req: Request, res: Response): Promise<void
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         destinataires: 'tous' as any,                                    // sentinel — les vrais filtres sont dans filtres_json
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        campus:        filtres.campus ? (filtres.campus as any) : null,  // dénormalisé pour rétrocompat
+        campus:        cibleContacts.campus as any,  // dénormalisé pour rétrocompat, contraint au périmètre
         date_evenement: new Date(date_evenement),
         planifie_le:   planifie_le ? new Date(planifie_le) : null,
         statut,
@@ -308,7 +331,11 @@ export async function createEvenement(req: Request, res: Response): Promise<void
       // ── Envoi aux contacts ────────────────────────────────────────────────
       if (dest_type === 'contacts' || dest_type === 'tous') {
         const contacts = await prisma.contact.findMany({
-          where:  buildFiltresWhere(filtres),
+          // Le campus résolu est appliqué en dernier : il prime sur celui du corps de requête.
+          where:  {
+            ...buildFiltresWhere(filtres),
+            ...(cibleContacts.campus ? { campus: cibleContacts.campus as never } : {}),
+          },
           select: { id: true, prenom: true, telephone: true, campus: true },
         });
 
@@ -357,7 +384,7 @@ export async function createEvenement(req: Request, res: Response): Promise<void
       // ── Envoi aux ouvriers ────────────────────────────────────────────────
       if (dest_type === 'ouvriers' || dest_type === 'tous') {
         const ouvrierWhere: Record<string, unknown> = { statut: true };
-        if (filtres_ouvriers.campus) ouvrierWhere.campus = filtres_ouvriers.campus;
+        if (cibleOuvriers.campus) ouvrierWhere.campus = cibleOuvriers.campus;
         if (filtres_ouvriers.service) ouvrierWhere.services = { hasSome: [filtres_ouvriers.service] };
 
         const ouvriers = await prisma.ouvrier.findMany({

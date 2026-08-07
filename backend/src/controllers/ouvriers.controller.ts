@@ -11,15 +11,10 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
-
-// Vérifie que l'appelant a le droit d'agir sur un ouvrier de ce campus.
-// Retourne true si refusé (hors périmètre). Le super_admin n'est jamais restreint ;
-// tout rôle non super_admin (admin_campus, referent_*, lecteur…) est limité à ses
-// propres campus. Les ouvriers n'ont pas de rôle (contrairement à User) — seule la
-// vérification de campus s'applique ici.
-function horsPerimetreCampus(req: Request, campusCible: string): boolean {
-  return req.user!.role !== 'super_admin' && !req.user!.campus.includes(campusCible as never);
-}
+// Contrôle de périmètre campus partagé avec evenements/messages — voir lib/authorization.ts.
+// Les ouvriers n'ont pas de rôle (contrairement à User) : seule la vérification de campus
+// s'applique ici.
+import { horsPerimetreCampus } from '../lib/authorization';
 
 // ─── Liste ───────────────────────────────────────────────────────────────────
 
@@ -107,7 +102,7 @@ export async function getOuvrier(req: Request, res: Response): Promise<void> {
       res.status(404).json({ message: 'Ouvrier introuvable' });
       return;
     }
-    if (horsPerimetreCampus(req, ouvrier.campus)) {
+    if (horsPerimetreCampus(req.user!, ouvrier.campus)) {
       res.status(403).json({ message: 'Non autorisé à consulter un ouvrier hors de votre périmètre' });
       return;
     }
@@ -159,7 +154,7 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
         return;
       }
 
-      if (horsPerimetreCampus(req, contact.campus)) {
+      if (horsPerimetreCampus(req.user!, contact.campus)) {
         res.status(403).json({ message: 'Non autorisé à créer un ouvrier hors de votre périmètre' });
         return;
       }
@@ -206,7 +201,7 @@ export async function createOuvrier(req: Request, res: Response): Promise<void> 
     }
 
     // ── Mode inscription directe ─────────────────────────────────────────────
-    if (horsPerimetreCampus(req, campus)) {
+    if (horsPerimetreCampus(req.user!, campus)) {
       res.status(403).json({ message: 'Non autorisé à créer un ouvrier hors de votre périmètre' });
       return;
     }
@@ -260,11 +255,11 @@ export async function updateOuvrier(req: Request, res: Response): Promise<void> 
     // peut même pas éditer cette fiche), et s'il change de campus, le NOUVEAU campus
     // demandé doit aussi être dans son périmètre (sinon il pourrait "voler" un ouvrier
     // vers un campus qu'il ne gère pas).
-    if (horsPerimetreCampus(req, exists.campus)) {
+    if (horsPerimetreCampus(req.user!, exists.campus)) {
       res.status(403).json({ message: 'Non autorisé à modifier un ouvrier hors de votre périmètre' });
       return;
     }
-    if (campus !== undefined && horsPerimetreCampus(req, campus)) {
+    if (campus !== undefined && horsPerimetreCampus(req.user!, campus)) {
       res.status(403).json({ message: 'Non autorisé à déplacer un ouvrier vers un campus hors de votre périmètre' });
       return;
     }
@@ -304,7 +299,7 @@ export async function toggleStatut(req: Request, res: Response): Promise<void> {
       res.status(404).json({ message: 'Ouvrier introuvable' });
       return;
     }
-    if (horsPerimetreCampus(req, ouvrier.campus)) {
+    if (horsPerimetreCampus(req.user!, ouvrier.campus)) {
       res.status(403).json({ message: 'Non autorisé à modifier le statut d\'un ouvrier hors de votre périmètre' });
       return;
     }
@@ -485,7 +480,7 @@ export async function deactivateOuvrier(req: Request, res: Response): Promise<vo
       res.status(404).json({ message: 'Ouvrier introuvable' });
       return;
     }
-    if (horsPerimetreCampus(req, ouvrier.campus)) {
+    if (horsPerimetreCampus(req.user!, ouvrier.campus)) {
       res.status(403).json({ message: 'Non autorisé à désactiver un ouvrier hors de votre périmètre' });
       return;
     }
@@ -509,7 +504,7 @@ export async function deleteOuvrier(req: Request, res: Response): Promise<void> 
       res.status(404).json({ message: 'Ouvrier introuvable' });
       return;
     }
-    if (horsPerimetreCampus(req, ouvrier.campus)) {
+    if (horsPerimetreCampus(req.user!, ouvrier.campus)) {
       res.status(403).json({ message: 'Non autorisé à supprimer un ouvrier hors de votre périmètre' });
       return;
     }

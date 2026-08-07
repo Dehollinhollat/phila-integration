@@ -1,12 +1,18 @@
 // src/controllers/evenements.controller.ts
 // Gestion des événements et de la planification des envois groupés WhatsApp.
-// La substitution des variables [Prénom], [Date], [Campus] est effectuée à l'envoi (cron.ts).
+// Les variables [Prénom], [Date], [Campus], [Adresse] sont substituées par destinataire
+// à l'envoi immédiat (envoyerEvenement) comme à l'envoi planifié (cron.ts, Tâche 2).
+//
+// Périmètre : le campus d'un événement est un attribut stocké, et `null` signifie
+// « tous les campus ». Un admin_campus ne peut donc agir que sur un événement dont le
+// campus est explicitement dans son périmètre — un événement multi-campus lui est refusé.
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { sendWhatsApp } from '../lib/twilio';
 import { buildDestinataireWhere, buildFiltresWhere } from './messages.controller';
 import { getCampusSettingsForMany } from '../lib/campusSettings';
+import { horsPerimetreCampus, resoudreCampusCible } from '../lib/authorization';
 
 // GET /api/evenements
 export async function listEvenements(req: Request, res: Response): Promise<void> {
@@ -56,6 +62,13 @@ export async function getEvenement(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // En lecture, on autorise les événements multi-campus (campus null) comme le fait
+  // déjà listEvenements — seul un événement rattaché à un AUTRE campus est masqué.
+  if (evenement.campus !== null && horsPerimetreCampus(req.user!, evenement.campus)) {
+    res.status(403).json({ message: 'Événement hors de votre périmètre' });
+    return;
+  }
+
   res.json(evenement);
 }
 
@@ -68,9 +81,15 @@ export async function createEvenement(req: Request, res: Response): Promise<void
     return;
   }
 
+  const cible = resoudreCampusCible(req.user!, campus);
+  if (!cible.ok) {
+    res.status(403).json({ message: cible.message });
+    return;
+  }
+
   const evenement = await prisma.evenement.create({
     data: {
-      titre, description, campus,
+      titre, description, campus: cible.campus as never,
       date_evenement: new Date(date_evenement),
       message_template, destinataires,
       created_by: req.user!.id,
@@ -87,6 +106,10 @@ export async function envoyerEvenement(req: Request, res: Response): Promise<voi
   const ev = await prisma.evenement.findUnique({ where: { id } });
   if (!ev) {
     res.status(404).json({ message: 'Événement introuvable' });
+    return;
+  }
+  if (horsPerimetreCampus(req.user!, ev.campus)) {
+    res.status(403).json({ message: 'Événement hors de votre périmètre' });
     return;
   }
   if (ev.statut === 'envoye') {
@@ -177,12 +200,24 @@ export async function updateEvenement(req: Request, res: Response): Promise<void
     res.status(404).json({ message: 'Événement introuvable' });
     return;
   }
+  if (horsPerimetreCampus(req.user!, evenement.campus)) {
+    res.status(403).json({ message: 'Événement hors de votre périmètre' });
+    return;
+  }
   if (evenement.statut === 'envoye') {
     res.status(400).json({ message: 'Impossible de modifier un événement déjà envoyé' });
     return;
   }
 
   const data = { ...req.body };
+
+  // Un déplacement vers un autre campus doit rester dans le périmètre de l'appelant,
+  // sans quoi il suffirait de créer l'événement sur son campus puis de le réaffecter.
+  if ('campus' in data && horsPerimetreCampus(req.user!, data.campus)) {
+    res.status(403).json({ message: 'Campus de destination hors de votre périmètre' });
+    return;
+  }
+
   if (data.date_evenement) data.date_evenement = new Date(data.date_evenement);
   if (data.planifie_le) data.planifie_le = new Date(data.planifie_le);
 
@@ -197,6 +232,10 @@ export async function deleteEvenement(req: Request, res: Response): Promise<void
   const evenement = await prisma.evenement.findUnique({ where: { id } });
   if (!evenement) {
     res.status(404).json({ message: 'Événement introuvable' });
+    return;
+  }
+  if (horsPerimetreCampus(req.user!, evenement.campus)) {
+    res.status(403).json({ message: 'Événement hors de votre périmètre' });
     return;
   }
   if (evenement.statut === 'envoye') {
@@ -227,6 +266,10 @@ export async function planifierEvenement(req: Request, res: Response): Promise<v
   const evenement = await prisma.evenement.findUnique({ where: { id } });
   if (!evenement) {
     res.status(404).json({ message: 'Événement introuvable' });
+    return;
+  }
+  if (horsPerimetreCampus(req.user!, evenement.campus)) {
+    res.status(403).json({ message: 'Événement hors de votre périmètre' });
     return;
   }
   if (evenement.statut === 'envoye') {

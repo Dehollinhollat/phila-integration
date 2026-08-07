@@ -11,7 +11,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../lib/prisma';
 import { sendWhatsApp } from '../../lib/twilio';
-import { createEvenement } from '../../controllers/messages.controller';
+import { createEvenement, sendBienvenue } from '../../controllers/messages.controller';
 
 function mockRes(): { res: Partial<Response>; jsonMock: jest.Mock; statusMock: jest.Mock } {
   const jsonMock   = jest.fn();
@@ -140,5 +140,93 @@ describe('createEvenement - resolution par destinataire (WITHIN un seul groupe m
     expect(telC2).toBe('+33600000002');
     expect(msgC2).toContain('2 rue de Montpellier');
     expect(msgC2).not.toContain('1 rue de la Loire');
+  });
+});
+
+// ─── Périmètre campus ────────────────────────────────────────────────────────
+// Faille pré-existante : ni createEvenement ni sendBienvenue ne vérifiaient que le
+// campus visé appartenait au périmètre de l'appelant. Un admin_campus scopé sur Paris
+// pouvait diffuser à tous les campus en laissant simplement le filtre campus vide.
+
+describe('périmètre campus', () => {
+  it('createEvenement restreint les destinataires au périmètre quand aucun campus n\'est demandé', async () => {
+    mockCampusSettingsFindMany();
+    (prisma.evenement.create as jest.Mock).mockResolvedValue({ id: 'ev-1' });
+    (prisma.contact.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.message.createMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+    const { res } = mockRes();
+    await createEvenement(
+      {
+        user: { id: 'a1', role: 'admin_campus', campus: ['orleans'] },
+        body: {
+          titre: 'Culte', message_template: 'Bonjour', date_evenement: '2026-09-01',
+          envoyer_maintenant: true, dest_type: 'contacts', filtres: {},
+        },
+      } as unknown as Request,
+      res as Response,
+    );
+
+    // Filtre vide : la requête doit malgré tout être bornée au campus de l'appelant.
+    const whereUtilise = (prisma.contact.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(whereUtilise.campus).toBe('orleans');
+  });
+
+  it('createEvenement refuse un campus hors périmètre', async () => {
+    const { res, statusMock } = mockRes();
+    await createEvenement(
+      {
+        user: { id: 'a1', role: 'admin_campus', campus: ['orleans'] },
+        body: {
+          titre: 'Culte', message_template: 'Bonjour', date_evenement: '2026-09-01',
+          envoyer_maintenant: true, dest_type: 'contacts', filtres: { campus: 'paris' },
+        },
+      } as unknown as Request,
+      res as Response,
+    );
+
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(prisma.evenement.create).not.toHaveBeenCalled();
+  });
+
+  it('createEvenement borne aussi l\'audience ouvriers au périmètre', async () => {
+    mockCampusSettingsFindMany();
+    (prisma.evenement.create as jest.Mock).mockResolvedValue({ id: 'ev-2' });
+    (prisma.ouvrier.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.message.createMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+    const { res } = mockRes();
+    await createEvenement(
+      {
+        user: { id: 'a1', role: 'admin_campus', campus: ['montpellier'] },
+        body: {
+          titre: 'Culte', message_template: 'Bonjour', date_evenement: '2026-09-01',
+          envoyer_maintenant: true, dest_type: 'ouvriers', filtres_ouvriers: {},
+        },
+      } as unknown as Request,
+      res as Response,
+    );
+
+    const whereOuvriers = (prisma.ouvrier.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(whereOuvriers.campus).toBe('montpellier');
+  });
+
+  it('sendBienvenue refuse un contact hors périmètre', async () => {
+    // peutAccederContact lit le contact pour comparer son campus au périmètre.
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue({
+      campus: 'paris', referent_eglise_id: null,
+    });
+
+    const { res, statusMock } = mockRes();
+    await sendBienvenue(
+      {
+        params: { contactId: 'c-1' },
+        user: { id: 'a1', role: 'admin_campus', campus: ['orleans'] },
+      } as unknown as Request,
+      res as Response,
+    );
+
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(sendWhatsApp).not.toHaveBeenCalled();
   });
 });
