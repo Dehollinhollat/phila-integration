@@ -143,6 +143,59 @@ describe('createEvenement - resolution par destinataire (WITHIN un seul groupe m
   });
 });
 
+// ─── Persistance dest_type / filtres_ouvriers ────────────────────────────────
+// Avant ce champ, dest_type et filtres_ouvriers n'existaient qu'en mémoire le temps
+// de la requête HTTP : un événement dest_type='ouvriers'/'tous' PLANIFIÉ (pas envoyé
+// immédiatement) perdait cette information en base, et le cron (Tâche 2) comme le
+// renvoi manuel (envoyerEvenement) ne touchaient donc jamais les ouvriers.
+describe('createEvenement - persistance de dest_type et filtres_ouvriers pour un envoi differe', () => {
+  it("persiste dest_type='ouvriers' et filtres_ouvriers (borne au perimetre) meme sans envoyer_maintenant", async () => {
+    (prisma.evenement.create as jest.Mock).mockResolvedValue({ id: 'ev-1' });
+
+    const { res } = mockRes();
+    const req = {
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: {
+        titre:            'Reunion ouvriers',
+        message_template: 'Bonjour',
+        date_evenement:   '2026-09-01',
+        planifie_le:      '2026-08-15T09:00:00Z',
+        dest_type:        'ouvriers',
+        filtres_ouvriers: { service: 'louange' },
+        // pas de envoyer_maintenant : l'evenement reste en attente pour le cron
+      },
+    } as unknown as Request;
+
+    await createEvenement(req, res as Response);
+
+    expect(sendWhatsApp).not.toHaveBeenCalled();
+    const data = (prisma.evenement.create as jest.Mock).mock.calls[0][0].data;
+    expect(data.dest_type).toBe('ouvriers');
+    expect(JSON.parse(data.filtres_ouvriers)).toEqual({ service: 'louange', campus: 'paris' });
+  });
+
+  it("dest_type='contacts' (par defaut) : filtres_ouvriers reste null en base", async () => {
+    (prisma.evenement.create as jest.Mock).mockResolvedValue({ id: 'ev-2' });
+
+    const { res } = mockRes();
+    const req = {
+      user: { id: 'admin-1', role: 'admin_campus', campus: ['paris'] },
+      body: {
+        titre:            'Actu',
+        message_template: 'Bonjour',
+        date_evenement:   '2026-09-01',
+        planifie_le:      '2026-08-15T09:00:00Z',
+      },
+    } as unknown as Request;
+
+    await createEvenement(req, res as Response);
+
+    const data = (prisma.evenement.create as jest.Mock).mock.calls[0][0].data;
+    expect(data.dest_type).toBe('contacts');
+    expect(data.filtres_ouvriers).toBeNull();
+  });
+});
+
 // ─── Périmètre campus ────────────────────────────────────────────────────────
 // Faille pré-existante : ni createEvenement ni sendBienvenue ne vérifiaient que le
 // campus visé appartenait au périmètre de l'appelant. Un admin_campus scopé sur Paris

@@ -161,3 +161,67 @@ describe('Tache 2 - un evenement multi-campus n\'est envoye que si son createur 
     });
   });
 });
+
+describe("Tache 2 - dest_type/filtres_ouvriers persistes, l'audience ouvriers est bien envoyee", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCampusSettingsFindMany();
+    (prisma.message.createMany as jest.Mock).mockResolvedValue({ count: 0 });
+    (prisma.evenement.update as jest.Mock).mockResolvedValue({ id: 'ev-1' });
+    (prisma.contact.findMany as jest.Mock).mockResolvedValue([]);
+  });
+
+  it("dest_type='ouvriers' : interroge prisma.ouvrier et envoie aux ouvriers trouves", async () => {
+    (prisma.evenement.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 'ev-ouv', titre: 'Reunion ouvriers', message_template: 'Bonjour [Prenom]',
+        destinataires: 'tous', campus: 'paris', filtres_json: null,
+        dest_type: 'ouvriers', filtres_ouvriers: JSON.stringify({ campus: 'paris' }),
+        date_evenement: new Date('2026-09-01'), planifie_le: new Date('2026-08-01T09:00:00Z'),
+        statut: 'planifie', created_by: 'admin-1', createur: { role: 'admin_campus' },
+      },
+    ]);
+    (prisma.ouvrier.findMany as jest.Mock).mockResolvedValue([
+      { id: 'o1', prenom: 'Marc', telephone: '+33600000009', campus: 'paris' },
+    ]);
+    (sendWhatsApp as jest.Mock).mockResolvedValue({ sid: 'SM_o1' });
+
+    const { startCronJobs } = await import('../../lib/cron');
+    startCronJobs();
+    const tache2Callback = getTache2Callback(cron.schedule as jest.Mock);
+
+    await tache2Callback();
+
+    expect(prisma.ouvrier.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ statut: true, campus: 'paris' }),
+    }));
+    expect(sendWhatsApp).toHaveBeenCalledWith('+33600000009', expect.stringContaining('Marc'));
+    expect(prisma.message.createMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.arrayContaining([expect.objectContaining({ contact_id: null, evenement_id: 'ev-ouv' })]),
+    }));
+    expect(prisma.evenement.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'ev-ouv' },
+      data:  expect.objectContaining({ statut: 'envoye' }),
+    }));
+  });
+
+  it("dest_type='contacts' (ou absent) : n'interroge jamais prisma.ouvrier", async () => {
+    (prisma.evenement.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 'ev-c', titre: 'Actu', message_template: 'Bonjour',
+        destinataires: 'tous', campus: 'paris', filtres_json: null,
+        dest_type: null, filtres_ouvriers: null,
+        date_evenement: new Date('2026-09-01'), planifie_le: new Date('2026-08-01T09:00:00Z'),
+        statut: 'planifie', created_by: 'admin-1', createur: { role: 'admin_campus' },
+      },
+    ]);
+
+    const { startCronJobs } = await import('../../lib/cron');
+    startCronJobs();
+    const tache2Callback = getTache2Callback(cron.schedule as jest.Mock);
+
+    await tache2Callback();
+
+    expect(prisma.ouvrier.findMany).not.toHaveBeenCalled();
+  });
+});

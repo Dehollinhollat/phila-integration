@@ -335,4 +335,102 @@ describe('updateEvenement - liste blanche des champs modifiables', () => {
     expect(data).not.toHaveProperty('envoye_le');
     expect(data).not.toHaveProperty('created_by');
   });
+
+  it('ignore aussi dest_type et filtres_ouvriers (memes raisons : redefinissent QUI recoit)', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'brouillon', campus: 'paris',
+    });
+    (prisma.evenement.update as jest.Mock).mockResolvedValue({ id: 'ev-1' });
+
+    const { res } = mockRes();
+    await updateEvenement(
+      mockReq({
+        user: { id: 'a1', role: 'admin_campus', campus: ['paris'] },
+        body: {
+          titre:            'Nouveau titre',
+          dest_type:        'ouvriers',
+          filtres_ouvriers: JSON.stringify({ campus: 'orleans' }),
+        },
+      } as Partial<Request>),
+      res as Response,
+    );
+
+    const data = (prisma.evenement.update as jest.Mock).mock.calls[0][0].data;
+    expect(data).not.toHaveProperty('dest_type');
+    expect(data).not.toHaveProperty('filtres_ouvriers');
+  });
+});
+
+describe('envoyerEvenement - audience ouvriers (dest_type persiste)', () => {
+  beforeEach(() => {
+    (prisma.message.createMany as jest.Mock).mockResolvedValue({ count: 0 });
+    (prisma.evenement.update as jest.Mock).mockResolvedValue({ id: 'ev-1', statut: 'envoye' });
+    (prisma.campusSettings.findMany as jest.Mock).mockResolvedValue([
+      { campus: 'paris', key: 'adresse_eglise', value: '1 rue de Paris' },
+    ]);
+  });
+
+  it("dest_type='ouvriers' : interroge prisma.ouvrier, jamais prisma.contact, et envoie aux ouvriers", async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'planifie', destinataires: 'tous', campus: 'paris',
+      filtres_json: null, dest_type: 'ouvriers', filtres_ouvriers: JSON.stringify({ campus: 'paris' }),
+      date_evenement: new Date('2026-09-01'), message_template: 'Bonjour [Prénom]',
+    });
+    (prisma.ouvrier.findMany as jest.Mock).mockResolvedValue([
+      { id: 'o1', prenom: 'Marc', telephone: '+33600000009', campus: 'paris' },
+    ]);
+    (sendWhatsApp as jest.Mock).mockResolvedValue({ sid: 'SM_o1' });
+
+    const { res, jsonMock } = mockRes();
+    await envoyerEvenement(mockReq(), res as Response);
+
+    expect(prisma.contact.findMany).not.toHaveBeenCalled();
+    expect(prisma.ouvrier.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ statut: true, campus: 'paris' }),
+    }));
+    expect(sendWhatsApp).toHaveBeenCalledWith('+33600000009', expect.stringContaining('Marc'));
+    expect(prisma.message.createMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.arrayContaining([expect.objectContaining({ contact_id: null })]),
+    }));
+    expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({ sent: 1, failed: 0, total: 1 }));
+  });
+
+  it("dest_type='tous' : envoie a la fois aux contacts et aux ouvriers", async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'planifie', destinataires: 'tous', campus: 'paris',
+      filtres_json: null, dest_type: 'tous', filtres_ouvriers: JSON.stringify({ campus: 'paris' }),
+      date_evenement: new Date('2026-09-01'), message_template: 'Bonjour [Prénom]',
+    });
+    (prisma.contact.findMany as jest.Mock).mockResolvedValue([
+      { id: 'c1', prenom: 'Alice', nom: 'Martin', telephone: '+33600000001', campus: 'paris' },
+    ]);
+    (prisma.ouvrier.findMany as jest.Mock).mockResolvedValue([
+      { id: 'o1', prenom: 'Marc', telephone: '+33600000009', campus: 'paris' },
+    ]);
+    (sendWhatsApp as jest.Mock).mockResolvedValue({ sid: 'SM_ok' });
+
+    const { res, jsonMock } = mockRes();
+    await envoyerEvenement(mockReq(), res as Response);
+
+    expect(sendWhatsApp).toHaveBeenCalledTimes(2);
+    expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({ sent: 2, failed: 0, total: 2 }));
+  });
+
+  it("dest_type absent (evenement cree avant ce champ) : se comporte comme 'contacts', jamais prisma.ouvrier", async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'planifie', destinataires: 'tous', campus: 'paris',
+      filtres_json: null, dest_type: null, filtres_ouvriers: null,
+      date_evenement: new Date('2026-09-01'), message_template: 'Bonjour [Prénom]',
+    });
+    (prisma.contact.findMany as jest.Mock).mockResolvedValue([
+      { id: 'c1', prenom: 'Alice', nom: 'Martin', telephone: '+33600000001', campus: 'paris' },
+    ]);
+    (sendWhatsApp as jest.Mock).mockResolvedValue({ sid: 'SM_ok' });
+
+    const { res } = mockRes();
+    await envoyerEvenement(mockReq(), res as Response);
+
+    expect(prisma.ouvrier.findMany).not.toHaveBeenCalled();
+    expect(sendWhatsApp).toHaveBeenCalledTimes(1);
+  });
 });

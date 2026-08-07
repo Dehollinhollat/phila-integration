@@ -10,7 +10,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { sendWhatsApp } from '../lib/twilio';
-import { buildDestinataireWhere, buildFiltresWhere } from './messages.controller';
+import { buildDestinataireWhere, buildFiltresWhere, buildOuvrierWhere } from './messages.controller';
 import { getCampusSettingsForMany } from '../lib/campusSettings';
 import { horsPerimetreCampus, resoudreCampusCible } from '../lib/authorization';
 
@@ -124,6 +124,7 @@ export async function envoyerEvenement(req: Request, res: Response): Promise<voi
   }
 
   const now = new Date();
+  const destType = ((ev as Record<string, unknown>).dest_type as string | null) ?? 'contacts';
 
   const filtresJson = (ev as Record<string, unknown>).filtres_json as string | null | undefined;
   let contactWhere: Record<string, unknown>;
@@ -141,12 +142,33 @@ export async function envoyerEvenement(req: Request, res: Response): Promise<voi
   // Appliqué ici plutôt qu'à la création : cela protège aussi les événements déjà en base.
   if (ev.campus) contactWhere.campus = ev.campus;
 
-  const contacts = await prisma.contact.findMany({
-    where: contactWhere,
-    select: { id: true, prenom: true, nom: true, telephone: true, campus: true },
-  });
+  const dateStr = ev.date_evenement.toLocaleDateString('fr-FR');
 
-  if (contacts.length === 0) {
+  // ── Destinataires contacts ──────────────────────────────────────────────────
+  const contacts = (destType === 'contacts' || destType === 'tous')
+    ? await prisma.contact.findMany({
+        where: contactWhere,
+        select: { id: true, prenom: true, nom: true, telephone: true, campus: true },
+      })
+    : [];
+
+  // ── Destinataires ouvriers ──────────────────────────────────────────────────
+  // filtres_ouvriers est déjà borné au périmètre du créateur à la création
+  // (voir createEvenement) — rien à re-vérifier ici, contrairement aux contacts
+  // dont le campus peut provenir d'un vieil événement pré-filtres_json.
+  const filtresOuvriersJson = (ev as Record<string, unknown>).filtres_ouvriers as string | null | undefined;
+  let filtresOuvriers: { campus?: string; service?: string } = {};
+  if (filtresOuvriersJson) {
+    try { filtresOuvriers = JSON.parse(filtresOuvriersJson); } catch { /* garde {} */ }
+  }
+  const ouvriers = (destType === 'ouvriers' || destType === 'tous')
+    ? await prisma.ouvrier.findMany({
+        where:  buildOuvrierWhere(filtresOuvriers),
+        select: { id: true, prenom: true, telephone: true, campus: true },
+      })
+    : [];
+
+  if (contacts.length === 0 && ouvriers.length === 0) {
     const updated = await prisma.evenement.update({
       where: { id },
       data: { statut: 'envoye', envoye_le: now },
@@ -156,17 +178,15 @@ export async function envoyerEvenement(req: Request, res: Response): Promise<voi
     return;
   }
 
-  const dateStr = ev.date_evenement.toLocaleDateString('fr-FR');
-
-  // Charge l'adresse de CHAQUE campus présent dans le lot en un seul aller-retour DB —
+  // Charge l'adresse de CHAQUE campus présent dans les deux lots en un seul aller-retour DB —
   // un événement peut cibler plusieurs campus à la fois (ev.campus null / filtres multi-campus),
-  // donc chaque contact doit recevoir l'adresse de SON propre campus, jamais une valeur unique.
+  // donc chaque destinataire doit recevoir l'adresse de SON propre campus, jamais une valeur unique.
   const settingsByCampus = await getCampusSettingsForMany(
-    contacts.map(c => c.campus),
+    [...contacts.map(c => c.campus), ...ouvriers.map(o => o.campus)],
     ['adresse_eglise'],
   );
 
-  const results = await Promise.all(
+  const contactResults = await Promise.all(
     contacts.map(async (contact) => {
       const s = settingsByCampus.get(contact.campus)!;
       const contenu = ev.message_template
@@ -177,13 +197,30 @@ export async function envoyerEvenement(req: Request, res: Response): Promise<voi
         .replace(/\[Adresse\]/g, s.adresse_eglise);
 
       const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
-      return { id: contact.id, sid, error };
+      return { contact_id: contact.id as string | null, sid, error };
     }),
   );
 
+  const ouvrierResults = await Promise.all(
+    ouvriers.map(async (ouvrier) => {
+      const s = settingsByCampus.get(ouvrier.campus)!;
+      const contenu = ev.message_template
+        .replace(/\[Date\]/g, dateStr)
+        .replace(/\[Campus\]/g, filtresOuvriers.campus ?? ouvrier.campus ?? 'Phila')
+        .replace(/\[Prénom\]/g, ouvrier.prenom)
+        .replace(/\[prenom\]/gi, ouvrier.prenom)
+        .replace(/\[Adresse\]/g, s.adresse_eglise);
+
+      const { sid, error } = await sendWhatsApp(ouvrier.telephone, contenu);
+      return { contact_id: null as string | null, sid, error };
+    }),
+  );
+
+  const results = [...contactResults, ...ouvrierResults];
+
   await prisma.message.createMany({
     data: results.map(r => ({
-      contact_id:   r.id,
+      contact_id:   r.contact_id,
       evenement_id: id,
       type:         'evenement',
       contenu:      ev.message_template,

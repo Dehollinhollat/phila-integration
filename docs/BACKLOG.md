@@ -41,13 +41,22 @@ Repéré par la revue de sécurité automatique après ouverture de 3 endpoints 
 
 ---
 
+## ✅ Corrigé le 8 août 2026 — Les envois planifiés n'atteignaient jamais les ouvriers
+
+Le modèle `Evenement` ne persistait ni `dest_type` ni `filtres_ouvriers` — ces valeurs n'existaient qu'en mémoire, le temps de la requête HTTP. Un événement créé avec `dest_type: 'ouvriers'` ou `'tous'` **et** une date de planification (ou renvoyé manuellement plus tard) ne touchait jamais les ouvriers, sans aucune erreur. Corrigé :
+
+- `dest_type` et `filtres_ouvriers` ajoutés au modèle Prisma (`db push`, colonnes nullables, additif — aucune donnée existante affectée) et persistés à la création (`createEvenement`, `messages.controller.ts`), `filtres_ouvriers` déjà borné au périmètre du créateur, même principe que `filtres_json`.
+- `envoyerEvenement` (renvoi manuel, `evenements.controller.ts`) et la Tâche 2 du cron (`cron.ts`) gèrent maintenant l'audience ouvriers, avec le même motif que pour les contacts (adresse par campus, non-blocage si un groupe est vide).
+- `dest_type`/`filtres_ouvriers` explicitement exclus de la liste blanche de `updateEvenement` (même raison que `filtres_json` : redéfiniraient QUI reçoit après coup).
+- Nouveau helper partagé `buildOuvrierWhere` (`messages.controller.ts`), réutilisé par les 3 points d'envoi.
+- Le frontend envoyait déjà `dest_type`/`filtres_ouvriers` dans le payload (`MessageCompose.tsx`) — aucun changement nécessaire côté client.
+- 9 tests ajoutés (persistance + 3 points d'envoi), vérifiés empiriquement comme échouant sur le code d'avant.
+
+**Découverte en cours de route, non corrigée :** `evenements.controller.ts::createEvenement` (route `POST /api/evenements`) est un second endpoint de création d'événement, plus simple (pas de `dest_type`/immédiat), **jamais appelé par le frontend** — `evenementsEndpoints.create` n'existe même pas côté client, qui utilise uniquement `messagesEndpoints.createEvenement` (`POST /api/messages/evenement`). Code mort, probablement un reliquat d'avant l'ajout du système de filtres avancés. À supprimer (fonction + route) après confirmation qu'aucun appel externe n'en dépend.
+
+---
+
 ## 🟠 P2 — Fonctionnalités cassées silencieusement
-
-### Les envois planifiés n'atteignent jamais les ouvriers
-
-Le modèle `Evenement` ne persiste ni `dest_type` ni `filtres_ouvriers` — ces valeurs n'existent qu'en mémoire, le temps de la requête HTTP. Un événement créé avec `dest_type: 'ouvriers'` ou `'tous'` **et** une date de planification est ensuite repris par le cron (Tâche 2, `backend/src/lib/cron.ts`), qui ne requête que `prisma.contact`. Les ouvriers ne reçoivent rien, sans aucune erreur.
-
-**À faire :** ajouter `dest_type` et `filtres_ouvriers` au modèle Prisma, les enregistrer à la création, et gérer l'audience ouvriers dans la Tâche 2 du cron.
 
 ### Deux clés de paramètres configurables mais jamais utilisées
 

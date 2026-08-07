@@ -488,6 +488,8 @@ model Evenement {
   planifie_le      DateTime?             // date/heure à laquelle node-cron déclenchera l'envoi
   envoye_le        DateTime?             // horodatage de fin d'envoi (tous messages créés)
   filtres_json     String?               // JSON des filtres destinataires avancés ; null = mode hérité (destinataires enum)
+  dest_type        String?               // 'contacts' | 'ouvriers' | 'tous' — null = 'contacts' (retrocompat événements créés avant ce champ)
+  filtres_ouvriers String?               // JSON { campus?, service? } pour l'audience ouvriers ; déjà borné au périmètre du créateur à la création
   created_by       String
   createur         User                  @relation(fields: [created_by], references: [id])
   created_at       DateTime              @default(now())

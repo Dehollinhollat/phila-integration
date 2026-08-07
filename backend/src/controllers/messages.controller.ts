@@ -77,6 +77,16 @@ export function buildDestinataireWhere(
   }
 }
 
+// Construit le filtre where Prisma pour l'audience ouvriers d'un événement —
+// partagé avec createEvenement, envoyerEvenement (evenements.controller.ts) et
+// cron.ts (Tâche 2), qui doivent tous les trois pouvoir cibler les ouvriers.
+export function buildOuvrierWhere(filtres: { campus?: string; service?: string }): Record<string, unknown> {
+  const where: Record<string, unknown> = { statut: true };
+  if (filtres.campus)  where.campus   = filtres.campus;
+  if (filtres.service) where.services = { hasSome: [filtres.service] };
+  return where;
+}
+
 // GET /api/messages
 export async function listMessages(req: Request, res: Response): Promise<void> {
   try {
@@ -345,6 +355,15 @@ export async function createEvenement(req: Request, res: Response): Promise<void
         filtres_json:  Object.keys(filtres).length > 0
           ? JSON.stringify({ ...filtres, ...(cibleContacts.campus ? { campus: cibleContacts.campus } : {}) })
           : null,
+        // dest_type et filtres_ouvriers doivent être persistés pour que l'envoi différé
+        // (cron.ts Tâche 2) et le renvoi manuel (envoyerEvenement) sachent viser les
+        // ouvriers — avant ce champ, ces valeurs n'existaient qu'en mémoire le temps de
+        // cette requête HTTP et un événement dest_type='ouvriers'/'tous' planifié ne
+        // touchait jamais les ouvriers. Même principe de bornage que filtres_json.
+        dest_type:         dest_type,
+        filtres_ouvriers:  (dest_type === 'ouvriers' || dest_type === 'tous')
+          ? JSON.stringify({ ...filtres_ouvriers, ...(cibleOuvriers.campus ? { campus: cibleOuvriers.campus } : {}) })
+          : null,
         created_by:    req.user!.id,
         envoye_le:     envoyer_maintenant ? now : null,
       },
@@ -408,9 +427,7 @@ export async function createEvenement(req: Request, res: Response): Promise<void
 
       // ── Envoi aux ouvriers ────────────────────────────────────────────────
       if (dest_type === 'ouvriers' || dest_type === 'tous') {
-        const ouvrierWhere: Record<string, unknown> = { statut: true };
-        if (cibleOuvriers.campus) ouvrierWhere.campus = cibleOuvriers.campus;
-        if (filtres_ouvriers.service) ouvrierWhere.services = { hasSome: [filtres_ouvriers.service] };
+        const ouvrierWhere = buildOuvrierWhere({ ...filtres_ouvriers, campus: cibleOuvriers.campus ?? undefined });
 
         const ouvriers = await prisma.ouvrier.findMany({
           where:  ouvrierWhere,
