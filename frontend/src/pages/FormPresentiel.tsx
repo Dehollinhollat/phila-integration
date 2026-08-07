@@ -10,6 +10,7 @@ import api from '../services/api';
 import Logo from '../components/ui/Logo';
 import Footer from '../components/common/Footer';
 import { validatePhone, normalizePhone } from '../utils/phone';
+import { COMMENT_CONNU_OPTIONS } from '../utils/constants';
 
 // ─── Types locaux ─────────────────────────────────────────────────────────────
 
@@ -245,6 +246,8 @@ export default function FormPresentiel() {
   const [phoneCheck, setPhoneCheck] = useState<{
     loading: boolean; exists: boolean; id: string | null;
   }>({ loading: false, exists: false, id: null });
+  // "Comment avez-vous connu cette église ?" — bascule sur la zone de texte libre
+  const [autreConnu, setAutreConnu] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -648,13 +651,29 @@ export default function FormPresentiel() {
         </Field>
 
         <Field label="Comment avez-vous connu cette église ?" hint="Facultatif">
-          <textarea
-            value={form.comment_connu}
-            onChange={e => set('comment_connu', e.target.value)}
-            placeholder="Par un ami, les réseaux sociaux …"
-            rows={3}
-            style={txStyle}
-          />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {COMMENT_CONNU_OPTIONS.map(o => (
+              <OptionBtn
+                key={o}
+                selected={!autreConnu && form.comment_connu === o}
+                onClick={() => { setAutreConnu(false); set('comment_connu', o); }}
+              >
+                {o}
+              </OptionBtn>
+            ))}
+            <OptionBtn selected={autreConnu} onClick={() => { setAutreConnu(true); set('comment_connu', ''); }}>
+              Autre
+            </OptionBtn>
+          </div>
+          {autreConnu && (
+            <textarea
+              value={form.comment_connu}
+              onChange={e => set('comment_connu', e.target.value)}
+              placeholder="Précisez…"
+              rows={2}
+              style={{ ...txStyle, marginTop: 8 }}
+            />
+          )}
         </Field>
       </div>
     );
@@ -751,13 +770,29 @@ export default function FormPresentiel() {
         </Field>
 
         <Field label="Comment avez-vous connu cette église ?" hint="Facultatif">
-          <textarea
-            value={form.comment_connu}
-            onChange={e => set('comment_connu', e.target.value)}
-            placeholder="Par un ami, les réseaux sociaux …"
-            rows={3}
-            style={txStyle}
-          />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {COMMENT_CONNU_OPTIONS.map(o => (
+              <OptionBtn
+                key={o}
+                selected={!autreConnu && form.comment_connu === o}
+                onClick={() => { setAutreConnu(false); set('comment_connu', o); }}
+              >
+                {o}
+              </OptionBtn>
+            ))}
+            <OptionBtn selected={autreConnu} onClick={() => { setAutreConnu(true); set('comment_connu', ''); }}>
+              Autre
+            </OptionBtn>
+          </div>
+          {autreConnu && (
+            <textarea
+              value={form.comment_connu}
+              onChange={e => set('comment_connu', e.target.value)}
+              placeholder="Précisez…"
+              rows={2}
+              style={{ ...txStyle, marginTop: 8 }}
+            />
+          )}
         </Field>
       </div>
     );

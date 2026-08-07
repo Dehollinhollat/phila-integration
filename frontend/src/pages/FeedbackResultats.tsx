@@ -36,7 +36,7 @@ interface FeedbackStats {
 const LABELS: Record<string, Record<string, string>> = {
   q1:  { nouveau_visiteur: 'Nouveau visiteur', membre_regulier: 'Membre régulier', ouvrier: 'Ouvrier/bénévole' },
   q2:  { premiere_fois: '1ère fois', quelques_fois: 'Quelques fois', irregulier: 'Irrégulier', presque_chaque_dim: 'Presque chaque dim.' },
-  q3:  { proche: 'Proche/famille', reseaux: 'Réseaux sociaux', internet: 'Internet', affiches: 'Affiches', passais: 'Je passais devant', autre: 'Autre' },
+  q3:  { proche: 'Proche/famille', reseaux: 'Réseaux sociaux', internet: 'Internet', affiches: 'Affiches', passais: 'Je passais devant', evangelisation: 'Évangélisation', autre: 'Autre' },
   q6:  { louange: 'Louange', predication: 'Prédication', priere: 'Prière', annonces: 'Annonces', echanges: 'Échanges', ambiance: 'Ambiance', autre: 'Autre' },
   q7:  { accueil_nouveaux: 'Accueil NM', duree_culte: 'Durée culte', louange_duree: 'Durée louange', message: 'Message', echange: 'Échanges', communication: 'Communication', logistique: 'Logistique', satisfait: 'Satisfait', autre: 'Autre' },
   q8:  { moins_1h30: '< 1h30', '1h30_2h': '1h30-2h', '2h_2h30': '2h-2h30', plus_2h30: '> 2h30' },

@@ -16,7 +16,7 @@ import {
   GENRE_OPTIONS, ETAT_CIVIL_OPTIONS, STATUT_PHILA_OPTIONS,
   CAMPUS_OPTIONS, STATUT_OPTIONS, INTERET_CELLULE_LABELS,
   SOUHAIT_LABELS, BESOIN_LABELS, DISPO_LABELS, EXTENSION_LABELS,
-  PROFIL_LABELS, PROFIL_BADGE,
+  PROFIL_LABELS, PROFIL_BADGE, COMMENT_CONNU_OPTIONS,
 } from '../../utils/constants';
 
 // ─── Type formulaire ──────────────────────────────────────────────────────────
@@ -166,6 +166,8 @@ export default function ContactForm() {
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  // "Comment a-t-il / elle connu l'église ?" — bascule sur la zone de texte libre
+  const [autreConnu, setAutreConnu] = useState(false);
 
   function set<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm(prev => {
@@ -404,12 +406,26 @@ export default function ContactForm() {
             </Field>
 
             <Field label="Comment a-t-il / elle connu l'église ?">
-              <input
-                value={form.comment_connu}
-                onChange={(e) => set('comment_connu', e.target.value)}
-                placeholder="Bouche à oreille, réseaux sociaux…"
-                style={S.input}
-              />
+              <select
+                value={autreConnu ? 'autre' : form.comment_connu}
+                onChange={(e) => {
+                  if (e.target.value === 'autre') { setAutreConnu(true); set('comment_connu', ''); }
+                  else { setAutreConnu(false); set('comment_connu', e.target.value); }
+                }}
+                style={S.select}
+              >
+                <option value="">- Non renseigné -</option>
+                {COMMENT_CONNU_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                <option value="autre">Autre (préciser)</option>
+              </select>
+              {autreConnu && (
+                <input
+                  value={form.comment_connu}
+                  onChange={(e) => set('comment_connu', e.target.value)}
+                  placeholder="Préciser…"
+                  style={{ ...S.input, marginTop: 8 }}
+                />
+              )}
             </Field>
           </SectionCard>
         )}

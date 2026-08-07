@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Users, User, Building2, AlertTriangle, Monitor, MessageSquare,
+  Users, User, Building2, AlertTriangle, Monitor, MessageSquare, Megaphone,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { contactsEndpoints, messagesEndpoints, statsEndpoints } from '../services/endpoints';
@@ -18,6 +18,7 @@ import { typography, spacing, radius, layout } from '../components/ui/tokens';
 import { useCountUp } from '../hooks/useCountUp';
 import {
   STATUT_LABELS, STATUT_COLORS, CAMPUS_LABELS, CAMPUS_OPTIONS, PROFIL_BADGE, PROFIL_LABELS, CANAL_BADGE,
+  CANAL_EVANGELISATION,
 } from '../utils/constants';
 import { HelpButton } from '../components/common/HelpButton';
 import type { ContactRow, Campus, InscriptionMoisData, ProfilData, StatutData, MessageSemaineData } from '../types';
@@ -751,6 +752,7 @@ export default function Dashboard() {
     const presentiel  = filteredContacts.filter(c => c.canal === 'presentiel').length;
     const integre              = filteredContacts.filter(c => c.statut === 'integre').length;
     const ouvrier              = filteredContacts.filter(c => c.statut === 'ouvrier').length;
+    const evangelisation       = filteredContacts.filter(c => c.comment_connu === CANAL_EVANGELISATION).length;
     const parCampus = CAMPUS_OPTIONS.map(({ value, label }) => ({
       campus:      value,
       label,
@@ -764,7 +766,7 @@ export default function Dashboard() {
     }
     return {
       total, membrePhila, visiteurSansEglise, visiteurAvecEglise, sansRef, enLigne, presentiel, byStatut,
-      integre, ouvrier, parCampus,
+      integre, ouvrier, evangelisation, parCampus,
     };
   }, [filteredContacts]);
 
@@ -1208,6 +1210,7 @@ export default function Dashboard() {
             <KpiPercent label="En ligne"    value={kpi.enLigne}    total={kpi.total} icon={<Monitor size={18} />}    accentVar="--accent-blue"   entryDelay={0.5} />
             <KpiPercent label="Présentiel"  value={kpi.presentiel} total={kpi.total} icon={<Building2 size={18} />}  accentVar="--accent-violet" entryDelay={0.6} />
             <KpiSimple  label="Messages envoyés" value={msgCount}  icon={<MessageSquare size={18} />} accentVar="--accent-teal" entryDelay={0.7} />
+            <KpiSimple  label="Par évangélisation" value={kpi.evangelisation} icon={<Megaphone size={18} />} accentVar="--accent-gold" entryDelay={0.8} />
           </div>
 
           {/* ── 2 cartes - côte à côte desktop, empilées mobile ──────────── */}

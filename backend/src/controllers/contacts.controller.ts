@@ -143,6 +143,7 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
           referent_integration: { select: { id: true, prenom: true, nom: true } },
           referent_eglise: { select: { id: true, prenom: true, nom: true } },
           derniere_interaction: true,
+          comment_connu: true,
         },
       }),
       prisma.contact.count({ where }),

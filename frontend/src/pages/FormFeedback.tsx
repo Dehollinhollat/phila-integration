@@ -270,11 +270,12 @@ export default function FormFeedback() {
             <div style={S.question}>
               <label style={S.label}>Q3 : Comment avez-vous découvert Phila Cité des Adorateurs ?</label>
               <CheckboxGroup values={reponses.q3} onChange={v => set('q3', v)} otherValue={reponses.q3_autre} onOtherChange={v => set('q3_autre', v)} options={[
-                { value: 'proche',   label: 'Par un proche / ami / famille' },
-                { value: 'reseaux',  label: 'Réseaux sociaux' },
-                { value: 'internet', label: 'Recherche internet' },
-                { value: 'affiches', label: 'Affiches / flyers' },
-                { value: 'passais',  label: 'Je passais devant' },
+                { value: 'proche',        label: 'Par un proche / ami / famille' },
+                { value: 'reseaux',       label: 'Réseaux sociaux' },
+                { value: 'internet',      label: 'Recherche internet' },
+                { value: 'affiches',      label: 'Affiches / flyers' },
+                { value: 'passais',       label: 'Je passais devant' },
+                { value: 'evangelisation', label: 'Évangélisation' },
               ]} />
             </div>
           </div>

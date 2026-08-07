@@ -177,7 +177,7 @@ export type ContactRow = Pick<
   | 'id' | 'genre' | 'prenom' | 'nom' | 'telephone'
   | 'ville' | 'profil' | 'statut' | 'campus' | 'canal'
   | 'date_inscription' | 'derniere_interaction'
-  | 'intention'
+  | 'intention' | 'comment_connu'
 > & {
   referent_integration?: UserSummary;
   referent_eglise?:      UserSummary;

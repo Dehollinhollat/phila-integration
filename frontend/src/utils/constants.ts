@@ -145,6 +145,22 @@ export const EXTENSION_LABELS: Record<Extension, string> = {
   montpellier: 'Montpellier',
 };
 
+// ─── Comment connu (découverte de l'église) ───────────────────────────────────
+// Pas un enum Prisma — comment_connu reste un champ texte libre (String?) pour
+// ne pas perdre les réponses historiques déjà en base. Ces options servent de
+// suggestions à choix rapide dans les formulaires ; la valeur stockée est le
+// libellé lui-même. "Autre" bascule sur la zone de texte libre existante.
+export const CANAL_EVANGELISATION = 'Évangélisation';
+
+export const COMMENT_CONNU_OPTIONS = [
+  'Par un proche / ami / famille',
+  'Réseaux sociaux',
+  'Recherche internet',
+  'Affiches / flyers',
+  'Je passais devant',
+  CANAL_EVANGELISATION,
+] as const;
+
 // ─── Souhait ─────────────────────────────────────────────────────────────────
 
 export const SOUHAIT_LABELS: Record<Souhait, string> = {
