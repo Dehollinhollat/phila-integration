@@ -2,7 +2,7 @@
 
 Application web full-stack de gestion de l'intégration des membres pour l'église Phila Cité des Adorateurs (Paris + Paris Nord). Projet en production depuis juin 2026.
 
-[Voir l'application](https://phila-integration-five.vercel.app) — compte de démonstration disponible sur demande.
+[Voir l'application](https://phila-integration-five.vercel.app) -compte de démonstration disponible sur demande.
 
 ---
 
@@ -211,6 +211,6 @@ cd frontend && npm run test:e2e
 
 ## Auteur
 
-Développé par **Déhollin Hollat** — Chef de Projet Data & IA  
+Développé par **Déhollin Hollat** -Chef de Projet Data & IA  
 MBA Big Data & IA en cours  
 dehollin.hollat@outlook.fr
