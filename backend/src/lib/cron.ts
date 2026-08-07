@@ -105,12 +105,29 @@ export function startCronJobs(): void {
         statut: 'planifie',
         planifie_le: { lte: now },
       },
+      include: { createur: { select: { role: true } } },
     });
 
     if (evenements.length === 0) return;
 
     for (const ev of evenements) {
       console.log(`[Cron] Envoi événement: ${ev.titre}`);
+
+      // Un événement campus=null cible tous les campus — légitime uniquement si son
+      // créateur est ENCORE super_admin au moment de l'envoi (pas seulement au moment
+      // de la création : le rôle a pu être révoqué entre-temps). Le cron n'a aucun
+      // contexte utilisateur pour re-vérifier un périmètre, c'est le seul filet ici.
+      if (!ev.campus && ev.createur?.role !== 'super_admin') {
+        console.error(
+          `[Cron] Événement "${ev.titre}" (${ev.id}) ignoré : campus multi-campus mais ` +
+          `créateur non super_admin (role actuel: ${ev.createur?.role ?? 'inconnu'}).`
+        );
+        await prisma.evenement.update({
+          where: { id: ev.id },
+          data: { statut: 'brouillon', planifie_le: null },
+        });
+        continue;
+      }
 
       // Construit le filtre destinataires.
       // Les événements créés avec le nouveau système stockent leurs filtres dans filtres_json.

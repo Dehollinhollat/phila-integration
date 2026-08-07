@@ -77,6 +77,7 @@ describe('cron.ts - Tache 2 (envois groupes planifies) - resolution par destinat
         planifie_le:     new Date('2026-08-01T09:00:00Z'),
         statut:          'planifie',
         created_by:      'admin-1',
+        createur:        { role: 'super_admin' },
       },
     ]);
 
@@ -121,5 +122,42 @@ describe('cron.ts - Tache 2 (envois groupes planifies) - resolution par destinat
         data:  expect.objectContaining({ statut: 'envoye' }),
       })
     );
+  });
+});
+
+describe('Tache 2 - un evenement multi-campus n\'est envoye que si son createur est TOUJOURS super_admin', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (prisma.message.createMany as jest.Mock).mockResolvedValue({ count: 0 });
+    (prisma.evenement.update as jest.Mock).mockResolvedValue({ id: 'ev-1' });
+  });
+
+  it("n'envoie pas et repasse en brouillon si le createur n'est plus super_admin", async () => {
+    // Cas historique : un evenement campus=null cree avant le controle de perimetre
+    // (ou par un compte depuis retrograde) ne doit jamais partir sans verification —
+    // le cron n'a aucun contexte utilisateur pour re-verifier un perimetre lui-meme.
+    (prisma.evenement.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 'ev-1', titre: 'Ancien evenement', message_template: 'Bonjour',
+        destinataires: 'tous', campus: null, filtres_json: null,
+        date_evenement: new Date('2026-09-01'), planifie_le: new Date('2026-08-01T09:00:00Z'),
+        statut: 'planifie', created_by: 'admin-demote',
+        createur: { role: 'admin_campus' }, // retrograde depuis la creation
+      },
+    ]);
+
+    const { startCronJobs } = await import('../../lib/cron');
+    startCronJobs();
+    const scheduleMock = cron.schedule as jest.Mock;
+    const tache2Callback = getTache2Callback(scheduleMock);
+
+    await tache2Callback();
+
+    expect(sendWhatsApp).not.toHaveBeenCalled();
+    expect(prisma.contact.findMany).not.toHaveBeenCalled();
+    expect(prisma.evenement.update).toHaveBeenCalledWith({
+      where: { id: 'ev-1' },
+      data:  { statut: 'brouillon', planifie_le: null },
+    });
   });
 });
