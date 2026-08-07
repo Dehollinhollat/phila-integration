@@ -152,6 +152,18 @@ export async function getMessage(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Le message expose le contact lié (nom, téléphone) : même périmètre que le contact.
+    // Les messages sans contact (envois ouvriers) restent réservés au super_admin.
+    if (req.user!.role !== 'super_admin') {
+      const autorise = message.contact_id
+        ? await peutAccederContact(req.user!, message.contact_id)
+        : false;
+      if (!autorise) {
+        res.status(403).json({ message: 'Message hors de votre périmètre' });
+        return;
+      }
+    }
+
     res.json(message);
   } catch (err) {
     console.error('[getMessage]', err);
@@ -163,6 +175,13 @@ export async function getMessage(req: Request, res: Response): Promise<void> {
 export async function getMessagesByContact(req: Request, res: Response): Promise<void> {
   try {
     const contactId = String(req.params.contactId);
+
+    // Historique complet des échanges d'un contact : même périmètre que le contact.
+    const autorise = await peutAccederContact(req.user!, contactId);
+    if (!autorise) {
+      res.status(403).json({ message: 'Contact hors de votre périmètre' });
+      return;
+    }
 
     const messages = await prisma.message.findMany({
       where:   { contact_id: contactId },
@@ -319,7 +338,12 @@ export async function createEvenement(req: Request, res: Response): Promise<void
         date_evenement: new Date(date_evenement),
         planifie_le:   planifie_le ? new Date(planifie_le) : null,
         statut,
-        filtres_json:  Object.keys(filtres).length > 0 ? JSON.stringify(filtres) : null,
+        // On persiste les filtres DÉJÀ bornés au périmètre : filtres_json est relu tel quel
+        // à l'envoi différé (cron), il ne doit donc jamais contenir un ciblage plus large
+        // que ce que l'appelant avait le droit de viser.
+        filtres_json:  Object.keys(filtres).length > 0
+          ? JSON.stringify({ ...filtres, ...(cibleContacts.campus ? { campus: cibleContacts.campus } : {}) })
+          : null,
         created_by:    req.user!.id,
         envoye_le:     envoyer_maintenant ? now : null,
       },
@@ -354,7 +378,7 @@ export async function createEvenement(req: Request, res: Response): Promise<void
               const s = settingsByCampus.get(c.campus)!;
               const contenu = message_template
                 .replace(/\[Date\]/g,    dateStr)
-                .replace(/\[Campus\]/g,  filtres.campus ?? c.campus ?? 'Phila')
+                .replace(/\[Campus\]/g,  cibleContacts.campus ?? c.campus ?? 'Phila')
                 .replace(/\[Prénom\]/g,  c.prenom)
                 .replace(/\[prenom\]/gi, c.prenom)
                 .replace(/\[Adresse\]/g, s.adresse_eglise);
@@ -406,7 +430,7 @@ export async function createEvenement(req: Request, res: Response): Promise<void
               const s = settingsByCampus.get(o.campus)!;
               const contenu = message_template
                 .replace(/\[Date\]/g,    dateStr)
-                .replace(/\[Campus\]/g,  filtres_ouvriers.campus ?? o.campus ?? 'Phila')
+                .replace(/\[Campus\]/g,  cibleOuvriers.campus ?? o.campus ?? 'Phila')
                 .replace(/\[Prénom\]/g,  o.prenom)
                 .replace(/\[prenom\]/gi, o.prenom)
                 .replace(/\[Adresse\]/g, s.adresse_eglise);

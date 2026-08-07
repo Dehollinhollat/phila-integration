@@ -45,6 +45,11 @@ export async function listEvenements(req: Request, res: Response): Promise<void>
 export async function getEvenement(req: Request, res: Response): Promise<void> {
   const id = req.params.id as string;
 
+  // Les messages inclus exposent le nom des contacts. Sur un événement multi-campus,
+  // un non-super_admin ne doit voir que ceux de son propre périmètre — sinon la fiche
+  // détaillée fuiterait des noms que la liste des événements, elle, ne montre pas.
+  const estSuperAdmin = req.user!.role === 'super_admin';
+
   const evenement = await prisma.evenement.findUnique({
     where: { id },
     include: {
@@ -52,6 +57,7 @@ export async function getEvenement(req: Request, res: Response): Promise<void> {
       messages: {
         take: 20,
         orderBy: { created_at: 'desc' },
+        where: estSuperAdmin ? undefined : { contact: { campus: { in: req.user!.campus as never[] } } },
         include: { contact: { select: { id: true, prenom: true, nom: true } } },
       },
     },
@@ -127,6 +133,13 @@ export async function envoyerEvenement(req: Request, res: Response): Promise<voi
   } else {
     contactWhere = buildDestinataireWhere(ev.destinataires as string, ev.campus as string | null);
   }
+
+  // Le campus de l'événement borne TOUJOURS les destinataires, quelle que soit l'origine
+  // du filtre. Le contrôle de périmètre plus haut n'autorise que « qui peut déclencher
+  // l'envoi » ; sans cette ligne, un filtres_json fourni par le client (ou un champ
+  // destinataires ciblant un autre campus) diffuserait malgré tout hors périmètre.
+  // Appliqué ici plutôt qu'à la création : cela protège aussi les événements déjà en base.
+  if (ev.campus) contactWhere.campus = ev.campus;
 
   const contacts = await prisma.contact.findMany({
     where: contactWhere,
@@ -209,17 +222,25 @@ export async function updateEvenement(req: Request, res: Response): Promise<void
     return;
   }
 
-  const data = { ...req.body };
+  const body = req.body as Record<string, unknown>;
 
   // Un déplacement vers un autre campus doit rester dans le périmètre de l'appelant,
   // sans quoi il suffirait de créer l'événement sur son campus puis de le réaffecter.
-  if ('campus' in data && horsPerimetreCampus(req.user!, data.campus)) {
+  if ('campus' in body && horsPerimetreCampus(req.user!, body.campus as string | null)) {
     res.status(403).json({ message: 'Campus de destination hors de votre périmètre' });
     return;
   }
 
-  if (data.date_evenement) data.date_evenement = new Date(data.date_evenement);
-  if (data.planifie_le) data.planifie_le = new Date(data.planifie_le);
+  // Liste blanche explicite. Un `{ ...req.body }` laisserait réécrire filtres_json,
+  // destinataires, statut ou envoye_le — c'est-à-dire redéfinir QUI reçoit le message,
+  // ou masquer un envoi déjà effectué, en contournant tous les contrôles ci-dessus.
+  const data: Record<string, unknown> = {};
+  if (typeof body.titre === 'string')            data.titre            = body.titre;
+  if (typeof body.description === 'string')      data.description      = body.description;
+  if (typeof body.message_template === 'string') data.message_template = body.message_template;
+  if ('campus' in body)                          data.campus           = body.campus;
+  if (body.date_evenement)                       data.date_evenement   = new Date(body.date_evenement as string);
+  if (body.planifie_le)                          data.planifie_le      = new Date(body.planifie_le as string);
 
   const updated = await prisma.evenement.update({ where: { id }, data });
   res.json(updated);

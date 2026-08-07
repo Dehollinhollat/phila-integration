@@ -127,6 +127,11 @@ export function startCronJobs(): void {
         contactWhere = buildDestinataireWhere(ev.destinataires as string, ev.campus as string | null);
       }
 
+      // Même garde que dans envoyerEvenement : le campus de l'événement borne toujours
+      // les destinataires. Le cron n'a aucun contexte utilisateur pour re-vérifier un
+      // périmètre, c'est donc la seule protection sur ce chemin.
+      if (ev.campus) contactWhere.campus = ev.campus;
+
       const contacts = await prisma.contact.findMany({
         where: contactWhere,
         select: { id: true, prenom: true, nom: true, telephone: true, campus: true },

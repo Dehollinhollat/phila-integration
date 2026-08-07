@@ -19,6 +19,7 @@ const prisma = {
     update:      jest.fn(),
   },
   message: {
+    findUnique:  jest.fn(),
     findMany:    jest.fn(),
     create:      jest.fn(),
     createMany:  jest.fn(),

@@ -11,7 +11,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../lib/prisma';
 import { sendWhatsApp } from '../../lib/twilio';
-import { createEvenement, sendBienvenue } from '../../controllers/messages.controller';
+import { createEvenement, sendBienvenue, getMessage, getMessagesByContact } from '../../controllers/messages.controller';
 
 function mockRes(): { res: Partial<Response>; jsonMock: jest.Mock; statusMock: jest.Mock } {
   const jsonMock   = jest.fn();
@@ -228,5 +228,46 @@ describe('périmètre campus', () => {
 
     expect(statusMock).toHaveBeenCalledWith(403);
     expect(sendWhatsApp).not.toHaveBeenCalled();
+  });
+});
+
+describe('lecture des messages - perimetre campus', () => {
+  it('getMessagesByContact refuse un contact hors perimetre', async () => {
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue({
+      campus: 'paris', referent_eglise_id: null,
+    });
+
+    const { res, statusMock } = mockRes();
+    await getMessagesByContact(
+      {
+        params: { contactId: 'c-1' },
+        user: { id: 'a1', role: 'admin_campus', campus: ['orleans'] },
+      } as unknown as Request,
+      res as Response,
+    );
+
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(prisma.message.findMany).not.toHaveBeenCalled();
+  });
+
+  it('getMessage refuse un message dont le contact est hors perimetre', async () => {
+    (prisma.message.findUnique as jest.Mock).mockResolvedValue({
+      id: 'm-1', contact_id: 'c-1', contenu: 'secret',
+    });
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue({
+      campus: 'paris', referent_eglise_id: null,
+    });
+
+    const { res, statusMock, jsonMock } = mockRes();
+    await getMessage(
+      {
+        params: { id: 'm-1' },
+        user: { id: 'a1', role: 'admin_campus', campus: ['orleans'] },
+      } as unknown as Request,
+      res as Response,
+    );
+
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(jsonMock).not.toHaveBeenCalledWith(expect.objectContaining({ contenu: 'secret' }));
   });
 });

@@ -8,7 +8,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../lib/prisma';
 import { sendWhatsApp } from '../../lib/twilio';
-import { envoyerEvenement, createEvenement } from '../../controllers/evenements.controller';
+import { envoyerEvenement, createEvenement, updateEvenement } from '../../controllers/evenements.controller';
 
 function mockRes(): { res: Partial<Response>; jsonMock: jest.Mock; statusMock: jest.Mock } {
   const jsonMock   = jest.fn();
@@ -228,5 +228,111 @@ describe('périmètre campus', () => {
 
     const dataCreee = (prisma.evenement.create as jest.Mock).mock.calls[0][0].data;
     expect(dataCreee.campus).toBeNull();
+  });
+});
+
+// ─── Chemin différé (brouillon / planifié) ───────────────────────────────────
+// Le controle de perimetre n'autorise que « qui peut declencher l'envoi ». Il faut en
+// plus borner QUI RECOIT : filtres_json vient du client et `destinataires` peut cibler
+// un autre campus. Sans cela, il suffisait de creer l'evenement sans l'envoyer, puis de
+// l'envoyer dans un second temps, pour diffuser hors perimetre.
+
+describe('envoyerEvenement - le campus de l\'evenement borne toujours les destinataires', () => {
+  beforeEach(() => {
+    (prisma.message.createMany as jest.Mock).mockResolvedValue({ count: 0 });
+    (prisma.evenement.update as jest.Mock).mockResolvedValue({ id: 'ev-1', statut: 'envoye' });
+    (prisma.contact.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.campusSettings.findMany as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('ajoute le campus au filtre meme si filtres_json n\'en contient aucun', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'brouillon', destinataires: 'tous', campus: 'paris',
+      filtres_json: JSON.stringify({ profil: 'membre_phila' }), // aucun campus
+      date_evenement: new Date('2026-09-01'), message_template: 'Bonjour',
+    });
+
+    const { res } = mockRes();
+    await envoyerEvenement(mockReq(), res as Response);
+
+    const where = (prisma.contact.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(where.profil).toBe('membre_phila');
+    expect(where.campus).toBe('paris');
+  });
+
+  it('ecrase un campus contradictoire venant de filtres_json', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'brouillon', destinataires: 'tous', campus: 'paris',
+      filtres_json: JSON.stringify({ campus: 'orleans' }),
+      date_evenement: new Date('2026-09-01'), message_template: 'Bonjour',
+    });
+
+    const { res } = mockRes();
+    await envoyerEvenement(mockReq(), res as Response);
+
+    const where = (prisma.contact.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(where.campus).toBe('paris');
+  });
+
+  it('neutralise un champ destinataires ciblant un autre campus', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'brouillon', destinataires: 'campus_orleans', campus: 'paris',
+      filtres_json: null,
+      date_evenement: new Date('2026-09-01'), message_template: 'Bonjour',
+    });
+
+    const { res } = mockRes();
+    await envoyerEvenement(mockReq(), res as Response);
+
+    const where = (prisma.contact.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(where.campus).toBe('paris');
+  });
+
+  it('laisse un evenement multi-campus du super_admin sans filtre campus', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'brouillon', destinataires: 'tous', campus: null,
+      filtres_json: JSON.stringify({ profil: 'membre_phila' }),
+      date_evenement: new Date('2026-09-01'), message_template: 'Bonjour',
+    });
+
+    const { res } = mockRes();
+    await envoyerEvenement(mockReq(), res as Response);
+
+    const where = (prisma.contact.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(where.campus).toBeUndefined();
+  });
+});
+
+describe('updateEvenement - liste blanche des champs modifiables', () => {
+  it('ignore filtres_json, destinataires et statut envoyes dans le corps', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({
+      id: 'ev-1', statut: 'brouillon', campus: 'paris',
+    });
+    (prisma.evenement.update as jest.Mock).mockResolvedValue({ id: 'ev-1' });
+
+    const { res } = mockRes();
+    await updateEvenement(
+      mockReq({
+        user: { id: 'a1', role: 'admin_campus', campus: ['paris'] },
+        body: {
+          titre: 'Nouveau titre',
+          // Tentative de redefinir QUI recoit, en contournant les controles de creation.
+          filtres_json:  JSON.stringify({ profil: 'membre_phila' }),
+          destinataires: 'campus_orleans',
+          statut:        'brouillon',
+          envoye_le:     null,
+          created_by:    'quelqu-un-dautre',
+        },
+      } as Partial<Request>),
+      res as Response,
+    );
+
+    const data = (prisma.evenement.update as jest.Mock).mock.calls[0][0].data;
+    expect(data.titre).toBe('Nouveau titre');
+    expect(data).not.toHaveProperty('filtres_json');
+    expect(data).not.toHaveProperty('destinataires');
+    expect(data).not.toHaveProperty('statut');
+    expect(data).not.toHaveProperty('envoye_le');
+    expect(data).not.toHaveProperty('created_by');
   });
 });
