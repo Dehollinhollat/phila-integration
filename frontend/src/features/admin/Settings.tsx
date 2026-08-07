@@ -114,13 +114,6 @@ const CAMPUS_SECTIONS: SettingSection[] = [
         placeholder: "Bonne année [Prenom] ! 🎉 Toute l'équipe de Phila Cité des Adorateurs vous souhaite une excellente année...",
       },
       {
-        key:         'template_evenement',
-        label:       'Message d\'invitation à un événement',
-        description: 'Envoyé lors de la création d\'un événement pour ce campus. Variables : [Prenom], [Date], [Theme], [Adresse], [Telephone_Eglise].',
-        type:        'textarea' as const,
-        placeholder: 'Bonjour [Prenom] ! 🙏 Nous vous invitons à notre événement "[Theme]" le [Date].\n\n📍 [Adresse]\n📞 [Telephone_Eglise]',
-      },
-      {
         key: 'message_evenement_default',
         label: 'Template événement par défaut',
         description: 'Pré-rempli lors de la création d\'un événement pour ce campus. Variables : {prenom}, {titre_evenement}, {date_evenement}.',

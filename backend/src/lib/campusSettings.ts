@@ -1,17 +1,22 @@
 // src/lib/campusSettings.ts
 // Paramètres de messagerie scopés par campus (templates WhatsApp, infos église,
-// verset certificat). Remplace l'ancienne table Settings globale pour ces 9 clés —
+// verset certificat). Remplace l'ancienne table Settings globale pour ces clés —
 // voir scripts/migrate-campus-settings.ts. Les seuils d'alerte restent dans
 // Settings (globaux, super_admin uniquement).
 
 import prisma from './prisma';
 
-// Les 9 clés scopées par campus — toute nouvelle clé de messagerie par campus doit être ajoutée ici.
+// Les clés scopées par campus — toute nouvelle clé de messagerie par campus doit être ajoutée ici.
+// 'template_evenement' a été retiré : sa description ("envoyé à la création d'un
+// événement") ne correspondait à rien de réel — un événement est toujours composé
+// manuellement (voir MessageCompose.tsx), rien ne s'envoie automatiquement depuis
+// ce template. 'message_evenement_default' reste car il correspond à un besoin
+// plausible (pré-remplir le formulaire de création), même si pas encore branché
+// — voir docs/BACKLOG.md.
 export const CAMPUS_SETTINGS_KEYS = [
   'message_bienvenue',
   'template_anniversaire',
   'template_nouvel_an',
-  'template_evenement',
   'message_evenement_default',
   'nom_eglise',
   'adresse_eglise',
@@ -36,7 +41,6 @@ export const DEFAULT_CAMPUS_SETTINGS: Record<CampusSettingKey, string> = {
   message_bienvenue:          DEFAULT_BIENVENUE_TEMPLATE,
   template_anniversaire:      'Joyeux anniversaire [Prenom] ! 🎂 Toute l\'équipe Phila vous souhaite une excellente journée. Que Dieu vous bénisse abondamment.',
   template_nouvel_an:         "Bonne année [Prenom] ! 🎉 Toute l'équipe de Phila Cité des Adorateurs vous souhaite une excellente année, pleine de grâce, de santé et de victoires. Que Dieu vous comble de Ses bénédictions en cette nouvelle année !",
-  template_evenement:         "Bonjour [Prenom] ! 👋\n\nNous avons le plaisir de vous inviter à notre prochain événement à l'église Phila Cité des Adorateurs.\n\n📅 Date : [Date]\n🎯 Thème : [Theme]\n📍 Adresse : [Adresse]\n\nNous serions ravis de vous y retrouver. Votre présence sera une bénédiction pour toute la communauté.\n\nPour toute information, contactez-nous au [Telephone_Eglise].\n\nQue Dieu vous bénisse ! 🙏\nL'équipe Phila Cité des Adorateurs",
   message_evenement_default:  'Bonjour {prenom}, nous vous invitons à notre événement "{titre_evenement}" le {date_evenement}.',
   nom_eglise:                 'Cité des Adorateurs',
   adresse_eglise:             '',
