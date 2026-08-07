@@ -6,24 +6,11 @@ Chaque point indique où intervenir. Les priorités vont de P0 (bloquant) à P5 
 
 ---
 
-## 🔴 P0 — Bloquant, production dégradée
+## ✅ Corrigé le 7 août 2026 — Déploiement en production
 
-### Déployer en production (accès au remote `eglise`)
+`main` (commit `76292cc`) poussé vers `eglise` (`philaintegrationca/phila-integration`), déclenchant Vercel + Railway. L'accès était bloqué par un jeton GitHub fine-grained scopé au mauvais dépôt ; débloqué avec un nouveau jeton — **à révoquer/régénérer**, il a été partagé en clair dans une conversation.
 
-**État : bloqué côté humain.**
-
-Le chantier multi-campus est fusionné dans `main` et poussé vers `origin`, mais `origin` ne déclenche aucun déploiement. Le remote qui déploie est `eglise` (`philaintegrationca/phila-integration`), et il est actuellement inaccessible :
-
-```
-remote: Repository not found.
-```
-
-**Pourquoi c'est urgent :** la migration `migrate-campus-settings` a déjà été exécutée sur la base partagée le 6 août. Elle a supprimé de la table `Settings` les 9 clés de messagerie, après les avoir copiées dans `CampusSettings`. Le code actuellement déployé ne connaît pas `CampusSettings` et lit encore `Settings`. Résultat, en production, en ce moment :
-
-- les messages WhatsApp automatiques (bienvenue, anniversaire, Nouvel An, événements) partent avec **adresse et téléphone de l'église vides** ;
-- les certificats d'intégration utilisent un **verset tronqué** au lieu du verset configuré.
-
-**À faire :** rétablir l'accès au dépôt de l'église (droits ou authentification git), puis pousser `main` vers `eglise`. Vérifier ensuite les messages partis depuis le 6 août.
+**Reste à vérifier une fois le déploiement terminé :** que les messages WhatsApp automatiques (bienvenue, anniversaire, Nouvel An, événements) et les certificats repartent avec adresse/téléphone/verset corrects — ils étaient dégradés depuis la migration `migrate-campus-settings` du 6 août, exécutée avant que ce déploiement ne mette le code à jour.
 
 ---
 
