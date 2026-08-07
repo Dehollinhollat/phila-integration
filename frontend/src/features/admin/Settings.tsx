@@ -64,15 +64,9 @@ const GLOBAL_SECTIONS: SettingSection[] = [
 const CAMPUS_SECTIONS: SettingSection[] = [
   {
     label:    'Infos Église',
-    subtitle: 'nom, adresse, téléphone',
+    subtitle: 'adresse, téléphone',
     icon:     '⛪',
     settings: [
-      {
-        key: 'nom_eglise',
-        label: 'Nom de l\'église',
-        description: 'Utilisé dans les messages envoyés aux contacts de ce campus.',
-        type: 'text', placeholder: 'Cité des Adorateurs',
-      },
       {
         key: 'adresse_eglise',
         label: 'Adresse',
@@ -116,9 +110,9 @@ const CAMPUS_SECTIONS: SettingSection[] = [
       {
         key: 'message_evenement_default',
         label: 'Template événement par défaut',
-        description: 'Pré-rempli lors de la création d\'un événement pour ce campus. Variables : {prenom}, {titre_evenement}, {date_evenement}.',
+        description: 'Pré-rempli dans le formulaire de création d\'un événement pour ce campus (modifiable avant envoi). Variables : [Prénom], [Date], [Campus], [Adresse].',
         type: 'textarea',
-        placeholder: 'Bonjour {prenom}, nous vous invitons à notre événement "{titre_evenement}" le {date_evenement}.',
+        placeholder: 'Bonjour [Prénom], nous vous invitons à notre événement le [Date] à [Adresse].',
       },
     ],
   },
@@ -368,22 +362,36 @@ export default function Settings() {
     } finally { setCampusSaving(false); }
   }
 
+  // L'aperçu ne doit substituer QUE les variables réellement remplacées à l'envoi pour
+  // CE template précis — sinon il montre un résultat qui ne correspond pas à ce que la
+  // personne recevra vraiment (ex: [Thème] et [Référent] ne sont substitués nulle part,
+  // [Telephone_Eglise]/[Telephone_Referent]/[Referent] uniquement pour message_bienvenue).
+  // Voir applyVariables (messages.controller.ts) pour bienvenue, et les remplacements
+  // en ligne dans createEvenement/envoyerEvenement/cron.ts pour les 3 autres templates.
   function computeApercu(key: string, raw: string): string {
     const adresse = campusValues['adresse_eglise']  || '8 rue Saint-Claude, 77340 Pontault-Combault';
     const tel     = campusValues['telephone_eglise'] || '+33 1 23 45 67 89';
-    const base = raw
-      .replace(/\[Pr[eé]nom\]/gi,          'Marie')
-      .replace(/\[Date\]/gi,               '29 juin 2026')
-      .replace(/\[Campus\]/gi,             activeCampus ? CAMPUS_LABELS[activeCampus] : 'Paris')
-      .replace(/\[Telephone_Eglise\]/gi,   tel)
-      .replace(/\[Telephone_Referent\]/gi, '+33 6 12 34 56 78')
-      .replace(/\[Referent\]/gi,           'Jean Dupont');
-    if (key === 'template_evenement') {
-      return base
-        .replace(/\[Theme\]/gi,   'La grâce de Dieu')
+    const campusLabel = activeCampus ? CAMPUS_LABELS[activeCampus] : 'Paris';
+
+    let apercu = raw.replace(/\[Pr[eé]nom\]/gi, 'Marie');
+
+    if (key === 'message_bienvenue') {
+      apercu = apercu
+        .replace(/\[Referent\]/gi,           'Jean Dupont')
+        .replace(/\[Telephone_Referent\]/gi, '+33 6 12 34 56 78')
+        .replace(/\[Telephone_Eglise\]/gi,   tel)
+        .replace(/\[Adresse\]/gi,            adresse)
+        .replace(/\[Date\]/gi,               '29 juin 2026');
+    } else if (key === 'message_evenement_default') {
+      apercu = apercu
+        .replace(/\[Date\]/gi,   '29 juin 2026')
+        .replace(/\[Campus\]/gi, campusLabel)
         .replace(/\[Adresse\]/gi, adresse);
+    } else if (key === 'template_anniversaire' || key === 'template_nouvel_an') {
+      apercu = apercu.replace(/\[Adresse\]/gi, adresse);
     }
-    return base;
+
+    return apercu;
   }
 
   const [toast, setToast] = useState<string | null>(null);

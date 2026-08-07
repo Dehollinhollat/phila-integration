@@ -56,13 +56,21 @@ Le modèle `Evenement` ne persistait ni `dest_type` ni `filtres_ouvriers` — ce
 
 ---
 
-## 🟠 P2 — Fonctionnalités cassées silencieusement
+## ✅ Corrigé le 8 août 2026 — Deux clés de paramètres configurables mais jamais utilisées
 
-### Deux clés de paramètres configurables mais jamais utilisées
+`message_evenement_default` et `nom_eglise` figuraient dans `CAMPUS_SETTINGS_KEYS`, éditables dans Paramètres, mais aucun code d'envoi ne les lisait.
 
-`message_evenement_default` et `nom_eglise` figurent dans `CAMPUS_SETTINGS_KEYS` et sont éditables dans l'écran Paramètres, mais **aucun code d'envoi ne les lit**. L'interface laisse croire qu'elles ont un effet. (`template_evenement`, doublon non fonctionnel de `message_evenement_default`, a été retiré le 7 août.)
+- **`nom_eglise`** retiré (même disposition que `template_evenement` le 7 août) : rien ne le lisait nulle part, et le brancher aurait demandé de toucher les 4 points d'envoi de messages pour un gain marginal (le nom de l'église ne varie pas vraiment par campus en pratique).
+- **`message_evenement_default`** branché : `MessageCompose.tsx` pré-remplit désormais le template à la sélection du campus (`GET /settings/campus/:campus`), sans jamais écraser un texte déjà saisi. Sa valeur par défaut utilisait `{prenom}`/`{titre_evenement}`/`{date_evenement}` — une syntaxe à accolades qui ne correspond à AUCUNE substitution réelle (les vraies variables sont `[Prénom]`/`[Date]`/`[Campus]`/`[Adresse]`, entre crochets) ; corrigée.
 
-**À faire :** soit les brancher réellement (`message_evenement_default` pourrait pré-remplir le formulaire de création d'événement dans `MessageCompose.tsx`), soit les retirer de l'écran. Ne pas laisser en l'état.
+**Trouvé en cours de route et corrigé au passage** (même famille de bug — une variable annoncée disponible mais jamais substituée à l'envoi) :
+
+- `MessageCompose.tsx` proposait `[Thème]`, `[Référent]`, `[Tél. Référent]`, `[Tél. Église]` comme variables insérables pour un événement/actu — aucune n'est substituée par `createEvenement`/`envoyerEvenement`/`cron.ts` (qui ne gèrent que `[Prénom]`, `[Date]`, `[Campus]`, `[Adresse]`) : le texte du placeholder partait tel quel, en clair, dans le message WhatsApp réel. Retirées de la liste.
+- L'aperçu live de Paramètres (`Settings.tsx::computeApercu`) substituait `[Telephone_Eglise]`/`[Telephone_Referent]`/`[Referent]` pour **tous** les templates, alors que seul `message_bienvenue` les substitue réellement à l'envoi — l'aperçu affichait donc un résultat trompeur pour anniversaire/nouvel an/événement. Il contenait aussi un `if (key === 'template_evenement')` mort (clé retirée le 7 août), qui empêchait `[Adresse]` de s'afficher correctement dans l'aperçu de `message_evenement_default`. Réécrit avec un jeu de variables explicite par clé.
+- `[Campus]` était documenté comme disponible pour `message_bienvenue` mais jamais transmis par les deux appelants réels (`cron.ts` Tâche 1, `sendBienvenue`) — toujours vide en pratique. `buildBienvenueMessage`/`applyVariables` reçoivent maintenant `contact.campus`.
+- **Bug Rules of Hooks pré-existant, sans rapport avec ce qui précède, trouvé en isolant l'effet lint de ce correctif** : `MessageCompose.tsx` avait un retour anticipé (`if (!isAdmin) return`) **avant** ses `useEffect` — les hooks n'étaient pas appelés du tout pour un non-admin, ce qui plante React si le rôle change en cours de session. Ce seul bug expliquait la grande majorité des 61 erreurs eslint historiques (cascade de règles react-hooks) : après correction (retour anticipé déplacé juste avant le rendu, après tous les hooks), le total du projet est passé de 61 à 35 erreurs.
+
+15 tests ajoutés/adaptés au total pour ce lot, plusieurs vérifiés empiriquement comme échouant sur le code d'avant.
 
 ---
 
@@ -108,8 +116,8 @@ Le frontend, lui, centralise correctement (`CAMPUS_LABELS` / `CAMPUS_OPTIONS`, a
 
 ### Qualité de code non contrôlée
 
-- `npm run lint` remonte **61 erreurs** sur le projet (majoritairement `react-hooks/set-state-in-effect`), jamais traitées.
-- **Aucun workflow CI** (pas de dossier `.github`). Ni les tests ni le lint ne tournent automatiquement — le lint aurait détecté une violation réelle des Rules of Hooks passée entre les mailles lors du chantier multi-campus.
+- `npm run lint` remonte **35 erreurs** sur le projet (`react-hooks/set-state-in-effect`, un par fichier — setState synchrone en tête d'un `useEffect`), jamais traitées. Était 61 avant la correction du 8 août d'une violation Rules of Hooks dans `MessageCompose.tsx`, qui à elle seule expliquait la majorité du total (cascade de règles react-hooks).
+- **Aucun workflow CI** (pas de dossier `.github`). Ni les tests ni le lint ne tournent automatiquement — c'est ce qui a permis à la violation Rules of Hooks ci-dessus de passer entre les mailles lors du chantier multi-campus.
 
 **À faire :** ajouter une CI (tests + typecheck + lint), puis résorber progressivement les erreurs existantes.
 

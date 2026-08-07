@@ -7,18 +7,18 @@
 import prisma from './prisma';
 
 // Les clés scopées par campus — toute nouvelle clé de messagerie par campus doit être ajoutée ici.
-// 'template_evenement' a été retiré : sa description ("envoyé à la création d'un
-// événement") ne correspondait à rien de réel — un événement est toujours composé
-// manuellement (voir MessageCompose.tsx), rien ne s'envoie automatiquement depuis
-// ce template. 'message_evenement_default' reste car il correspond à un besoin
-// plausible (pré-remplir le formulaire de création), même si pas encore branché
-// — voir docs/BACKLOG.md.
+// 'template_evenement' a été retiré le 7 août : sa description ("envoyé à la création
+// d'un événement") ne correspondait à rien de réel — un événement est toujours composé
+// manuellement (voir MessageCompose.tsx), rien ne s'envoie automatiquement depuis ce
+// template. 'nom_eglise' retiré le 8 août pour la même raison (aucun code de send ne
+// le lisait). 'message_evenement_default' est désormais branché : MessageCompose.tsx
+// pré-remplit le template avec cette valeur à la sélection du campus (voir
+// getCampusSettingsWithDefaults, appelé côté route settings.routes.ts).
 export const CAMPUS_SETTINGS_KEYS = [
   'message_bienvenue',
   'template_anniversaire',
   'template_nouvel_an',
   'message_evenement_default',
-  'nom_eglise',
   'adresse_eglise',
   'telephone_eglise',
   'certificat_verset',
@@ -41,8 +41,10 @@ export const DEFAULT_CAMPUS_SETTINGS: Record<CampusSettingKey, string> = {
   message_bienvenue:          DEFAULT_BIENVENUE_TEMPLATE,
   template_anniversaire:      'Joyeux anniversaire [Prenom] ! 🎂 Toute l\'équipe Phila vous souhaite une excellente journée. Que Dieu vous bénisse abondamment.',
   template_nouvel_an:         "Bonne année [Prenom] ! 🎉 Toute l'équipe de Phila Cité des Adorateurs vous souhaite une excellente année, pleine de grâce, de santé et de victoires. Que Dieu vous comble de Ses bénédictions en cette nouvelle année !",
-  message_evenement_default:  'Bonjour {prenom}, nous vous invitons à notre événement "{titre_evenement}" le {date_evenement}.',
-  nom_eglise:                 'Cité des Adorateurs',
+  // Variables réellement substituées à l'envoi (createEvenement/envoyerEvenement/cron.ts
+  // Tâche 2) : [Prénom], [Date], [Campus], [Adresse]. Pas de variable pour le titre —
+  // l'événement n'a pas de placeholder dédié, le titre est à mentionner dans le texte.
+  message_evenement_default:  'Bonjour [Prénom], nous vous invitons à notre événement le [Date] à [Adresse].',
   adresse_eglise:             '',
   telephone_eglise:           '',
   certificat_verset:          "\"Car je connais les projets que j'ai formés sur vous, dit l'Éternel, projets de paix et non de malheur, afin de vous donner un avenir et de l'espérance.\" - Jérémie 29:11",

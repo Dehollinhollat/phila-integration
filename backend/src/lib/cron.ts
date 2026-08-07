@@ -69,6 +69,7 @@ export function startCronJobs(): void {
         referentTelephone: ref?.telephone ?? '',
         telephoneEglise:   s.telephone_eglise,
         adresseEglise:     s.adresse_eglise,
+        campus:            contact.campus,
       });
       const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
 

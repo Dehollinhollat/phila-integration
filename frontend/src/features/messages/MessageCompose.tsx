@@ -9,22 +9,23 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { messagesEndpoints, contactsEndpoints, ouvriersEndpoints } from '../../services/endpoints';
+import { messagesEndpoints, contactsEndpoints, ouvriersEndpoints, settingsEndpoints } from '../../services/endpoints';
 import type { FiltresDestinataires } from '../../services/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_RANK, CAMPUS_OPTIONS } from '../../utils/constants';
 
 // ─── Variables disponibles dans le template ───────────────────────────────────
 
+// Uniquement les variables réellement substituées à l'envoi d'un événement/actu
+// (voir createEvenement/envoyerEvenement/cron.ts, Tâche 2) — [Thème], [Référent],
+// [Telephone_Referent] et [Telephone_Eglise] ne le sont pas pour ce type de message
+// (contrairement au message de bienvenue, substitué séparément par applyVariables) :
+// les proposer ici enverrait le texte du placeholder tel quel, jamais remplacé.
 const VARIABLES: Array<{ label: string; value: string }> = [
-  { label: 'Prénom',       value: '[Prénom]'            },
-  { label: 'Date',         value: '[Date]'              },
-  { label: 'Thème',        value: '[Thème]'             },
-  { label: 'Campus',       value: '[Campus]'            },
-  { label: 'Référent',     value: '[Référent]'          },
-  { label: 'Tél. Référent', value: '[Telephone_Referent]' },
-  { label: 'Tél. Église',   value: '[Telephone_Eglise]'   },
-  { label: 'Adresse',       value: '[Adresse]'             },
+  { label: 'Prénom', value: '[Prénom]' },
+  { label: 'Date',   value: '[Date]'   },
+  { label: 'Campus', value: '[Campus]' },
+  { label: 'Adresse', value: '[Adresse]' },
 ];
 
 const VARIABLE_EXAMPLES: Record<string, string> = {
@@ -33,11 +34,7 @@ const VARIABLE_EXAMPLES: Record<string, string> = {
     const d = new Date();
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   })(),
-  '[Thème]':               'Culte du dimanche',
   '[Campus]':              'Paris',
-  '[Référent]':            'Jean Martin',
-  '[Telephone_Referent]':  '+33 6 12 34 56 78',
-  '[Telephone_Eglise]':    '+33 1 23 45 67 89',
   '[Adresse]':             '12 rue de l\'Exemple, Paris',
 };
 
@@ -83,16 +80,12 @@ export default function MessageCompose() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Le early return correspondant est placé après tous les hooks (juste avant le
+  // rendu principal) — le mettre ici violait les Rules of Hooks : les hooks
+  // déclarés plus bas ne seraient pas appelés du tout pour un non-admin, ce qui
+  // fait planter React si le rôle change en cours de session (ex. rétrogradé
+  // pendant que la page reste ouverte).
   const isAdmin = user ? ROLE_RANK[user.role] >= ROLE_RANK['admin_campus'] : false;
-  if (!isAdmin) {
-    return (
-      <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔒</div>
-        <h2 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>Accès refusé</h2>
-        <p style={{ margin: 0 }}>Vous n'avez pas les droits nécessaires pour accéder à cette page.</p>
-      </div>
-    );
-  }
 
   // ── État formulaire ───────────────────────────────────────────────────────
   const [type,              setType]             = useState<'evenement' | 'actu'>('evenement');
@@ -173,6 +166,21 @@ export default function MessageCompose() {
     }, 500);
     return () => clearTimeout(timer);
   }, [destType, fCampus, fProfil, fStatut, fBesoin, fInteretCellule, fCanal, fPeriode, fDateDebut, fDateFin, fRdvPasteur, fOuvrierCampus, fOuvrierService]);
+
+  // ── Pré-remplissage du template événement depuis les paramètres du campus ──
+  // Ne remplace jamais un texte déjà saisi (setTemplate ne s'applique que si le
+  // champ est encore vide) — évite d'écraser une rédaction en cours si l'admin
+  // change de campus après avoir commencé à écrire.
+  useEffect(() => {
+    if (type !== 'evenement' || !fCampus) return;
+    let ignore = false;
+    settingsEndpoints.getCampus(fCampus).then(({ data }) => {
+      if (ignore) return;
+      const defaut = data.message_evenement_default;
+      if (defaut) setTemplate(prev => (prev === '' ? defaut : prev));
+    }).catch(() => { /* pas de préremplissage si la requête échoue — pas bloquant */ });
+    return () => { ignore = true; };
+  }, [type, fCampus]);
 
   // ── Insertion de variable au curseur ─────────────────────────────────────
   function insertVariable(varStr: string) {
@@ -259,6 +267,16 @@ export default function MessageCompose() {
 
   const charCount  = template.length;
   const canPlanify = envoyerMaintenant || (!!planifieDate && !!planifieTime);
+
+  if (!isAdmin) {
+    return (
+      <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+        <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔒</div>
+        <h2 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>Accès refusé</h2>
+        <p style={{ margin: 0 }}>Vous n'avez pas les droits nécessaires pour accéder à cette page.</p>
+      </div>
+    );
+  }
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
   return (

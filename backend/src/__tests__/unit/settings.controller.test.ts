@@ -62,7 +62,7 @@ describe('getCampusSettingsHandler / updateCampusSettingsHandler', () => {
   it('updateCampusSettingsHandler rejette un campus inconnu avant meme de lire le body', async () => {
     const { res, statusMock } = mockRes();
     await updateCampusSettingsHandler(
-      { params: { campus: 'marseille' }, body: [{ key: 'nom_eglise', value: 'x' }] } as unknown as Request,
+      { params: { campus: 'marseille' }, body: [{ key: 'adresse_eglise', value: 'x' }] } as unknown as Request,
       res as Response
     );
     expect(statusMock).toHaveBeenCalledWith(400);
@@ -71,14 +71,14 @@ describe('getCampusSettingsHandler / updateCampusSettingsHandler', () => {
   it('updateCampusSettingsHandler n\'ecrit que sur le campus de l\'URL, meme si le body tente d\'en indiquer un autre', async () => {
     (prisma.$transaction as jest.Mock).mockResolvedValue([]);
     (prisma.campusSettings.findMany as jest.Mock).mockResolvedValue([
-      { campus: 'orleans', key: 'nom_eglise', value: 'Phila Orleans' },
+      { campus: 'orleans', key: 'adresse_eglise', value: '1 rue de la Loire' },
     ]);
     const { res } = mockRes();
     await updateCampusSettingsHandler(
       {
         params: { campus: 'orleans' },
         // Le body contient un champ 'campus' etranger — doit etre ignore, seul req.params.campus compte.
-        body: [{ key: 'nom_eglise', value: 'Phila Orleans', campus: 'paris' }],
+        body: [{ key: 'adresse_eglise', value: '1 rue de la Loire', campus: 'paris' }],
       } as unknown as Request,
       res as Response
     );
@@ -86,9 +86,9 @@ describe('getCampusSettingsHandler / updateCampusSettingsHandler', () => {
     expect(upsertCalls.length).toBeGreaterThan(0);
     for (const call of upsertCalls) {
       expect(call[0]).toMatchObject({
-        where:  { campus_key: { campus: 'orleans', key: 'nom_eglise' } },
-        update: { value: 'Phila Orleans' },
-        create: { campus: 'orleans', key: 'nom_eglise', value: 'Phila Orleans' },
+        where:  { campus_key: { campus: 'orleans', key: 'adresse_eglise' } },
+        update: { value: '1 rue de la Loire' },
+        create: { campus: 'orleans', key: 'adresse_eglise', value: '1 rue de la Loire' },
       });
     }
     // Aucun upsert ne doit jamais cibler 'paris', quoi que le body ait tente de soumettre.

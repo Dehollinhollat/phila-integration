@@ -254,6 +254,7 @@ export async function sendBienvenue(req: Request, res: Response): Promise<void> 
       s.telephone_eglise,
       s.message_bienvenue,
       s.adresse_eglise,
+      contact.campus,
     );
 
     const { sid, error } = await sendWhatsApp(contact.telephone, contenu);
@@ -572,6 +573,7 @@ export function buildBienvenueMessage(
   telephoneEglise?: string,
   templateOverride?: string,
   adresseEglise?: string,
+  campus?: string,
 ): string {
   return applyVariables(templateOverride ?? DEFAULT_BIENVENUE_TEMPLATE, {
     prenom,
@@ -579,5 +581,6 @@ export function buildBienvenueMessage(
     referentTelephone: referent?.telephone ?? '',
     telephoneEglise:   telephoneEglise ?? '',
     adresseEglise:     adresseEglise   ?? '',
+    campus:            campus          ?? '',
   });
 }
