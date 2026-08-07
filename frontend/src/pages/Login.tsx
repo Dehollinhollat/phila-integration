@@ -35,8 +35,15 @@ export default function Login() {
       navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        const msg = err.response?.data?.message as string | undefined;
-        setError(msg ?? 'Identifiants invalides');
+        if (!err.response) {
+          // Pas de réponse HTTP du tout (serveur injoignable, réseau coupé…) —
+          // à distinguer d'un vrai refus d'authentification, sans quoi l'utilisateur
+          // croit s'être trompé de mot de passe alors que le backend est éteint.
+          setError('Impossible de contacter le serveur');
+        } else {
+          const msg = err.response.data?.message as string | undefined;
+          setError(msg ?? 'Identifiants invalides');
+        }
       } else {
         setError('Impossible de contacter le serveur');
       }
