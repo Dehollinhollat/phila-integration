@@ -388,6 +388,9 @@ export default function ContactList() {
       if (filterCanal)      params.canal       = filterCanal;
       if (filterIntention)  params.intention   = filterIntention;
       if (referentId)       params.referent_id = referentId;
+      // Un référent intégration ne voit ici que ses propres contacts assignés
+      // (le Tableau de bord, lui, montre tout le campus — cf. Dashboard.tsx)
+      if (user?.role === 'referent_integration') params.mesContacts = true;
 
       const { data } = await contactsEndpoints.list(
         params as Parameters<typeof contactsEndpoints.list>[0],
@@ -404,7 +407,7 @@ export default function ContactList() {
         setLoading(false);
       }
     }
-  }, [page, debouncedSearch, filterCampus, filterProfil, filterStatut, filterCanal, filterIntention, referentId]);
+  }, [page, debouncedSearch, filterCampus, filterProfil, filterStatut, filterCanal, filterIntention, referentId, user?.role]);
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 

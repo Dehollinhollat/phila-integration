@@ -1,6 +1,7 @@
-// Tests pour listCommentaires — un referent_integration ne doit voir que ses
-// propres commentaires, pas ceux des autres referents integration sur le meme
-// contact (cf. commentaire dans schema.prisma sur le modele Commentaire).
+// Tests pour listCommentaires — un referent_integration voit les commentaires
+// de tous les referents integration sur un contact (pas seulement les siens),
+// pour pouvoir prendre le relais/aider un collegue. L'acces au contact suit le
+// meme perimetre que la fiche contact elle-meme (tout le campus).
 
 import { listCommentaires } from '../../controllers/contacts.controller';
 import prisma from '../../lib/prisma';
@@ -12,8 +13,8 @@ function mockRes() {
 }
 
 describe('listCommentaires - visibilite des commentaires par role', () => {
-  it('referent_integration ne recoit que ses propres commentaires (auteur_id = lui-meme)', async () => {
-    (prisma.contact.findFirst as jest.Mock).mockResolvedValue({ id: 'c1' });
+  it('referent_integration recoit les commentaires de tous les referents integration (pas que les siens)', async () => {
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue({ campus: 'paris', referent_eglise_id: null });
     (prisma.commentaire.findMany as jest.Mock).mockResolvedValue([]);
     const { res, jsonMock } = mockRes();
     const req = {
@@ -24,13 +25,27 @@ describe('listCommentaires - visibilite des commentaires par role', () => {
     await listCommentaires(req, res);
 
     expect(prisma.commentaire.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { contact_id: 'c1', auteur_id: 'ref-1' },
+      where: { contact_id: 'c1', role_auteur: 'referent_integration' },
     }));
     expect(jsonMock).toHaveBeenCalledWith([]);
   });
 
-  it('referent_eglise recoit tous les commentaires du contact (pas de filtre auteur)', async () => {
-    (prisma.contact.findFirst as jest.Mock).mockResolvedValue({ id: 'c1' });
+  it('referent_integration peut consulter les commentaires d\'un contact de son campus non assigne a lui', async () => {
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue({ campus: 'paris', referent_eglise_id: null });
+    (prisma.commentaire.findMany as jest.Mock).mockResolvedValue([]);
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'c1' },
+      user: { id: 'ref-1', role: 'referent_integration', campus: ['paris'] },
+    } as never;
+
+    await listCommentaires(req, res);
+
+    expect(statusMock).not.toHaveBeenCalledWith(404);
+  });
+
+  it('referent_eglise recoit tous les commentaires du contact (pas de filtre par role)', async () => {
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue({ campus: 'paris', referent_eglise_id: 'ref-eglise-1' });
     (prisma.commentaire.findMany as jest.Mock).mockResolvedValue([]);
     const { res } = mockRes();
     const req = {
@@ -45,8 +60,8 @@ describe('listCommentaires - visibilite des commentaires par role', () => {
     }));
   });
 
-  it("refuse (404) si le contact n'est pas dans le perimetre de l'appelant", async () => {
-    (prisma.contact.findFirst as jest.Mock).mockResolvedValue(null);
+  it("refuse (404) si le contact n'est pas dans le perimetre campus de l'appelant", async () => {
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue({ campus: 'orleans', referent_eglise_id: null });
     const { res, statusMock } = mockRes();
     const req = {
       params: { id: 'c1' },

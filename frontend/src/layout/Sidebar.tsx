@@ -24,13 +24,10 @@ import type { Role } from '../types';
 // ─── Structure de navigation ──────────────────────────────────────────────────
 
 interface NavItem {
-  to:           string;
-  label:        string;
-  icon:         ReactNode;
-  minRole:      Role;
-  // Exclusion ponctuelle pour un rôle situé au-dessus de minRole dans ROLE_RANK
-  // mais qui a sa propre page dédiée (ex: referent_integration a "Mon tableau").
-  excludeRoles?: Role[];
+  to:      string;
+  label:   string;
+  icon:    ReactNode;
+  minRole: Role;
 }
 
 interface NavSection {
@@ -42,10 +39,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Principal',
     items: [
-      // referent_integration a sa propre page scopee ("Mon tableau") : le tableau de
-      // bord global (charge de tous les référents, tous les contacts du campus) ne
-      // le concerne pas.
-      { to: '/dashboard',           label: 'Tableau de bord', icon: <BarChart2 size={18} />,     minRole: 'lecteur', excludeRoles: ['referent_integration'] },
+      { to: '/dashboard',           label: 'Tableau de bord', icon: <BarChart2 size={18} />,     minRole: 'lecteur' },
       { to: '/mon-tableau-de-bord', label: 'Mon tableau',     icon: <Home size={18} />,           minRole: 'referent_integration' },
       { to: '/statistiques',        label: 'Statistiques',    icon: <TrendingUp size={18} />,     minRole: 'admin_campus' },
       { to: '/contacts',            label: 'Contacts',        icon: <Users size={18} />,           minRole: 'lecteur' },
@@ -185,7 +179,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <nav style={{ flex: 1, padding: `${spacing[3]} 0` }}>
         {NAV_SECTIONS.map((section) => {
           const visibleItems = section.items.filter(
-            (item) => userRank >= ROLE_RANK[item.minRole] && !item.excludeRoles?.includes(user.role)
+            (item) => userRank >= ROLE_RANK[item.minRole]
           );
           if (visibleItems.length === 0) return null;
 

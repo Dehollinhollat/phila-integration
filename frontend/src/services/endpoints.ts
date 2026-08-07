@@ -33,14 +33,17 @@ export const authEndpoints = {
 // ─── Contacts ─────────────────────────────────────────────────────────────────
 
 export interface ContactFilters {
-  campus?:    Campus;
-  profil?:    string;
-  statut?:    StatutContact;
-  canal?:     Canal;
-  intention?: string;
-  search?:    string;
-  page?:      number;
-  limit?:     number;
+  campus?:      Campus;
+  profil?:      string;
+  statut?:      StatutContact;
+  canal?:       Canal;
+  intention?:   string;
+  search?:      string;
+  // Limite la liste aux contacts assignés à l'appelant (referent_integration
+  // uniquement — voir contacts.controller.ts::listContacts)
+  mesContacts?: boolean;
+  page?:        number;
+  limit?:       number;
 }
 
 // Filtres de ciblage avancé — utilisés pour le compteur temps réel (MessageCompose)

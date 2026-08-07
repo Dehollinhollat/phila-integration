@@ -53,17 +53,21 @@ export async function peutAccederContact(user: UserContext, contactId: string): 
 
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
-    select: { campus: true, referent_integration_id: true, referent_eglise_id: true },
+    select: { campus: true, referent_eglise_id: true },
   });
   if (!contact) return false;
 
-  if (user.role === 'admin_campus' || user.role === 'lecteur') {
+  // referent_integration : accès à tout le campus, pas seulement ses contacts
+  // assignés — un référent peut consulter/commenter le contact d'un collègue
+  // pour l'aider. La page « Contacts » restreint ensuite l'affichage à « mes
+  // contacts » par défaut (cf. listContacts), mais l'accès direct reste ouvert
+  // à tout le campus.
+  if (
+    user.role === 'admin_campus' ||
+    user.role === 'referent_integration' ||
+    user.role === 'lecteur'
+  ) {
     return user.campus.includes(contact.campus);
-  }
-
-  // referent_integration : uniquement ses propres contacts assignés (pas tout le campus)
-  if (user.role === 'referent_integration') {
-    return contact.referent_integration_id === user.id && user.campus.includes(contact.campus);
   }
 
   if (user.role === 'referent_eglise') {
@@ -76,13 +80,12 @@ export async function peutAccederContact(user: UserContext, contactId: string): 
 export function filtreContactsParRole(user: UserContext): object {
   if (user.role === 'super_admin') return {};
 
-  if (user.role === 'admin_campus' || user.role === 'lecteur') {
+  if (
+    user.role === 'admin_campus' ||
+    user.role === 'referent_integration' ||
+    user.role === 'lecteur'
+  ) {
     return { campus: { in: user.campus } };
-  }
-
-  // referent_integration : uniquement ses propres contacts assignés (pas tout le campus)
-  if (user.role === 'referent_integration') {
-    return { referent_integration_id: user.id, campus: { in: user.campus } };
   }
 
   if (user.role === 'referent_eglise') {

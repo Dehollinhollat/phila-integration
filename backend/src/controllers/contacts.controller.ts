@@ -3,7 +3,10 @@
 //
 // Règles d'accès :
 // - lecteur : lecture seule, pas de commentaires
-// - referent_integration : voit uniquement ses contacts assignés + ses propres commentaires
+// - referent_integration : accès à tout le campus (peut aider un collègue sur un
+//   contact qui n'est pas le sien) ; la liste "Contacts" (listContacts avec
+//   ?mesContacts=true) se limite par défaut à ses propres contacts assignés,
+//   contrairement au Tableau de bord qui montre tout le campus
 // - referent_eglise : voit ses contacts + tous les commentaires (intégration + église)
 // - admin_campus / super_admin : accès complet sur leur(s) campus
 
@@ -91,7 +94,7 @@ export async function checkPhone(req: Request, res: Response): Promise<void> {
 
 // GET /api/contacts
 export async function listContacts(req: Request, res: Response): Promise<void> {
-  const { campus, profil, statut, canal, intention, search, page = '1', limit = '50' } = req.query;
+  const { campus, profil, statut, canal, intention, search, mesContacts, page = '1', limit = '50' } = req.query;
 
   const extra: Record<string, unknown> = {};
   if (campus)    extra.campus    = campus;
@@ -108,7 +111,18 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
   }
 
   const { role, id: userId } = req.user!;
-  const cacheKey = `contacts:list:${role}:${userId}:${JSON.stringify({ campus, profil, statut, canal, search, page, limit })}`;
+
+  // La page "Contacts" (liste de travail) peut demander à ne voir que ses
+  // propres contacts assignés via ?mesContacts=true — contrairement au
+  // Tableau de bord qui appelle ce même endpoint sans ce filtre pour avoir
+  // une vue d'ensemble de tout le campus. N'a d'effet que pour
+  // referent_integration : les autres rôles ne sont pas restreints à "leurs"
+  // contacts par défaut.
+  if (mesContacts === 'true' && role === 'referent_integration') {
+    extra.referent_integration_id = userId;
+  }
+
+  const cacheKey = `contacts:list:${role}:${userId}:${JSON.stringify({ campus, profil, statut, canal, intention, search, mesContacts, page, limit })}`;
 
   const result = await withCache(cacheKey, 300, async () => {
     const roleFilter = filtreContactsParRole(req.user!) as Record<string, unknown>;
@@ -644,17 +658,20 @@ export async function listCommentaires(req: Request, res: Response): Promise<voi
   const { id } = req.params;
   const { role } = req.user!;
 
-  const contactExists = await prisma.contact.findFirst({ where: buildContactWhere(req, { id }) });
-  if (!contactExists) {
+  // Même périmètre que la fiche contact elle-même (getContact/peutAccederContact),
+  // pas le périmètre plus étroit de buildContactWhere : un référent intégration peut
+  // consulter/aider sur un contact qui n'est pas le sien.
+  const autorise = await peutAccederContact(req.user!, String(id));
+  if (!autorise) {
     res.status(404).json({ message: 'Contact introuvable ou accès refusé' });
     return;
   }
 
-  // referent_integration ne voit que ses propres commentaires (pas ceux des
-  // autres referents integration sur le meme contact)
+  // referent_integration voit les commentaires de tous les référents intégration
+  // (pas uniquement les siens) — utile pour prendre le relais sur un contact
   const whereCommentaire: Record<string, unknown> = { contact_id: id };
   if (role === 'referent_integration') {
-    whereCommentaire.auteur_id = req.user!.id;
+    whereCommentaire.role_auteur = 'referent_integration';
   }
   // referent_eglise et au-dessus voient tout
 

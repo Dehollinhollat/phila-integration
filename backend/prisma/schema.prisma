@@ -126,7 +126,10 @@ enum Role {
   super_admin          // accès total, tous campus, configuration système
   admin_campus         // gestion complète de son/ses campus (2-3 max)
   referent_eglise      // voit ses contacts + toutes les notes (intégration + église)
-  referent_integration // voit ses contacts + ses propres notes uniquement
+  // referent_integration : Tableau de bord = tout le campus (vue d'ensemble),
+  // page Contacts = ses contacts assignés uniquement, commentaires = ceux de
+  // tous les référents intégration (peut prendre le relais sur un collègue)
+  referent_integration
   lecteur              // lecture seule, pas accès aux commentaires
 }
 
@@ -380,8 +383,9 @@ model HistoriqueStatut {
 // Notes et feedbacks rédigés par les référents sur leurs contacts
 //
 // Règle de visibilité (appliquée dans contacts.controller.ts) :
-// - referent_integration : ne voit que ses propres commentaires (auteur_id = lui-même),
-//   pas ceux des autres référents intégration sur le même contact
+// - referent_integration : ne voit que les commentaires où role_auteur = referent_integration
+//   (ceux de TOUS les référents intégration, pas seulement les siens — permet de
+//   prendre le relais sur un contact suivi par un collègue)
 // - referent_eglise : voit tous les commentaires (intégration + église)
 // - admin_campus et super_admin : voient tout
 // ─────────────────────────────────────────

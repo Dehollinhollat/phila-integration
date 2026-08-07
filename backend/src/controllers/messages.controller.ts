@@ -107,11 +107,8 @@ export async function listMessages(req: Request, res: Response): Promise<void> {
       where.created_at = { gte: debut };
     }
 
-    // Filtre via le contact lié — referent_integration ne voit que les messages de
-    // sa propre liste de contacts assignés, pas tout le campus (cf. authorization.ts)
-    if (callerRole === 'referent_integration') {
-      where.contact = { referent_integration_id: req.user!.id, campus: { in: callerCampus } };
-    } else if (callerRole !== 'super_admin') {
+    // Filtre campus via le contact lié
+    if (callerRole !== 'super_admin') {
       where.contact = { campus: { in: callerCampus } };
     } else if (campus) {
       where.contact = { campus };
