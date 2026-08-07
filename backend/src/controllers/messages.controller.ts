@@ -5,6 +5,7 @@
 // et reçoit les mises à jour de statut Twilio (webhook).
 
 import { Request, Response } from 'express';
+import twilio from 'twilio';
 import prisma from '../lib/prisma';
 import { sendWhatsApp } from '../lib/twilio';
 import { DEFAULT_BIENVENUE_TEMPLATE, getCampusSettingsWithDefaults, getCampusSettingsForMany } from '../lib/campusSettings';
@@ -466,7 +467,29 @@ export async function createEvenement(req: Request, res: Response): Promise<void
 }
 
 // POST /api/messages/webhook/twilio — mise à jour statut par Twilio
+//
+// Sécurité : route publique (pas de JWT — Twilio ne peut pas en fournir), donc
+// vérification de la signature Twilio en production. Sans elle, n'importe qui
+// connaissant un twilio_sid pouvait falsifier le statut de livraison d'un
+// message (masquer un échec réel, ou l'inverse) — voir handleIncomingWhatsApp
+// dans twilio.controller.ts, qui suit le même motif.
 export async function twilioWebhook(req: Request, res: Response): Promise<void> {
+  if (process.env.NODE_ENV === 'production') {
+    const twilioSignature = req.headers['x-twilio-signature'] as string ?? '';
+    const webhookUrl      = `${process.env.BACKEND_URL}/api/messages/webhook/twilio`;
+    const isValid = twilio.validateRequest(
+      process.env.TWILIO_AUTH_TOKEN ?? '',
+      twilioSignature,
+      webhookUrl,
+      req.body as Record<string, string>,
+    );
+    if (!isValid) {
+      console.warn('[TWILIO_WEBHOOK] Signature invalide — requête rejetée');
+      res.sendStatus(403);
+      return;
+    }
+  }
+
   const { MessageSid, MessageStatus } = req.body as {
     MessageSid:    string;
     MessageStatus: string;

@@ -24,6 +24,7 @@ const prisma = {
     create:      jest.fn(),
     createMany:  jest.fn(),
     update:      jest.fn(),
+    updateMany:  jest.fn(),
     count:       jest.fn(),
   },
   checklistItem: {

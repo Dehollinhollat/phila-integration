@@ -31,13 +31,13 @@ Un `admin_campus` limité à un campus pouvait agir **en dehors de son périmèt
 
 `frontend/src/pages/Login.tsx` distingue désormais explicitement une erreur réseau (`err.response === undefined`, backend injoignable → « Impossible de contacter le serveur ») d'un vrai refus d'authentification. Repéré deux fois pendant cette session : le backend local n'était simplement pas démarré, mais le message laissait croire à un mauvais mot de passe.
 
-## 🔴 P1 — Sécurité
+## ✅ Corrigé le 8 août 2026 — Signature Twilio non vérifiée sur le webhook de statut
 
-### Vérifier la signature des webhooks Twilio
+`twilioWebhook` (`messages.controller.ts`) mettait à jour le statut de livraison d'un message depuis un POST public, sans aucune vérification — n'importe qui connaissant un `twilio_sid` pouvait falsifier un statut de livraison. `handleIncomingWhatsApp` (`twilio.controller.ts`, messages entrants) avait déjà le bon motif ; appliqué à l'identique ici (`twilio.validateRequest()`, activé uniquement en production). 3 tests ajoutés, vérifiés comme échouant sur le code d'avant.
 
-`twilioWebhook` dans `messages.controller.ts` met à jour le statut de livraison des messages. La validation de signature Twilio n'a pas été vérifiée. Sans elle, n'importe qui peut falsifier des statuts de livraison.
+## ✅ Corrigé le 8 août 2026 — Contournement de périmètre campus sur les stats
 
-**À faire :** auditer, et implémenter la validation si absente.
+Repéré par la revue de sécurité automatique après ouverture de 3 endpoints `/api/stats/*` à `referent_integration` : `inscriptionsParMois`/`profilsStats`/`statutsStats` acceptaient un `?campus=` arbitraire sans vérifier qu'il appartient au périmètre de l'appelant (le filtre par `req.user.campus` n'était appliqué que si aucun campus n'était fourni). Corrigé avec `horsPerimetreCampus`. 3 tests ajoutés, vérifiés comme échouant sur le code d'avant.
 
 ---
 
