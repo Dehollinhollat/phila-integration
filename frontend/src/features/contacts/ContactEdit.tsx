@@ -206,7 +206,7 @@ export default function ContactEdit() {
 
     const E164 = /^\+[1-9]\d{1,14}$/;
     if (!E164.test(form.telephone)) {
-      setPhoneError('Format invalide — ex : +33612345678');
+      setPhoneError('Format invalide (ex : +33612345678)');
       setPhoneChecking(false);
       return;
     }

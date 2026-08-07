@@ -171,7 +171,7 @@ export default function MonTableauDeBord() {
                       {c.prenom} {c.nom}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                      {CAMPUS_LABELS[c.campus] ?? c.campus} · {c.telephone ?? '—'}
+                      {CAMPUS_LABELS[c.campus] ?? c.campus} · {c.telephone ?? '-'}
                     </div>
                   </div>
 

@@ -213,7 +213,7 @@ export default function FeedbackResultats() {
               { label: 'Accueil (Q5)',              value: s.moyenne_q5 },
             ] as { label: string; value: number | null }[]).map(({ label, value }) => (
               <div key={label} style={{ background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)', borderRadius: 12, padding: '20px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 36, fontWeight: 800, color: TEAL }}>{value !== null ? value.toFixed(1) : '—'}</div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: TEAL }}>{value !== null ? value.toFixed(1) : '-'}</div>
                 <div style={{ fontSize: 20, color: '#F59E0B', margin: '4px 0 2px' }}>
                   {'★'.repeat(Math.round(value ?? 0))}{'☆'.repeat(5 - Math.round(value ?? 0))}
                 </div>

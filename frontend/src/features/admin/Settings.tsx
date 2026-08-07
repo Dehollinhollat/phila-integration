@@ -144,7 +144,7 @@ const CAMPUS_SECTIONS: { label: string; icon: ReactNode; settings: SettingDef[] 
         label:       'Verset biblique',
         description: 'Ce verset apparaît sur les certificats d\'intégration générés pour les contacts de ce campus.',
         type:        'textarea' as const,
-        placeholder: '"Car je connais les projets que j\'ai formés sur vous..." — Jérémie 29:11',
+        placeholder: '"Car je connais les projets que j\'ai formés sur vous..." - Jérémie 29:11',
       },
     ],
   },
@@ -411,7 +411,7 @@ export default function Settings() {
           border:       '1px solid var(--bg-card-border)',
           borderRadius: 12,
         }}>
-          Aucun campus assigné à votre compte — contactez un administrateur.
+          Aucun campus assigné à votre compte. Contactez un administrateur.
         </div>
       )}
 
@@ -430,7 +430,7 @@ export default function Settings() {
                 cursor: campusDirty ? 'pointer' : 'default', fontFamily: 'inherit', transition: '120ms ease',
               }}
             >
-              {campusSaving ? 'Enregistrement…' : `Sauvegarder — ${CAMPUS_LABELS[activeCampus]}`}
+              {campusSaving ? 'Enregistrement…' : `Sauvegarder (${CAMPUS_LABELS[activeCampus]})`}
             </button>
           </div>
           <SettingsBlock

@@ -228,7 +228,7 @@ export default function MessageCompose() {
       return;
     }
 
-    const titreFinal  = type === 'evenement' ? titre : `Actu — ${new Date().toLocaleDateString('fr-FR')}`;
+    const titreFinal  = type === 'evenement' ? titre : `Actu du ${new Date().toLocaleDateString('fr-FR')}`;
     const dateEvFinal = type === 'evenement' ? dateEvenement : new Date().toISOString().split('T')[0];
 
     setLoading(true);
@@ -301,7 +301,7 @@ export default function MessageCompose() {
                 style={inputStyle}
               >
                 <option value="bienvenue" disabled style={{ fontStyle: 'italic', color: 'var(--text-tertiary)' }}>
-                  Bienvenue — Automatique (système)
+                  Bienvenue - Automatique (système)
                 </option>
                 <option value="evenement">Événement</option>
                 <option value="actu">Actualité</option>

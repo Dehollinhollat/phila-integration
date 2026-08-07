@@ -26,7 +26,7 @@ export function requireRole(...roles: UserRole[]) {
       return;
     }
     if (!roles.includes(req.user.role)) {
-      res.status(403).json({ message: 'Accès refusé — rôle insuffisant' });
+      res.status(403).json({ message: 'Accès refusé (rôle insuffisant)' });
       return;
     }
     next();
@@ -43,7 +43,7 @@ export function requireMinRole(minRole: UserRole) {
       return;
     }
     if (ROLE_RANK[req.user.role] < ROLE_RANK[minRole]) {
-      res.status(403).json({ message: 'Accès refusé — rôle insuffisant' });
+      res.status(403).json({ message: 'Accès refusé (rôle insuffisant)' });
       return;
     }
     next();
@@ -65,7 +65,7 @@ export function requireCampusAccess(req: Request, res: Response, next: NextFunct
   }
   const campusParam = req.params.campus;
   if (!req.user.campus.includes(campusParam as never)) {
-    res.status(403).json({ message: 'Accès refusé — campus non autorisé' });
+    res.status(403).json({ message: 'Accès refusé (campus non autorisé)' });
     return;
   }
   next();

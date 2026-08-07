@@ -44,7 +44,7 @@ export function resoudreCampusCible(
   }
   return {
     ok: false,
-    message: 'Précisez le campus concerné — votre compte couvre plusieurs campus',
+    message: 'Précisez le campus concerné (votre compte couvre plusieurs campus)',
   };
 }
 

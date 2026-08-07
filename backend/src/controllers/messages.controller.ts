@@ -215,7 +215,7 @@ export async function sendBienvenue(req: Request, res: Response): Promise<void> 
     }
 
     if (!contact.referent_integration_id) {
-      res.status(400).json({ message: 'Aucun référent intégration assigné — message impossible' });
+      res.status(400).json({ message: 'Aucun référent intégration assigné, message impossible' });
       return;
     }
 

@@ -380,7 +380,7 @@ function SearchDropdown({
             <ResultRow
               key={o.id}
               primary={`${o.prenom} ${o.nom}`}
-              secondary={o.services.length > 0 ? o.services.join(', ') : '—'}
+              secondary={o.services.length > 0 ? o.services.join(', ') : '-'}
               icon="⛪"
               onClick={() => onNavigate(`/ouvriers/${o.id}/edit`)}
             />

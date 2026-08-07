@@ -274,7 +274,7 @@ export default function StatistiquesAvancees() {
                           </span>
                         </td>
                         <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
-                          {r.temps_moyen_jours > 0 ? `${r.temps_moyen_jours}j` : '—'}
+                          {r.temps_moyen_jours > 0 ? `${r.temps_moyen_jours}j` : '-'}
                         </td>
                       </tr>
                     ))}
