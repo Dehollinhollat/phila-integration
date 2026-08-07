@@ -28,6 +28,9 @@ interface NavItem {
   label:   string;
   icon:    ReactNode;
   minRole: Role;
+  // Exclusion ponctuelle pour un rôle situé au-dessus de minRole dans ROLE_RANK
+  // mais qui n'a pas sa place dans ce menu (ex: référents sur "Ouvriers").
+  excludeRoles?: Role[];
 }
 
 interface NavSection {
@@ -52,7 +55,9 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Gestion',
     items: [
-      { to: '/ouvriers',     label: 'Ouvriers',     icon: <Church size={18} />,        minRole: 'lecteur' },
+      // Les référents (église / intégration) ne gèrent pas les ouvriers — page hors
+      // de leur périmètre de travail.
+      { to: '/ouvriers',     label: 'Ouvriers',     icon: <Church size={18} />,        minRole: 'lecteur', excludeRoles: ['referent_integration', 'referent_eglise'] },
       { to: '/planning',     label: 'Planning',     icon: <Calendar size={18} />,      minRole: 'lecteur' },
       { to: '/mon-planning', label: 'Mon planning', icon: <ClipboardList size={18} />, minRole: 'referent_integration' },
       { to: '/qrcodes',      label: 'QR Codes',     icon: <Smartphone size={18} />,    minRole: 'admin_campus' },
@@ -179,7 +184,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <nav style={{ flex: 1, padding: `${spacing[3]} 0` }}>
         {NAV_SECTIONS.map((section) => {
           const visibleItems = section.items.filter(
-            (item) => userRank >= ROLE_RANK[item.minRole]
+            (item) => userRank >= ROLE_RANK[item.minRole] && !item.excludeRoles?.includes(user.role)
           );
           if (visibleItems.length === 0) return null;
 
