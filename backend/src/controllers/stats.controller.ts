@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { sendRapportHebdomadaire } from '../lib/email';
 import { Campus } from '../../generated/prisma/client';
+import { horsPerimetreCampus } from '../lib/authorization';
 
 // Noms courts des 12 mois en français pour les axes X
 const MOIS_COURTS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -36,6 +37,14 @@ export async function inscriptionsParMois(req: Request, res: Response): Promise<
   try {
     const campus = typeof req.query.campus === 'string' ? req.query.campus : undefined;
     const n      = Math.min(Math.max(Number(req.query.mois) || 12, 1), 24);
+
+    // Un campus explicitement demandé doit rester dans le périmètre de l'appelant —
+    // sans ce contrôle, n'importe quel rôle non super_admin pouvait lire les stats
+    // d'un campus qui n'est pas le sien en passant ?campus=xxx.
+    if (campus && horsPerimetreCampus(req.user!, campus)) {
+      res.status(403).json({ message: 'Campus hors de votre périmètre' });
+      return;
+    }
 
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - n + 1);
@@ -90,6 +99,11 @@ export async function profilsStats(req: Request, res: Response): Promise<void> {
   try {
     const campus = typeof req.query.campus === 'string' ? req.query.campus : undefined;
 
+    if (campus && horsPerimetreCampus(req.user!, campus)) {
+      res.status(403).json({ message: 'Campus hors de votre périmètre' });
+      return;
+    }
+
     const where: Record<string, unknown> = {};
     if (campus) {
       where.campus = campus;
@@ -119,6 +133,11 @@ export async function profilsStats(req: Request, res: Response): Promise<void> {
 export async function statutsStats(req: Request, res: Response): Promise<void> {
   try {
     const campus = typeof req.query.campus === 'string' ? req.query.campus : undefined;
+
+    if (campus && horsPerimetreCampus(req.user!, campus)) {
+      res.status(403).json({ message: 'Campus hors de votre périmètre' });
+      return;
+    }
 
     const where: Record<string, unknown> = {};
     if (campus) {
