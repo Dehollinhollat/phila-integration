@@ -107,7 +107,16 @@ export default function MessageCompose() {
   const [destType, setDestType] = useState<'contacts' | 'ouvriers' | 'tous'>('contacts');
 
   // ── Filtres contacts ──────────────────────────────────────────────────────
-  const [fCampus,         setFCampus]         = useState('');
+  // Un admin_campus ne peut cibler que ses propres campus : le backend borne le ciblage
+  // à son périmètre et refuse un envoi « tous campus ». On n'affiche donc que ses campus,
+  // sans l'option « Tous les campus », et on présélectionne le premier.
+  const isSuperAdmin  = user?.role === 'super_admin';
+  const campusOptions = isSuperAdmin
+    ? CAMPUS_OPTIONS
+    : CAMPUS_OPTIONS.filter(o => user?.campus.includes(o.value));
+  const campusParDefaut = isSuperAdmin ? '' : (campusOptions[0]?.value ?? '');
+
+  const [fCampus,         setFCampus]         = useState<string>(campusParDefaut);
   const [fProfil,         setFProfil]         = useState('');
   const [fStatut,         setFStatut]         = useState('');
   const [fBesoin,         setFBesoin]         = useState('');
@@ -119,7 +128,7 @@ export default function MessageCompose() {
   const [fRdvPasteur,     setFRdvPasteur]     = useState(false);
 
   // ── Filtres ouvriers ──────────────────────────────────────────────────────
-  const [fOuvrierCampus,  setFOuvrierCampus]  = useState('');
+  const [fOuvrierCampus,  setFOuvrierCampus]  = useState<string>(campusParDefaut);
   const [fOuvrierService, setFOuvrierService] = useState('');
 
   // ── Compteur temps réel ───────────────────────────────────────────────────
@@ -382,8 +391,8 @@ export default function MessageCompose() {
                 <div style={fieldGroup}>
                   <label style={labelStyle}>Campus</label>
                   <select value={fCampus} onChange={(e) => setFCampus(e.target.value)} style={inputStyle}>
-                    <option value="">Tous les campus</option>
-                    {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label} uniquement</option>)}
+                    {isSuperAdmin && <option value="">Tous les campus</option>}
+                    {campusOptions.map(o => <option key={o.value} value={o.value}>{o.label} uniquement</option>)}
                   </select>
                 </div>
 
@@ -504,8 +513,8 @@ export default function MessageCompose() {
                 <div style={fieldGroup}>
                   <label style={labelStyle}>Campus (ouvriers)</label>
                   <select value={fOuvrierCampus} onChange={(e) => setFOuvrierCampus(e.target.value)} style={inputStyle}>
-                    <option value="">Tous les campus</option>
-                    {CAMPUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {isSuperAdmin && <option value="">Tous les campus</option>}
+                    {campusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
 
