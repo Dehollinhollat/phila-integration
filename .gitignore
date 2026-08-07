@@ -30,3 +30,6 @@ Thumbs.db
 
 # Git worktrees (superpowers workflow)
 .worktrees/
+
+# Compagnon visuel de brainstorming (superpowers)
+.superpowers/
