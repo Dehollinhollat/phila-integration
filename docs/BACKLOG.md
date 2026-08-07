@@ -49,11 +49,11 @@ Le modèle `Evenement` ne persiste ni `dest_type` ni `filtres_ouvriers` — ces 
 
 **À faire :** ajouter `dest_type` et `filtres_ouvriers` au modèle Prisma, les enregistrer à la création, et gérer l'audience ouvriers dans la Tâche 2 du cron.
 
-### Trois clés de paramètres configurables mais jamais utilisées
+### Deux clés de paramètres configurables mais jamais utilisées
 
-`template_evenement`, `message_evenement_default` et `nom_eglise` figurent dans `CAMPUS_SETTINGS_KEYS` et sont éditables dans l'écran Paramètres, mais **aucun code d'envoi ne les lit**. L'interface laisse croire qu'elles ont un effet.
+`message_evenement_default` et `nom_eglise` figurent dans `CAMPUS_SETTINGS_KEYS` et sont éditables dans l'écran Paramètres, mais **aucun code d'envoi ne les lit**. L'interface laisse croire qu'elles ont un effet. (`template_evenement`, doublon non fonctionnel de `message_evenement_default`, a été retiré le 7 août.)
 
-**À faire :** soit les brancher réellement, soit les retirer de l'écran. Ne pas laisser en l'état.
+**À faire :** soit les brancher réellement (`message_evenement_default` pourrait pré-remplir le formulaire de création d'événement dans `MessageCompose.tsx`), soit les retirer de l'écran. Ne pas laisser en l'état.
 
 ---
 
