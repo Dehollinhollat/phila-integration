@@ -43,15 +43,22 @@ describe('peutAccederContact', () => {
     expect(result).toBe(false);
   });
 
-  it('referent_integration peut acceder a tous les contacts de son campus', async () => {
-    mockFindUnique.mockResolvedValue({ campus: 'paris', referent_eglise_id: null });
+  it('referent_integration peut acceder au contact dont il est le referent_integration_id sur son campus', async () => {
+    mockFindUnique.mockResolvedValue({ campus: 'paris', referent_integration_id: 'user-2', referent_eglise_id: null });
     const user = { id: 'user-2', role: 'referent_integration', campus: ['paris'] };
     const result = await peutAccederContact(user, 'contact-2');
     expect(result).toBe(true);
   });
 
-  it('referent_integration ne peut pas acceder a un contact sur un autre campus', async () => {
-    mockFindUnique.mockResolvedValue({ campus: 'paris_nord', referent_eglise_id: null });
+  it('referent_integration ne peut pas acceder a un contact de son campus non assigne a lui', async () => {
+    mockFindUnique.mockResolvedValue({ campus: 'paris', referent_integration_id: 'autre-user', referent_eglise_id: null });
+    const user = { id: 'user-2', role: 'referent_integration', campus: ['paris'] };
+    const result = await peutAccederContact(user, 'contact-2');
+    expect(result).toBe(false);
+  });
+
+  it('referent_integration ne peut pas acceder a un contact sur un autre campus meme assigne', async () => {
+    mockFindUnique.mockResolvedValue({ campus: 'paris_nord', referent_integration_id: 'user-2', referent_eglise_id: null });
     const user = { id: 'user-2', role: 'referent_integration', campus: ['paris'] };
     const result = await peutAccederContact(user, 'contact-2');
     expect(result).toBe(false);
@@ -83,9 +90,12 @@ describe('filtreContactsParRole', () => {
     expect(filtreContactsParRole(user)).toEqual({ campus: { in: ['paris', 'paris_nord'] } });
   });
 
-  it('referent_integration filtre par campus', () => {
+  it('referent_integration filtre par son id ET son campus', () => {
     const user = { id: 'a', role: 'referent_integration', campus: ['paris'] };
-    expect(filtreContactsParRole(user)).toEqual({ campus: { in: ['paris'] } });
+    expect(filtreContactsParRole(user)).toEqual({
+      referent_integration_id: 'a',
+      campus: { in: ['paris'] },
+    });
   });
 
   it('referent_eglise filtre par son id ET son campus', () => {

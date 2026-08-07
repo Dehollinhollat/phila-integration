@@ -650,10 +650,11 @@ export async function listCommentaires(req: Request, res: Response): Promise<voi
     return;
   }
 
-  // referent_integration ne voit que ses propres commentaires
+  // referent_integration ne voit que ses propres commentaires (pas ceux des
+  // autres referents integration sur le meme contact)
   const whereCommentaire: Record<string, unknown> = { contact_id: id };
   if (role === 'referent_integration') {
-    whereCommentaire.role_auteur = 'referent_integration';
+    whereCommentaire.auteur_id = req.user!.id;
   }
   // referent_eglise et au-dessus voient tout
 

@@ -380,7 +380,8 @@ model HistoriqueStatut {
 // Notes et feedbacks rédigés par les référents sur leurs contacts
 //
 // Règle de visibilité (appliquée dans contacts.controller.ts) :
-// - referent_integration : ne voit que les commentaires où role_auteur = referent_integration
+// - referent_integration : ne voit que ses propres commentaires (auteur_id = lui-même),
+//   pas ceux des autres référents intégration sur le même contact
 // - referent_eglise : voit tous les commentaires (intégration + église)
 // - admin_campus et super_admin : voient tout
 // ─────────────────────────────────────────
