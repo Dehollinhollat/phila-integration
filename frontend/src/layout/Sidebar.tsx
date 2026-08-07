@@ -55,9 +55,9 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Gestion',
     items: [
-      // Les référents (église / intégration) ne gèrent pas les ouvriers — page hors
-      // de leur périmètre de travail.
-      { to: '/ouvriers',     label: 'Ouvriers',     icon: <Church size={18} />,        minRole: 'lecteur', excludeRoles: ['referent_integration', 'referent_eglise'] },
+      // Le référent intégration ne gère pas les ouvriers — page hors de son périmètre
+      // de travail. Le référent église, lui, garde accès (suivi plus large).
+      { to: '/ouvriers',     label: 'Ouvriers',     icon: <Church size={18} />,        minRole: 'lecteur', excludeRoles: ['referent_integration'] },
       { to: '/planning',     label: 'Planning',     icon: <Calendar size={18} />,      minRole: 'lecteur' },
       { to: '/mon-planning', label: 'Mon planning', icon: <ClipboardList size={18} />, minRole: 'referent_integration' },
       { to: '/qrcodes',      label: 'QR Codes',     icon: <Smartphone size={18} />,    minRole: 'admin_campus' },
