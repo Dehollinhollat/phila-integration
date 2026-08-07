@@ -205,6 +205,23 @@ export async function updateUser(req: Request, res: Response): Promise<void> {
     role?: string; campus?: string[]; actif?: boolean;
   };
 
+  // Personne ne peut modifier son propre rôle ni son propre statut via cette route
+  // admin générique. toggleStatut bloquait déjà id === req.user!.id pour actif, mais
+  // ce PUT accepte aussi 'actif' sans la même garde — et 'role' n'était protégé nulle
+  // part : un super_admin pouvait se rétrograder lui-même par erreur (ou se bloquer
+  // l'accès en désactivant son propre compte). L'édition de son propre profil passe
+  // par PUT /users/me (updateMyProfile), qui n'expose ni role ni actif.
+  if (id === req.user!.id) {
+    if (role !== undefined) {
+      res.status(400).json({ message: 'Impossible de modifier son propre rôle' });
+      return;
+    }
+    if (actif !== undefined) {
+      res.status(400).json({ message: 'Impossible de modifier son propre statut' });
+      return;
+    }
+  }
+
   // Un admin_campus ne peut pas modifier un super_admin ni lui attribuer ce rôle
   if (req.user!.role === 'admin_campus') {
     const target = await prisma.user.findUnique({ where: { id }, select: { role: true, campus: true } });

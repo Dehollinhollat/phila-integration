@@ -87,6 +87,60 @@ describe('updateUser - perimetre campus admin_campus', () => {
   });
 });
 
+describe('updateUser - un compte ne peut pas modifier son propre role ni son propre statut', () => {
+  it('refuse un super_admin qui change son propre role', async () => {
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'admin-1' },
+      user: { id: 'admin-1', role: 'super_admin', campus: ['paris'] },
+      body: { role: 'referent_integration' },
+    } as never;
+    await updateUser(req, res);
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('refuse un super_admin qui desactive son propre compte', async () => {
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'admin-1' },
+      user: { id: 'admin-1', role: 'super_admin', campus: ['paris'] },
+      body: { actif: false },
+    } as never;
+    await updateUser(req, res);
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('autorise un super_admin a modifier son propre prenom (hors role/actif)', async () => {
+    (prisma.user.update as jest.Mock).mockResolvedValue({ id: 'admin-1', prenom: 'Nouveau' });
+    (prisma.auditLog.create as jest.Mock).mockResolvedValue({});
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'admin-1' },
+      user: { id: 'admin-1', role: 'super_admin', campus: ['paris'] },
+      body: { prenom: 'Nouveau' },
+    } as never;
+    await updateUser(req, res);
+    expect(statusMock).not.toHaveBeenCalledWith(400);
+    expect(prisma.user.update).toHaveBeenCalled();
+  });
+
+  it('autorise toujours la modification du role d\'UN AUTRE compte', async () => {
+    (prisma.user.update as jest.Mock).mockResolvedValue({ id: 'u2', role: 'referent_integration' });
+    (prisma.auditLog.create as jest.Mock).mockResolvedValue({});
+    const { res, statusMock } = mockRes();
+    const req = {
+      params: { id: 'u2' },
+      user: { id: 'admin-1', role: 'super_admin', campus: ['paris'] },
+      body: { role: 'referent_integration' },
+    } as never;
+    await updateUser(req, res);
+    expect(statusMock).not.toHaveBeenCalledWith(400);
+    expect(prisma.user.update).toHaveBeenCalled();
+  });
+});
+
 describe('resetPassword - perimetre admin_campus', () => {
   it('refuse la reinitialisation sur un super_admin cible', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'super_admin', campus: ['paris'] });

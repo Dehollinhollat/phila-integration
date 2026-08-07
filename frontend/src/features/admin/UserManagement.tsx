@@ -225,7 +225,14 @@ export default function UserManagement() {
         // Affiche la confirmation avec l'email de destination
         setSuccessMsg(`Compte créé. Un email avec un mot de passe provisoire a été envoyé à ${res.data.email}.`);
       } else if (modal === 'edit' && selected) {
-        const payload: Partial<User> = { prenom: form.prenom, nom: form.nom, email: form.email, role: form.role, campus: form.campus, actif: form.actif };
+        const isSelf = selected.id === currentUser?.id;
+        // Le backend refuse toute presence de role/actif dans le body pour son propre
+        // compte (meme valeur inchangee) — ces champs sont deja grises dans le formulaire
+        // pour ce cas, on les omet donc ici plutot que d'envoyer les valeurs figees.
+        const payload: Partial<User> = {
+          prenom: form.prenom, nom: form.nom, email: form.email, campus: form.campus,
+          ...(isSelf ? {} : { role: form.role, actif: form.actif }),
+        };
         const res = await usersAdminEndpoints.update(selected.id, payload);
         setUsers(prev => prev.map(u => u.id === selected.id ? res.data : u));
       }
@@ -455,9 +462,13 @@ export default function UserManagement() {
                     <button onClick={() => openEdit(u)} style={btnAction} title="Modifier"><Edit2 size={14} /></button>
                     <button onClick={() => openPassword(u)} style={btnAction} title="Réinitialiser mot de passe"><Key size={14} /></button>
                     <button onClick={() => openConnexions(u)} style={btnAction} title="Historique des connexions">🕐</button>
-                    <button onClick={() => handleToggle(u)} style={btnAction} title={u.actif ? 'Désactiver' : 'Activer'}>
-                      {u.actif ? <Lock size={14} /> : <Unlock size={14} />}
-                    </button>
+                    {/* Le backend refuse deja qu'un compte desactive son propre statut (toggleStatut) —
+                        masque aussi le bouton pour ne pas laisser un clic echouer silencieusement. */}
+                    {u.id !== currentUser?.id && (
+                      <button onClick={() => handleToggle(u)} style={btnAction} title={u.actif ? 'Désactiver' : 'Activer'}>
+                        {u.actif ? <Lock size={14} /> : <Unlock size={14} />}
+                      </button>
+                    )}
                     {/* Suppression - super_admin uniquement, pas sur soi-même ni sur un autre super_admin */}
                     {isSuperAdmin && u.id !== currentUser?.id && u.role !== 'super_admin' && (
                       <button
@@ -524,13 +535,21 @@ export default function UserManagement() {
                 </div>
               )}
               <Field label="Rôle *" style={{ gridColumn: '1 / -1' }}>
-                <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))} style={inputStyle}>
+                <select
+                  value={form.role}
+                  onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}
+                  disabled={modal === 'edit' && selected?.id === currentUser?.id}
+                  style={inputStyle}
+                >
                   {(Object.keys(ROLE_CONFIG) as Role[])
                     .filter(r => !(isAdminCampus && r === 'super_admin'))
                     .map(r => (
                       <option key={r} value={r}>{ROLE_CONFIG[r].label} - {ROLE_CONFIG[r].desc}</option>
                     ))}
                 </select>
+                {modal === 'edit' && selected?.id === currentUser?.id && (
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Vous ne pouvez pas modifier votre propre rôle.</span>
+                )}
               </Field>
               <Field label="Campus" style={{ gridColumn: '1 / -1' }}>
                 <div style={{ display: 'flex', gap: 10 }}>
@@ -544,10 +563,18 @@ export default function UserManagement() {
               </Field>
               {modal === 'edit' && (
                 <Field label="Statut" style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-                    <input type="checkbox" checked={form.actif} onChange={e => setForm(f => ({ ...f, actif: e.target.checked }))} />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: selected?.id === currentUser?.id ? 'default' : 'pointer', fontSize: 13 }}>
+                    <input
+                      type="checkbox"
+                      checked={form.actif}
+                      disabled={selected?.id === currentUser?.id}
+                      onChange={e => setForm(f => ({ ...f, actif: e.target.checked }))}
+                    />
                     Compte actif
                   </label>
+                  {selected?.id === currentUser?.id && (
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Vous ne pouvez pas modifier votre propre statut.</span>
+                  )}
                 </Field>
               )}
             </div>
