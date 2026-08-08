@@ -1,0 +1,54 @@
+# CI — typecheck + tests (backend) + typecheck + lint (frontend).
+#
+# Aucun secret requis : les tests backend tournent entièrement sur Prisma/Twilio
+# mockés (voir backend/src/__tests__/setup.ts), zéro connexion à la base réelle.
+# Volontairement PAS de e2e Playwright ici : l'app partage une seule base Neon
+# entre dev et prod (voir CLAUDE.md) — les lancer sur chaque push toucherait des
+# données réelles.
+#
+# Le lint frontend reste informatif (continue-on-error) : ~35 erreurs
+# react-hooks/set-state-in-effect préexistantes, à résorber progressivement
+# (voir docs/BACKLOG.md) — les faire échouer bloquerait tout le monde dès le
+# premier push sur ce dépôt.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run typecheck
+      - run: npm test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - name: lint (informatif — dette existante, voir docs/BACKLOG.md)
+        run: npm run lint
+        continue-on-error: true

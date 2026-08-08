@@ -16,7 +16,7 @@ import { peutAccederContact, resoudreCampusCible } from '../lib/authorization';
 // Filtres de ciblage avancé — partagés avec cron.ts et le frontend.
 // Chaque champ est optionnel ; les champs absents ne filtrent pas.
 export interface FiltresDestinataires {
-  campus?:           string;  // 'paris' | 'paris_nord'
+  campus?:           string;  // 'paris' | 'paris_nord' | 'orleans' | 'montpellier'
   profil?:           string;  // 'membre_phila' | 'visiteur_sans_eglise' | 'visiteur_avec_eglise'
   statut?:           string;  // StatutContact enum value
   besoin_spirituel?: string;  // BesoinSpirituel enum value (tableau has)
@@ -533,11 +533,6 @@ export async function twilioWebhook(req: Request, res: Response): Promise<void> 
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-// Déplacé vers lib/campusSettings.ts (source de vérité, avec DEFAULT_CAMPUS_SETTINGS).
-// Ré-exporté ici (via l'import ci-dessus) pour ne pas casser les imports existants
-// (cron.ts notamment) qui font `import { DEFAULT_BIENVENUE_TEMPLATE } from './messages.controller'`.
-export { DEFAULT_BIENVENUE_TEMPLATE };
 
 // Substitue toutes les variables [Variable] dans un template de message.
 // Appelé par le cron (bienvenue J+3, anniversaire) et par les envois manuels.

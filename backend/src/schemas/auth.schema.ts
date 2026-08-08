@@ -2,6 +2,7 @@
 // Schémas Zod pour les routes d'authentification.
 
 import { z } from 'zod';
+import { Campus } from '../../generated/prisma/client';
 
 export const loginSchema = z.object({
   email:    z.string().email('Email invalide').max(255, 'Email trop long'),
@@ -9,7 +10,6 @@ export const loginSchema = z.object({
 });
 
 const VALID_ROLES = ['super_admin', 'admin_campus', 'referent_eglise', 'referent_integration', 'lecteur'] as const;
-const VALID_CAMPUS = ['paris', 'paris_nord', 'orleans', 'montpellier'] as const;
 
 // Le mot de passe n'est plus fourni par le frontend — il est généré côté serveur.
 export const createUserSchema = z.object({
@@ -17,7 +17,9 @@ export const createUserSchema = z.object({
   nom:    z.string().min(1, 'Nom requis').max(100),
   email:  z.string().email('Email invalide').max(255),
   role:   z.enum(VALID_ROLES),
-  campus: z.array(z.enum(VALID_CAMPUS)).optional(),
+  // z.enum(Campus) dérive directement de l'enum Prisma — un 5ᵉ campus ajouté dans
+  // schema.prisma est reconnu ici sans rien dupliquer (voir docs/BACKLOG.md).
+  campus: z.array(z.enum(Campus)).optional(),
 });
 
 export type LoginInput      = z.infer<typeof loginSchema>;

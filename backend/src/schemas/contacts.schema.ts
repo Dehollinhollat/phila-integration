@@ -4,12 +4,12 @@
 // passent en .passthrough() pour ne pas bloquer les soumissions valides.
 
 import { z } from 'zod';
+import { Campus } from '../../generated/prisma/client';
 
 const GENRES       = ['homme', 'femme'] as const;
 const ETATS_CIVILS = ['celibataire', 'fiance', 'marie', 'divorce', 'veuf'] as const;
 const STATUTS      = ['oui', 'non', 'premiere_visite'] as const;
 const CANAUX       = ['presentiel', 'en_ligne'] as const;
-const CAMPUS_VALUES = ['paris', 'paris_nord', 'orleans', 'montpellier'] as const;
 
 export const createContactSchema = z.object({
   // Identité
@@ -25,7 +25,9 @@ export const createContactSchema = z.object({
   // Localisation
   ville:       z.string().min(1, 'Ville requise').max(100).trim(),
   code_postal: z.string().max(20).optional().nullable(),
-  campus:      z.enum(CAMPUS_VALUES),
+  // z.enum(Campus) dérive directement de l'enum Prisma — un 5ᵉ campus ajouté dans
+  // schema.prisma est reconnu ici sans rien dupliquer (voir docs/BACKLOG.md).
+  campus:      z.enum(Campus),
 
   // Statut
   etat_civil:   z.enum(ETATS_CIVILS),

@@ -8,7 +8,10 @@
 import { Request, Response } from 'express';
 import prisma from '../../lib/prisma';
 import { sendWhatsApp } from '../../lib/twilio';
-import { envoyerEvenement, createEvenement, updateEvenement } from '../../controllers/evenements.controller';
+import {
+  envoyerEvenement, createEvenement, updateEvenement,
+  listEvenements, getEvenement, deleteEvenement, planifierEvenement,
+} from '../../controllers/evenements.controller';
 
 function mockRes(): { res: Partial<Response>; jsonMock: jest.Mock; statusMock: jest.Mock } {
   const jsonMock   = jest.fn();
@@ -432,5 +435,190 @@ describe('envoyerEvenement - audience ouvriers (dest_type persiste)', () => {
 
     expect(prisma.ouvrier.findMany).not.toHaveBeenCalled();
     expect(sendWhatsApp).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('listEvenements - perimetre campus', () => {
+  it('admin_campus voit son campus ET les evenements multi-campus (campus: null)', async () => {
+    (prisma.evenement.findMany as jest.Mock).mockResolvedValue([]);
+    const { res } = mockRes();
+    await listEvenements(
+      mockReq({ query: {}, user: { id: 'a1', role: 'admin_campus', campus: ['paris'] } } as Partial<Request>),
+      res as Response,
+    );
+    const where = (prisma.evenement.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(where.OR).toEqual([{ campus: { in: ['paris'] } }, { campus: null }]);
+  });
+
+  it('super_admin sans filtre campus ne restreint rien', async () => {
+    (prisma.evenement.findMany as jest.Mock).mockResolvedValue([]);
+    const { res } = mockRes();
+    await listEvenements(mockReq({ query: {} } as Partial<Request>), res as Response);
+    const where = (prisma.evenement.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(where.campus).toBeUndefined();
+    expect(where.OR).toBeUndefined();
+  });
+
+  it('super_admin avec ?campus= filtre sur ce campus precis', async () => {
+    (prisma.evenement.findMany as jest.Mock).mockResolvedValue([]);
+    const { res } = mockRes();
+    await listEvenements(mockReq({ query: { campus: 'orleans' } } as Partial<Request>), res as Response);
+    const where = (prisma.evenement.findMany as jest.Mock).mock.calls[0][0].where;
+    expect(where.campus).toBe('orleans');
+  });
+});
+
+describe('getEvenement - perimetre campus', () => {
+  it('404 si introuvable', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue(null);
+    const { res, statusMock } = mockRes();
+    await getEvenement(mockReq(), res as Response);
+    expect(statusMock).toHaveBeenCalledWith(404);
+  });
+
+  it('403 si rattache a un autre campus (pas null) hors du perimetre', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: 'orleans' });
+    const { res, statusMock } = mockRes();
+    await getEvenement(
+      mockReq({ user: { id: 'a1', role: 'admin_campus', campus: ['paris'] } } as Partial<Request>),
+      res as Response,
+    );
+    expect(statusMock).toHaveBeenCalledWith(403);
+  });
+
+  it('un evenement multi-campus (campus: null) reste visible a un admin_campus', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: null, messages: [] });
+    const { res, statusMock } = mockRes();
+    await getEvenement(
+      mockReq({ user: { id: 'a1', role: 'admin_campus', campus: ['paris'] } } as Partial<Request>),
+      res as Response,
+    );
+    expect(statusMock).not.toHaveBeenCalledWith(403);
+  });
+
+  it('les messages inclus sont filtres par campus pour un non-super_admin', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: null, messages: [] });
+    const { res } = mockRes();
+    await getEvenement(
+      mockReq({ user: { id: 'a1', role: 'admin_campus', campus: ['paris'] } } as Partial<Request>),
+      res as Response,
+    );
+    const include = (prisma.evenement.findUnique as jest.Mock).mock.calls[0][0].include;
+    expect(include.messages.where).toEqual({ contact: { campus: { in: ['paris'] } } });
+  });
+
+  it('super_admin voit tous les messages, sans filtre campus', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: 'paris', messages: [] });
+    const { res } = mockRes();
+    await getEvenement(mockReq(), res as Response);
+    const include = (prisma.evenement.findUnique as jest.Mock).mock.calls[0][0].include;
+    expect(include.messages.where).toBeUndefined();
+  });
+});
+
+describe('deleteEvenement - perimetre et statut', () => {
+  it('404 si introuvable', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue(null);
+    const { res, statusMock } = mockRes();
+    await deleteEvenement(mockReq(), res as Response);
+    expect(statusMock).toHaveBeenCalledWith(404);
+    expect(prisma.evenement.delete).not.toHaveBeenCalled();
+  });
+
+  it('403 si hors du perimetre (y compris un evenement multi-campus)', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: null, statut: 'brouillon' });
+    const { res, statusMock } = mockRes();
+    await deleteEvenement(
+      mockReq({ user: { id: 'a1', role: 'admin_campus', campus: ['paris'] } } as Partial<Request>),
+      res as Response,
+    );
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(prisma.evenement.delete).not.toHaveBeenCalled();
+  });
+
+  it('400 si deja envoye', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: 'paris', statut: 'envoye' });
+    const { res, statusMock } = mockRes();
+    await deleteEvenement(mockReq(), res as Response);
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.evenement.delete).not.toHaveBeenCalled();
+  });
+
+  it('supprime un brouillon dans le perimetre', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: 'paris', statut: 'brouillon' });
+    (prisma.evenement.delete as jest.Mock).mockResolvedValue({});
+    const { res, statusMock } = mockRes();
+    await deleteEvenement(mockReq(), res as Response);
+    expect(statusMock).not.toHaveBeenCalledWith(403);
+    expect(prisma.evenement.delete).toHaveBeenCalledWith({ where: { id: 'ev-1' } });
+  });
+});
+
+describe('planifierEvenement - validations et perimetre', () => {
+  it('400 si planifie_le absent', async () => {
+    const { res, statusMock } = mockRes();
+    await planifierEvenement(mockReq({ body: {} } as Partial<Request>), res as Response);
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.evenement.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('400 si la date est dans le passe', async () => {
+    const { res, statusMock } = mockRes();
+    await planifierEvenement(
+      mockReq({ body: { planifie_le: '2020-01-01T00:00:00Z' } } as Partial<Request>),
+      res as Response,
+    );
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.evenement.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('404 si introuvable', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue(null);
+    const { res, statusMock } = mockRes();
+    await planifierEvenement(
+      mockReq({ body: { planifie_le: '2099-01-01T00:00:00Z' } } as Partial<Request>),
+      res as Response,
+    );
+    expect(statusMock).toHaveBeenCalledWith(404);
+  });
+
+  it('403 si hors du perimetre', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: 'orleans', statut: 'brouillon' });
+    const { res, statusMock } = mockRes();
+    await planifierEvenement(
+      mockReq({
+        body: { planifie_le: '2099-01-01T00:00:00Z' },
+        user: { id: 'a1', role: 'admin_campus', campus: ['paris'] },
+      } as Partial<Request>),
+      res as Response,
+    );
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(prisma.evenement.update).not.toHaveBeenCalled();
+  });
+
+  it('400 si deja envoye', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: 'paris', statut: 'envoye' });
+    const { res, statusMock } = mockRes();
+    await planifierEvenement(
+      mockReq({ body: { planifie_le: '2099-01-01T00:00:00Z' } } as Partial<Request>),
+      res as Response,
+    );
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(prisma.evenement.update).not.toHaveBeenCalled();
+  });
+
+  it('planifie un brouillon dans le perimetre', async () => {
+    (prisma.evenement.findUnique as jest.Mock).mockResolvedValue({ id: 'ev-1', campus: 'paris', statut: 'brouillon' });
+    (prisma.evenement.update as jest.Mock).mockResolvedValue({ id: 'ev-1', statut: 'planifie' });
+    const { res, statusMock } = mockRes();
+    await planifierEvenement(
+      mockReq({ body: { planifie_le: '2099-01-01T00:00:00Z' } } as Partial<Request>),
+      res as Response,
+    );
+    expect(statusMock).not.toHaveBeenCalledWith(403);
+    expect(prisma.evenement.update).toHaveBeenCalledWith({
+      where: { id: 'ev-1' },
+      data:  { statut: 'planifie', planifie_le: new Date('2099-01-01T00:00:00Z') },
+    });
   });
 });

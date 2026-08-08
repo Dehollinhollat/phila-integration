@@ -61,6 +61,9 @@ function mapEtatCivil(raw: string): 'celibataire' | 'marie' | 'fiance' | 'divorc
 
 function mapCampus(raw: string): 'paris' | 'paris_nord' | 'orleans' | 'montpellier' | null {
   const v = (raw ?? '').toString().trim().toLowerCase().replace(/\s+/g, '');
+  // L'ordre des deux lignes suivantes n'a pas d'effet : v === 'paris' est une égalité
+  // stricte, jamais vraie pour "parisnord" (qui matche déjà v.includes('nord')) — donc
+  // aucun chevauchement possible entre les deux conditions, quel que soit l'ordre.
   if (v.includes('nord') || v === 'pn' || v === 'parisnord') return 'paris_nord';
   if (v === 'paris' || v === 'p') return 'paris';
   if (v.includes('orlean') || v.includes('orléan')) return 'orleans';

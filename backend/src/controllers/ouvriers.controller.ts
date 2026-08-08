@@ -11,6 +11,7 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { Campus } from '../../generated/prisma/client';
 // Contrôle de périmètre campus partagé avec evenements/messages — voir lib/authorization.ts.
 // Les ouvriers n'ont pas de rôle (contrairement à User) : seule la vérification de campus
 // s'applique ici.
@@ -387,8 +388,9 @@ export async function candidatureOuvrier(req: Request, res: Response): Promise<v
       res.status(400).json({ message: 'Champs obligatoires manquants : prenom, nom, telephone, campus' });
       return;
     }
-    const CAMPUS_VALIDES = ['paris', 'paris_nord', 'orleans', 'montpellier'];
-    if (!CAMPUS_VALIDES.includes(campus)) {
+    // Dérivé de l'enum Prisma — un 5ᵉ campus ajouté dans schema.prisma est reconnu
+    // ici sans rien dupliquer (voir docs/BACKLOG.md).
+    if (!Object.values(Campus).includes(campus as Campus)) {
       res.status(400).json({ message: 'Campus invalide' });
       return;
     }

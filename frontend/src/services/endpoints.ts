@@ -49,7 +49,7 @@ export interface ContactFilters {
 // Filtres de ciblage avancé — utilisés pour le compteur temps réel (MessageCompose)
 // et transmis dans le body de createEvenement pour déterminer les destinataires.
 export interface FiltresDestinataires {
-  campus?:           string;  // 'paris' | 'paris_nord'
+  campus?:           string;  // 'paris' | 'paris_nord' | 'orleans' | 'montpellier'
   profil?:           string;  // 'membre_phila' | 'visiteur_sans_eglise' | 'visiteur_avec_eglise'
   statut?:           string;  // StatutContact enum value
   besoin_spirituel?: string;  // BesoinSpirituel value (priere | bapteme | suivi | rencontrer_pasteur)

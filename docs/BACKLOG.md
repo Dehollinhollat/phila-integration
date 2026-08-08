@@ -92,39 +92,27 @@ Le modèle `Evenement` ne persistait ni `dest_type` ni `filtres_ouvriers` — ce
 
 ---
 
-## ⚪ P4 — Dette technique
+## ✅ Corrigé le 8 août 2026 — P4 : dette technique
 
 ### Listes de campus dupliquées côté backend
 
-Trois définitions indépendantes de la même liste `['paris', 'paris_nord', 'orleans', 'montpellier']` :
-
-- `backend/src/schemas/auth.schema.ts` → `VALID_CAMPUS`
-- `backend/src/schemas/contacts.schema.ts` → `CAMPUS_VALUES`
-- `backend/src/controllers/ouvriers.controller.ts` → `CAMPUS_VALIDES`
-
-Le frontend, lui, centralise correctement (`CAMPUS_LABELS` / `CAMPUS_OPTIONS`, avec exhaustivité vérifiée par le compilateur). Ajouter un 5ᵉ campus demande aujourd'hui de retrouver ces trois emplacements à la main, sans aide du compilateur.
-
-**À faire :** une seule constante partagée, idéalement dérivée de `Object.values(Campus)` du client Prisma (motif déjà utilisé dans `stats.controller.ts` et `settings.controller.ts`).
+`VALID_CAMPUS` (`auth.schema.ts`), `CAMPUS_VALUES` (`contacts.schema.ts`) et `CAMPUS_VALIDES` (`ouvriers.controller.ts`) — trois copies indépendantes de `['paris', 'paris_nord', 'orleans', 'montpellier']` — remplacées : les deux schémas Zod utilisent maintenant `z.enum(Campus)` (Zod 4 accepte directement un enum natif — `z.nativeEnum` est déprécié dans cette version), `ouvriers.controller.ts` utilise `Object.values(Campus)`. Les trois dérivent maintenant de l'enum Prisma — un 5ᵉ campus ajouté dans `schema.prisma` est reconnu partout sans rien dupliquer.
 
 ### Commentaires obsolètes
 
-- `messages.controller.ts` — le commentaire justifiant le ré-export de `DEFAULT_BIENVENUE_TEMPLATE` (« pour ne pas casser cron.ts ») est faux : `cron.ts` ne l'importe plus. Ré-export mort.
-- `messages.controller.ts:17` et `frontend/src/services/endpoints.ts:49` — annotations `// 'paris' | 'paris_nord'` non mises à jour pour les 4 campus.
-- `import.controller.ts` — dans `mapCampus`, le test `nord` a été déplacé avant `paris` sans commentaire ; inoffensif mais déroutant à la relecture.
+Les 3 corrigés : ré-export mort de `DEFAULT_BIENVENUE_TEMPLATE` supprimé (plus personne ne l'importait depuis `messages.controller.ts`), annotations `// 'paris' | 'paris_nord'` complétées pour les 4 campus (`messages.controller.ts`, `frontend/src/services/endpoints.ts`), commentaire ajouté sur l'ordre des tests dans `mapCampus` (`import.controller.ts`) expliquant qu'il n'a pas d'effet (pas de chevauchement possible entre les deux conditions).
 
-### Qualité de code non contrôlée
+### CI ajoutée (`.github/workflows/ci.yml`)
 
-- `npm run lint` remonte **35 erreurs** sur le projet (`react-hooks/set-state-in-effect`, un par fichier — setState synchrone en tête d'un `useEffect`), jamais traitées. Était 61 avant la correction du 8 août d'une violation Rules of Hooks dans `MessageCompose.tsx`, qui à elle seule expliquait la majorité du total (cascade de règles react-hooks).
-- **Aucun workflow CI** (pas de dossier `.github`). Ni les tests ni le lint ne tournent automatiquement — c'est ce qui a permis à la violation Rules of Hooks ci-dessus de passer entre les mailles lors du chantier multi-campus.
+Deux jobs : **backend** (`prisma generate` + `typecheck` + `test`, zéro secret requis — Prisma/Twilio/node-cron entièrement mockés dans les tests) et **frontend** (`typecheck` + `lint`). Volontairement **pas de e2e Playwright** en CI : l'app partage une seule base Neon entre dev et prod, les lancer sur chaque push toucherait des données réelles.
 
-**À faire :** ajouter une CI (tests + typecheck + lint), puis résorber progressivement les erreurs existantes.
+Le lint frontend reste **informatif** (`continue-on-error`) : les 35 erreurs `react-hooks/set-state-in-effect` préexistantes (une par fichier, setState synchrone en tête d'un `useEffect`) sont laissées en l'état — les faire échouer aurait bloqué tout push sur ce dépôt dès l'ajout de la CI. Prochaine étape naturelle : les résorber fichier par fichier puis retirer `continue-on-error`.
 
 ### Couverture de tests
 
-Quasi inexistante sur deux contrôleurs qui envoient de vrais messages à de vraies personnes :
+`evenements.controller.ts` : 4 handlers non couverts (`listEvenements`, `getEvenement`, `deleteEvenement`, `planifierEvenement`) ont maintenant des tests (périmètre campus, statuts, validations). `messages.controller.ts` : `sendBienvenue` (périmètre, statut 409/400, succès/échec Twilio) et `listMessages` (scoping par rôle, filtres, pagination) désormais couverts. (`twilioWebhook` l'était déjà depuis le correctif de signature du 8 août — la mention plus haut dans une version antérieure de cette section était obsolète.)
 
-- `evenements.controller.ts` — seul le correctif `[Adresse]` est couvert ; 7 handlers exportés sans test.
-- `messages.controller.ts` — `sendBienvenue`, `listMessages`, `twilioWebhook` non testés.
+30 tests ajoutés pour ce lot.
 
 ---
 
