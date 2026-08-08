@@ -106,7 +106,7 @@ export function startCronJobs(): void {
         statut: 'planifie',
         planifie_le: { lte: now },
       },
-      include: { createur: { select: { role: true } } },
+      include: { createur: { select: { id: true, role: true } } },
     });
 
     if (evenements.length === 0) return;
@@ -127,6 +127,27 @@ export function startCronJobs(): void {
           where: { id: ev.id },
           data: { statut: 'brouillon', planifie_le: null },
         });
+
+        // Cas légitime possible (voir docs/BACKLOG.md) : un super_admin a passé
+        // l'événement en multi-campus après sa création par un admin_campus, puis
+        // l'a planifié — mais le cron n'a de contexte que sur le créateur d'ORIGINE.
+        // Rendre l'échec visible plutôt que silencieux : le créateur et les
+        // super_admin actifs sont notifiés, avec un lien pour re-planifier.
+        const superAdmins = await prisma.user.findMany({
+          where: { role: 'super_admin', actif: true },
+          select: { id: true },
+        });
+        const destinataires = new Set([ev.created_by, ...superAdmins.map(a => a.id)]);
+        await prisma.notification.createMany({
+          data: Array.from(destinataires).map(userId => ({
+            user_id: userId,
+            type:    'evenement_envoi_annule' as const,
+            titre:   'Envoi événement annulé',
+            message: `"${ev.titre}" ciblait tous les campus mais son créateur n'est plus super_admin — repassé en brouillon, non envoyé.`,
+            lien:    '/evenements',
+          })),
+        });
+
         continue;
       }
 

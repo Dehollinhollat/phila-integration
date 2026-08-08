@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, MessageSquare, GraduationCap, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Modal } from '../../components/common/Modal';
 import { settingsEndpoints } from '../../services/endpoints';
 import { CAMPUS_LABELS, CAMPUS_OPTIONS, ROLE_RANK } from '../../utils/constants';
 import type { Campus } from '../../types';
@@ -298,6 +299,9 @@ export default function Settings() {
     : (user?.campus ?? []);
 
   const [activeCampus, setActiveCampus] = useState<Campus | null>(availableCampus[0] ?? null);
+  // Campus cliqué en attente de confirmation quand l'onglet courant a des modifs
+  // non enregistrées (remplace l'ancien window.confirm — voir Modal plus bas).
+  const [pendingCampus, setPendingCampus] = useState<Campus | null>(null);
 
   // ── Bloc global (seuils) — super_admin uniquement ──────────────────────────
   const [globalValues, setGlobalValues] = useState<Record<string, string>>({});
@@ -339,11 +343,19 @@ export default function Settings() {
       setCampusLoading(false);
       return;
     }
+    // Un changement d'onglet rapide déclenche une nouvelle requête avant que la
+    // précédente ait répondu — sans ce garde-fou, une réponse tardive de l'ANCIEN
+    // campus peut écraser les valeurs déjà affichées du campus courant.
+    let ignore = false;
     setCampusLoading(true);
     settingsEndpoints.getCampus(activeCampus).then(res => {
+      if (ignore) return;
       setCampusValues(res.data);
       setCampusSaved(res.data);
-    }).finally(() => setCampusLoading(false));
+    }).finally(() => {
+      if (!ignore) setCampusLoading(false);
+    });
+    return () => { ignore = true; };
   }, [activeCampus]);
 
   const campusDirty = JSON.stringify(campusValues) !== JSON.stringify(campusSaved);
@@ -400,6 +412,21 @@ export default function Settings() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  // Garde fermeture d'onglet / rechargement / navigation vers une autre adresse
+  // avec des modifications non enregistrées (campus ou seuils globaux). Ne couvre
+  // pas la navigation interne (clic sur un lien de la sidebar) : le routeur de
+  // l'app est un BrowserRouter classique, pas un data router — useBlocker n'est
+  // pas disponible sans migrer vers createBrowserRouter, hors périmètre ici.
+  useEffect(() => {
+    if (!campusDirty && !globalDirty) return;
+    function handler(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [campusDirty, globalDirty]);
+
   // Guard : admin_campus minimum - redirection sinon (effect, pas un early return
   // avant les hooks ci-dessus — cf. Rules of Hooks)
   useEffect(() => {
@@ -438,12 +465,7 @@ export default function Settings() {
               key={c}
               onClick={() => {
                 if (c === activeCampus) return;
-                if (campusDirty) {
-                  const confirmed = window.confirm(
-                    'Vous avez des modifications non enregistrées sur ce campus. Les abandonner et changer de campus ?'
-                  );
-                  if (!confirmed) return;
-                }
+                if (campusDirty) { setPendingCampus(c); return; }
                 setActiveCampus(c);
               }}
               style={{
@@ -539,6 +561,39 @@ export default function Settings() {
           {toast}
         </div>
       )}
+
+      {/* Confirmation changement de campus avec modifs non enregistrées */}
+      <Modal open={pendingCampus !== null} onClose={() => setPendingCampus(null)} title="Modifications non enregistrées">
+        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
+          Vous avez des modifications non enregistrées
+          {activeCampus ? ` sur ${CAMPUS_LABELS[activeCampus]}` : ''}.
+          Les abandonner et passer à {pendingCampus ? CAMPUS_LABELS[pendingCampus] : 'cet autre campus'} ?
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => setPendingCampus(null)}
+            style={{
+              padding: '8px 16px', borderRadius: 6, border: '1px solid var(--bg-card-border)',
+              background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
+            }}
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => {
+              if (pendingCampus) setActiveCampus(pendingCampus);
+              setPendingCampus(null);
+            }}
+            style={{
+              padding: '8px 16px', borderRadius: 6, border: 'none',
+              background: 'var(--accent-teal)', color: '#fff', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+            }}
+          >
+            Changer quand même
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

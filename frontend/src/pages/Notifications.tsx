@@ -20,6 +20,7 @@ const TYPE_CONFIG: Record<TypeNotification, { color: string; label: string; icon
   checklist_completee:          { color: '#10B981', label: 'Intégration',     icon: <CheckCircle size={17} /> },
   nouvelle_candidature_ouvrier: { color: '#8B5CF6', label: 'Candidature',    icon: <Church size={17} /> },
   alerte_risque:                { color: '#EF4444', label: 'Alerte risque',  icon: <AlertTriangle size={17} /> },
+  evenement_envoi_annule:       { color: '#F97316', label: 'Envoi annulé',   icon: <AlertTriangle size={17} /> },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

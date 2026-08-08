@@ -66,7 +66,8 @@ export type TypeNotification =
   | 'rappel_evenement'
   | 'checklist_completee'
   | 'nouvelle_candidature_ouvrier'
-  | 'alerte_risque';
+  | 'alerte_risque'
+  | 'evenement_envoi_annule';
 
 export interface Notification {
   id:         string;

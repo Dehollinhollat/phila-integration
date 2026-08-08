@@ -74,23 +74,21 @@ Le modèle `Evenement` ne persistait ni `dest_type` ni `filtres_ouvriers` — ce
 
 ---
 
-## 🟡 P3 — Bugs d'expérience utilisateur
+## ✅ Corrigé le 8 août 2026 — P3 : bugs d'expérience utilisateur
 
 ### Paramètres — trois points
 
 `frontend/src/features/admin/Settings.tsx` :
 
-1. `window.confirm()` natif pour la confirmation de changement d'onglet, alors que le projet a un composant `Modal` et un motif de modale personnalisée (voir `OuvrierList.tsx`). Incohérent avec le reste de l'interface.
-2. Aucune garde si l'utilisateur **quitte la page** avec des modifications non enregistrées (seul le changement d'onglet campus est protégé).
-3. Changement d'onglet rapide : pas d'annulation de la requête précédente, une réponse tardive peut écraser les données de l'onglet courant.
+1. `window.confirm()` natif remplacé par le composant `Modal` du projet (`components/common/Modal.tsx` — jusque-là jamais importé nulle part). Même comportement (Annuler / Changer quand même), juste cohérent visuellement avec le reste de l'app.
+2. Garde ajoutée sur `beforeunload` : fermeture d'onglet, rechargement ou saisie d'une autre adresse avec des modifications non enregistrées (campus ou seuils globaux) déclenche la confirmation native du navigateur. **Limite connue, non couverte** : la navigation interne (clic sur un lien de la sidebar) — le routeur de l'app est un `BrowserRouter` classique, pas un data router, et `useBlocker` n'est disponible qu'avec `createBrowserRouter`/`RouterProvider`. Couvrir ce cas demanderait de migrer le routeur, hors périmètre d'un correctif P3.
+3. L'effet de chargement par campus ignore désormais les réponses obsolètes (`let ignore = false` + cleanup, même motif que `MessageCompose.tsx`) : changer rapidement d'onglet ne peut plus faire écraser les valeurs du campus courant par une réponse tardive de l'ancien.
 
 ### Événement multi-campus silencieusement repassé en brouillon
 
-`backend/src/lib/cron.ts`, Tâche 2 — le garde-fou qui vérifie le rôle du créateur avant un envoi multi-campus (voir la faille de périmètre corrigée ci-dessus) regarde `evenement.created_by`, pas la personne qui a le plus récemment autorisé le ciblage multi-campus. Scénario : un `admin_campus` crée un événement sur son campus ; un super_admin l'édite ensuite pour le passer en multi-campus (`campus: null`) et le planifie — parfaitement légitime. Au moment de l'envoi, le cron regarde le rôle du créateur d'origine (`admin_campus`), pas celui du super_admin qui a autorisé le passage en multi-campus, et annule silencieusement l'envoi (repasse en `brouillon`, log une erreur).
+`backend/src/lib/cron.ts`, Tâche 2 — le garde-fou continue de se baser sur `evenement.created_by` (le changer aurait faussé l'affichage "créateur" ailleurs dans l'app pour un gain incertain). À la place : l'échec n'est plus silencieux. Le créateur d'origine et tous les `super_admin` actifs reçoivent maintenant une notification (`evenement_envoi_annule`, nouvelle valeur d'enum) expliquant que l'événement a été repassé en brouillon, avec un lien vers `/evenements` pour le re-planifier.
 
-Pas une faille de sécurité — l'échec est toujours du côté sûr (rien ne part), juste une perte de fonctionnalité silencieuse pour un usage légitime.
-
-**À faire :** soit tracer qui a autorisé le ciblage multi-campus (ex. transférer `created_by` au super_admin qui fait le changement), soit notifier plutôt que logger silencieusement.
+10 tests ajoutés/adaptés pour ce lot (Modal, effets ignore, notifications cron), vérifiés empiriquement comme échouant sur le code d'avant.
 
 ---
 

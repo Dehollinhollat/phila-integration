@@ -130,6 +130,8 @@ describe('Tache 2 - un evenement multi-campus n\'est envoye que si son createur 
     jest.clearAllMocks();
     (prisma.message.createMany as jest.Mock).mockResolvedValue({ count: 0 });
     (prisma.evenement.update as jest.Mock).mockResolvedValue({ id: 'ev-1' });
+    (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.notification.createMany as jest.Mock).mockResolvedValue({ count: 0 });
   });
 
   it("n'envoie pas et repasse en brouillon si le createur n'est plus super_admin", async () => {
@@ -159,6 +161,34 @@ describe('Tache 2 - un evenement multi-campus n\'est envoye que si son createur 
       where: { id: 'ev-1' },
       data:  { statut: 'brouillon', planifie_le: null },
     });
+  });
+
+  it("notifie le createur et les super_admin actifs au lieu d'echouer silencieusement", async () => {
+    (prisma.evenement.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 'ev-1', titre: 'Ancien evenement', message_template: 'Bonjour',
+        destinataires: 'tous', campus: null, filtres_json: null,
+        date_evenement: new Date('2026-09-01'), planifie_le: new Date('2026-08-01T09:00:00Z'),
+        statut: 'planifie', created_by: 'admin-demote',
+        createur: { role: 'admin_campus' },
+      },
+    ]);
+    (prisma.user.findMany as jest.Mock).mockResolvedValue([{ id: 'super-1' }, { id: 'super-2' }]);
+
+    const { startCronJobs } = await import('../../lib/cron');
+    startCronJobs();
+    const tache2Callback = getTache2Callback(cron.schedule as jest.Mock);
+
+    await tache2Callback();
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { role: 'super_admin', actif: true },
+    }));
+    const notifCall = (prisma.notification.createMany as jest.Mock).mock.calls[0][0];
+    const userIds = notifCall.data.map((n: { user_id: string }) => n.user_id).sort();
+    // Le createur d'origine (admin-demote) ET les deux super_admin actifs, chacun une fois.
+    expect(userIds).toEqual(['admin-demote', 'super-1', 'super-2']);
+    expect(notifCall.data[0].type).toBe('evenement_envoi_annule');
   });
 });
 

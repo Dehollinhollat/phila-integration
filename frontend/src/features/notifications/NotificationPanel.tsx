@@ -15,6 +15,7 @@ const TYPE_CONFIG: Record<TypeNotification, { color: string; label: string }> = 
   checklist_completee:          { color: 'var(--accent-teal)',   label: 'Intégration' },
   nouvelle_candidature_ouvrier: { color: '#8B5CF6',              label: 'Candidature' },
   alerte_risque:                { color: '#EF4444',              label: 'Alerte risque' },
+  evenement_envoi_annule:       { color: '#F97316',              label: 'Envoi annulé' },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -176,6 +176,7 @@ enum TypeNotification {
   checklist_completee           // super_admin notifié quand intégration_confirmee coché
   nouvelle_candidature_ouvrier  // admins notifiés quand un ouvrier soumet une candidature publique
   alerte_risque                 // contacts sans référent J+2 ou nouveaux en retard J+7
+  evenement_envoi_annule        // événement multi-campus repassé en brouillon par le cron (créateur non super_admin)
 }
 
 /// Rôle de service d'un ouvrier dans un planning dominical
