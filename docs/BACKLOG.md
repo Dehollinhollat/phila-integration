@@ -151,14 +151,5 @@ Souhaité. Contrainte technique identifiée : le glassmorphism suppose un `backd
 
 Le thème sombre est déjà à moitié préparé (`--bg-card: rgba(26,86,176,0.08)`, `--bg-card-solid` prévu pour les panneaux flottants) ; le thème clair est entièrement opaque.
 
-### Réorganiser l'écran Paramètres
-
-Trop dense : 6 sections dont **4 ne contiennent qu'un seul champ**, chacune avec son en-tête et sa carte, plus un aperçu permanent sous chaque zone de texte.
-
-Piste proposée, du plus rentable au plus lourd :
-
-1. regrouper 6 → 3 sections (Infos Église / Modèles de messages / Certificat) ;
-2. rendre ces sections repliables (accordéon), la première ouverte ;
-3. afficher l'aperçu à la demande.
-
-Accordéon plutôt que sous-onglets : le bouton « Sauvegarder » enregistre les 9 clés du campus en une fois, des sous-onglets laisseraient croire qu'il faut sauvegarder onglet par onglet. Les onglets campus, eux, fonctionnent bien et restent.
+<!-- "Réorganiser l'écran Paramètres" fait le 7 août : 6 → 3 sections (Infos Église /
+     Modèles de messages / Certificat), accordéon repliable, aperçu à la demande. -->
