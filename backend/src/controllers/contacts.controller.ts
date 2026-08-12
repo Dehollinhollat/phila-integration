@@ -309,12 +309,39 @@ export async function updateContact(req: Request, res: Response): Promise<void> 
     return;
   }
 
+  // Liste blanche explicite — un `{ ...req.body }` permettait à un simple
+  // referent_integration (rôle minimum requis par cette route) de réécrire
+  // referent_integration_id/referent_eglise_id (réservés à admin_campus+ via
+  // PATCH /api/referents/contacts/:id/*), campus (aucune vérification de
+  // périmètre sur la destination — peutAccederContact ne vérifie que le campus
+  // ACTUEL), telephone (pas de contrôle de doublon ici, contrairement à
+  // updateContactFull) ou statut (contournant l'historique + le log d'audit
+  // dédiés à updateStatut). Même motif que updateEvenement/updatePlanning.
+  const body = req.body as Record<string, unknown>;
+  const EDITABLE_FIELDS = [
+    'genre', 'prenom', 'nom', 'email', 'date_naissance',
+    'ville', 'code_postal',
+    'etat_civil', 'statut_phila', 'extension_phila', 'profil', 'intention',
+    'canal', 'saisi_par_membre',
+    'interet_cellule', 'comment_connu',
+    'souhait', 'besoins', 'autre_eglise', 'nom_autre_eglise', 'sert_autre_eglise', 'service_autre_eglise',
+    'rdv_pasteur', 'don', 'disponibilite_suivi',
+    'besoin_particulier', 'presence', 'suivi',
+  ] as const;
+
+  const data: Record<string, unknown> = {};
+  for (const field of EDITABLE_FIELDS) {
+    if (body[field] !== undefined) data[field] = body[field];
+  }
+  if (typeof data.date_naissance === 'string') {
+    data.date_naissance = data.date_naissance ? new Date(data.date_naissance) : null;
+  }
+
   // Recalcule le profil si statut_phila ou autre_eglise change (sauf si admin force profil)
-  const data = { ...req.body };
   if ((data.statut_phila || data.autre_eglise !== undefined) && !data.profil) {
     const statut     = data.statut_phila     ?? exists.statut_phila;
     const autreEgl   = data.autre_eglise     !== undefined ? data.autre_eglise : exists.autre_eglise;
-    data.profil = determinerProfil(statut, autreEgl);
+    data.profil = determinerProfil(statut as string, autreEgl as boolean | null | undefined);
   }
 
   const contact = await prisma.contact.update({ where: { id }, data });

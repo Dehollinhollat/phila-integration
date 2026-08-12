@@ -1,6 +1,6 @@
 # Backlog — reste à faire
 
-Dernière mise à jour : 12 août 2026, après audit de sécurité complet (9 failles trouvées, 7 corrigées).
+Dernière mise à jour : 12 août 2026, après un second passage d'audit de sécurité (routes, middlewares, lib/, dépendances npm) — 4 failles applicatives corrigées supplémentaires, 3 dépendances mises à jour.
 
 Chaque point indique où intervenir. Les priorités vont de P0 (bloquant) à P5 (confort).
 
@@ -137,6 +137,43 @@ Même famille de faille que le correctif du 7 août (`evenements`/`messages`/`ou
 37 tests ajoutés (12+2+5+9+9), vérifiés empiriquement : les fichiers corrigés remis de côté via `git stash`, 21 des 37 nouveaux tests échouent (les contrôles de périmètre), les 16 autres passent (comportement inchangé) — confirme que les tests ciblent bien les failles et non un comportement accessoire. Suite complète : 223/223 après restauration des correctifs.
 
 **Non-sécuritaire, notés informationnels lors de l'audit :** absence de rate-limiting sur `/auth/forgot-password` (corrigée au passage ci-dessus) ; duplication `auth.controller.ts`/`users.controller.ts` (résolue par la suppression ci-dessus).
+
+---
+
+## ✅ Corrigé le 12 août 2026 (2) — Second passage d'audit : routes, middlewares, lib/, dépendances
+
+Suite explicite à la demande « il faut faire un audit complet de toutes les zones ». Relu au-delà des contrôleurs déjà couverts par les deux lots précédents : les 17 fichiers `routes/*.ts` (chaînage des middlewares), `auth.middleware.ts`/`roles.middleware.ts`, `server.ts` (CORS, Helmet, sanitisation XSS globale, limites de taille), `validate.middleware.ts`, `turnstile.middleware.ts`, `env.ts`, tous les fichiers `lib/` (`cron.ts`, `cache.ts`, `audit.ts`, `prisma.ts`, `twilio.ts`, `campusSettings.ts`, `certificat.ts`), les schémas Zod, et les 12 contrôleurs restants (`contacts`, `ouvriers`, `twilio`, `settings`, `notifications`, `feedback`, `audit`, `users`, `messages`, `evenements`, `stats`), plus `npm audit` sur les deux paquets (backend et frontend).
+
+### `updateContact` — escalade de privilège via liste ouverte
+
+`PATCH /api/contacts/:id` n'exige que le rôle `referent_integration` et appliquait `{ ...req.body }` sans liste blanche ni schéma de validation — seul `{ ...req.body }` restant dans toute la base après les correctifs du 7-8 août (`updateEvenement`, `updatePlanning`). Un référent intégration pouvait :
+- se réassigner (ou réassigner à un collègue) n'importe quel contact via `referent_integration_id`/`referent_eglise_id`, en contournant `PATCH /api/referents/contacts/:id/*` qui lui est explicitement interdit (réservé à `admin_campus`+) ;
+- déplacer un contact vers n'importe quel campus via `campus` — `peutAccederContact` ne vérifie que le campus *actuel*, jamais la destination ;
+- forcer `statut` directement, court-circuitant l'historique et le log d'audit dédiés à `updateStatut`.
+
+Corrigé avec une liste blanche explicite (mêmes champs de profil que le formulaire d'inscription, moins `campus`/`telephone`/les référents/`statut`/les métadonnées système), même motif que `updateEvenement`/`updatePlanning`. 8 tests ajoutés.
+
+### `getFeedbacks` — fuite de réponses au questionnaire inter-campus
+
+`GET /api/feedback` (ouvert à `admin_campus`/`referent_integration`/`referent_eglise`) ne filtrait jamais par campus — un admin de Paris-Nord voyait les réponses (y compris le texte libre) de tous les campus. Même famille de faille que stats/messages/événements (7-8 août), oubliée sur cette route. `Feedback.contact_id` n'a pas de relation Prisma vers `Contact` (simple `String`, voir schema.prisma) : corrigé via une sous-requête explicite sur les contacts du périmètre de l'appelant plutôt qu'un filtre imbriqué. 3 tests ajoutés.
+
+11 tests ajoutés au total pour ce lot, vérifiés empiriquement comme échouant sur le code d'avant (`git stash`) : 9/11 échouaient pour la bonne raison (champs qui fuitaient, filtre absent), les 2 autres passaient déjà (comportement inchangé). Suite complète : 234/234 après restauration.
+
+### Anti-bot Turnstile — laissé volontairement débranché
+
+`verifyTurnstile` (Cloudflare Turnstile) est entièrement implémenté et testé, mais n'est monté sur aucune route — décision délibérée antérieure à cet audit (retiré intentionnellement), pas un oubli. Les 2 formulaires publics restent protégés par honeypot + rate-limit IP (5/heure) uniquement. Laissé en l'état pour l'instant, à reconsidérer plus tard si le spam devient un problème réel.
+
+### Dépendances npm vulnérables
+
+Corrigées sans changement de code (déjà dans la plage `^` de chaque `package.json`, `typecheck`/`build`/suite de tests complets revérifiés après coup) :
+- Backend : `multer` 2.1.1 → 2.2.0 (2 CVE de déni de service — route d'import Excel), `morgan` 1.10.1 → 1.11.0 (injection dans les logs via `:remote-user`).
+- Frontend : `react-router-dom` 7.14.2 → 7.18.2 (CSRF sur PUT/PATCH/DELETE, redirection ouverte, déni de service — c'est le routeur de toute l'application), `axios` 1.15.2 → 1.19.0 (contournement de `maxBodyLength` en HTTP/2, pollution de prototype sur les sous-champs d'authentification — au passage, corrige aussi `form-data` qui n'apparaissait qu'en transitif d'axios).
+
+**Non corrigées, aucun correctif disponible en amont — risque accepté et documenté :**
+- `xlsx` (backend, sévérité haute : pollution de prototype + ReDoS dans SheetJS) — utilisé par `importContacts` pour parser les fichiers Excel uploadés. Route réservée à `admin_campus`+, ce qui limite l'exploitation à un compte admin compromis ou un fichier reçu d'un tiers puis importé sans le relire. Migrer vers une autre librairie (ex. `exceljs`) est une tâche à part entière, hors périmètre de cet audit.
+- `dompurify` (frontend, sévérité modérée) — dépendance transitive de `jspdf` (génération de PDF), déjà à sa dernière version publiée (4.2.1) ; aucune mise à jour indépendante possible sans forcer une version potentiellement incompatible. L'application n'appelle nulle part la fonctionnalité HTML-vers-PDF de jspdf qui utiliserait dompurify (aucun `dangerouslySetInnerHTML` dans tout le frontend, confirmé par recherche exhaustive) — risque résiduel très faible en pratique.
+
+**Noté en information, pas une faille active :** le JWT et le refresh token sont stockés en `localStorage` (`frontend/src/services/api.ts`) plutôt qu'en cookie `httpOnly` — pratique standard pour une SPA mais qui rendrait les tokens accessibles à un XSS si un vecteur d'injection existait. Aucun n'a été trouvé (pas de `dangerouslySetInnerHTML`, sanitisation XSS globale du body côté backend) ; à garder à l'esprit si une future fonctionnalité introduit du rendu HTML non échappé.
 
 ---
 

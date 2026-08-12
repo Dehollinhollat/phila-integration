@@ -102,6 +102,14 @@ const prisma = {
     update:      jest.fn(),
     delete:      jest.fn(),
   },
+  feedback: {
+    findMany:    jest.fn(),
+    create:      jest.fn(),
+  },
+  feedbackToken: {
+    findUnique:  jest.fn(),
+    update:      jest.fn(),
+  },
   affectationPlanning: {
     findUnique:  jest.fn(),
     findFirst:   jest.fn(),

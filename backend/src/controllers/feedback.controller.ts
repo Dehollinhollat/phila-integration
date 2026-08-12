@@ -45,8 +45,23 @@ export async function submitFeedback(req: Request, res: Response): Promise<void>
 }
 
 // GET /api/feedback
-export async function getFeedbacks(_req: Request, res: Response): Promise<void> {
+export async function getFeedbacks(req: Request, res: Response): Promise<void> {
+  // Feedback.contact_id n'a pas de relation Prisma vers Contact (simple string, voir
+  // schema.prisma) — le périmètre campus doit donc être résolu via une sous-requête
+  // explicite plutôt qu'un filtre imbriqué. Sans ce filtre, un admin_campus/référent
+  // voyait les réponses (y compris le texte libre) de TOUS les campus, pas seulement
+  // le sien — même famille de faille que stats/messages/evenements (7-8 août).
+  const where: Record<string, unknown> = {};
+  if (req.user!.role !== 'super_admin') {
+    const contactsDuPerimetre = await prisma.contact.findMany({
+      where:  { campus: { in: req.user!.campus as never[] } },
+      select: { id: true },
+    });
+    where.contact_id = { in: contactsDuPerimetre.map((c: { id: string }) => c.id) };
+  }
+
   const feedbacks = await prisma.feedback.findMany({
+    where,
     orderBy: { created_at: 'desc' },
   });
 
