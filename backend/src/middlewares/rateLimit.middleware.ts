@@ -1,7 +1,10 @@
 // src/middlewares/rateLimit.middleware.ts
-// Deux rate limiters Express :
+// Rate limiters Express :
 //   formRateLimit   — pour les routes publiques de soumission (POST /contacts, POST /ouvriers/candidature)
+//                     et POST /auth/forgot-password (sans elle, rien n'empêchait de spammer un
+//                     utilisateur réel d'emails de réinitialisation non sollicités).
 //                     Max 5 soumissions par IP par heure → protège contre les soumissions automatisées.
+//   loginRateLimit  — spécifique à /auth/login, voir plus bas.
 //   globalRateLimit — appliqué sur toutes les routes dans server.ts
 //                     Max 100 requêtes par IP par 15 minutes → protection générale.
 

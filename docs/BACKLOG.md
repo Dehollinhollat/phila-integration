@@ -1,6 +1,6 @@
 # Backlog — reste à faire
 
-Dernière mise à jour : 7 août 2026, après correctif de sécurité périmètre campus (3 passes de revue).
+Dernière mise à jour : 12 août 2026, après audit de sécurité complet (9 failles trouvées, 7 corrigées).
 
 Chaque point indique où intervenir. Les priorités vont de P0 (bloquant) à P5 (confort).
 
@@ -113,6 +113,30 @@ Le lint frontend reste **informatif** (`continue-on-error`) : les 35 erreurs `re
 `evenements.controller.ts` : 4 handlers non couverts (`listEvenements`, `getEvenement`, `deleteEvenement`, `planifierEvenement`) ont maintenant des tests (périmètre campus, statuts, validations). `messages.controller.ts` : `sendBienvenue` (périmètre, statut 409/400, succès/échec Twilio) et `listMessages` (scoping par rôle, filtres, pagination) désormais couverts. (`twilioWebhook` l'était déjà depuis le correctif de signature du 8 août — la mention plus haut dans une version antérieure de cette section était obsolète.)
 
 30 tests ajoutés pour ce lot.
+
+---
+
+## ✅ Corrigé le 12 août 2026 — Audit de sécurité complet : 7 failles IDOR/périmètre
+
+Demande explicite d'audit complet. Revue manuelle (pas de sous-agent) de tous les contrôleurs backend pas encore passés au crible par les correctifs de périmètre campus des 7-8 août (`referents`, `import`, `checklist`, `planning`, `affectations`, `auth`). 9 constats au total, 7 corrigés (les 2 restants sont des notes de maintenabilité/rate-limiting, closes elles aussi au passage) :
+
+### Routes fantômes `/api/auth/users*` — contournaient une protection déjà corrigée
+
+`auth.controller.ts` dupliquait `createUser`/`listUsers`/`updateUser`/`deactivateUser` de `users.controller.ts`, montées sur des routes parallèles (`/api/auth/users*` vs `/api/users*`) jamais appelées par le frontend (confirmé par `grep`) mais toujours **live** côté API. Son `updateUser` n'avait **aucune** protection anti-changement-de-son-propre-rôle — exactement la faille corrigée sur `users.controller.ts` plus tôt dans le projet, silencieusement contournable via ce doublon. Plutôt que de synchroniser deux implémentations pour toujours, les 4 fonctions et leurs routes ont été **supprimées** ; `auth.controller.ts` ne garde que `login`/`refresh`/`logout`/`forgot-password`/`reset-password`/`me`. `formRateLimit` ajouté sur `/auth/forgot-password` (jusque-là sans limite de tentatives).
+
+### IDOR / périmètre campus sur 5 contrôleurs
+
+Même famille de faille que le correctif du 7 août (`evenements`/`messages`/`ouvriers`), pas encore appliquée ici : un `admin_campus` pouvait agir sur des ressources hors de ses campus assignés simplement en connaissant leur ID.
+
+- **`referents.controller.ts`** : `assignReferentIntegration`/`removeReferentIntegration`/`assignReferentEglise`/`removeReferentEglise` vérifient maintenant `peutAccederContact`. **`reassignerContacts`** (réassignation en masse, utilisée en production par `ReferentList.tsx`) vérifie en plus que tous les `contact_ids` sont dans le périmètre de l'appelant — c'était le point le plus exposé du lot.
+- **`import.controller.ts`** : `importContacts` rejette désormais, ligne par ligne, tout contact dont le `CAMPUS` de la feuille Excel est hors du périmètre de l'auteur de l'import (les autres lignes du fichier sont importées normalement).
+- **`checklist.controller.ts`** : `listChecklist`/`updateChecklistItem` vérifient `peutAccederContact`. Le second est le plus sensible : cocher `integration_confirmee` déclenche un changement de statut + notification, jusque-là accessible pour n'importe quel contact d'un autre campus.
+- **`planning.controller.ts`** : `getPlanning`/`updatePlanning`/`deletePlanning` vérifient le périmètre. `createPlanning` route désormais le campus visé via `resoudreCampusCible`. `updatePlanning` remplace un `{ ...req.body }` (liste ouverte) par une liste blanche explicite (`nouveaux_membres`/`service_salle`/`preparation_salle`/`priere_lundi`/`date_dimanche`), même motif que `updateEvenement` le 7 août — `campus`/`created_by` n'étaient pas censés être réécrivables après coup.
+- **`affectations.controller.ts`** : `listAffectations`/`createAffectation`/`deleteAffectation` vérifient le périmètre via le campus du planning parent. **`respondToAffectation`** (`PATCH /:id/statut`, accessible à tout utilisateur authentifié — un ouvrier peut avoir n'importe quel rôle de compte) autorise désormais soit l'ouvrier concerné lui-même (apparié par email), soit un admin de son périmètre — jusque-là n'importe quel utilisateur connecté pouvait accepter/décliner l'affectation de n'importe qui.
+
+37 tests ajoutés (12+2+5+9+9), vérifiés empiriquement : les fichiers corrigés remis de côté via `git stash`, 21 des 37 nouveaux tests échouent (les contrôles de périmètre), les 16 autres passent (comportement inchangé) — confirme que les tests ciblent bien les failles et non un comportement accessoire. Suite complète : 223/223 après restauration des correctifs.
+
+**Non-sécuritaire, notés informationnels lors de l'audit :** absence de rate-limiting sur `/auth/forgot-password` (corrigée au passage ci-dessus) ; duplication `auth.controller.ts`/`users.controller.ts` (résolue par la suppression ci-dessus).
 
 ---
 

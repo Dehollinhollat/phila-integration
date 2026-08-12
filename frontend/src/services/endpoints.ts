@@ -21,13 +21,12 @@ import type {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
+// La gestion des comptes vit dans usersAdminEndpoints (/api/users) — voir
+// backend/src/routes/auth.routes.ts pour le pourquoi de la suppression des
+// fonctions équivalentes qui existaient ici (/auth/users, jamais appelées).
 export const authEndpoints = {
-  login:          (p: LoginPayload)       => api.post<LoginResponse>('/auth/login', p),
-  me:             ()                      => api.get<User>('/auth/me'),
-  listUsers:      (campus?: Campus)       => api.get<User[]>('/auth/users', { params: { campus } }),
-  createUser:     (data: Partial<User> & { password: string }) => api.post<User>('/auth/users', data),
-  updateUser:     (id: string, data: Partial<User> & { password?: string }) => api.patch<User>(`/auth/users/${id}`, data),
-  deactivateUser: (id: string)            => api.delete(`/auth/users/${id}`),
+  login: (p: LoginPayload) => api.post<LoginResponse>('/auth/login', p),
+  me:    ()                => api.get<User>('/auth/me'),
 };
 
 // ─── Contacts ─────────────────────────────────────────────────────────────────

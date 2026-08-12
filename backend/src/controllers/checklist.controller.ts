@@ -7,14 +7,15 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { peutAccederContact } from '../lib/authorization';
 
 // GET /api/checklist/contact/:contactId
 export async function listChecklist(req: Request, res: Response): Promise<void> {
   const contactId = req.params.contactId as string;
 
-  const contact = await prisma.contact.findUnique({ where: { id: contactId } });
-  if (!contact) {
-    res.status(404).json({ message: 'Contact introuvable' });
+  const autorise = await peutAccederContact(req.user!, contactId);
+  if (!autorise) {
+    res.status(404).json({ message: 'Contact introuvable ou accès refusé' });
     return;
   }
 
@@ -38,6 +39,15 @@ export async function updateChecklistItem(req: Request, res: Response): Promise<
 
   if (!item) {
     res.status(404).json({ message: 'Étape introuvable' });
+    return;
+  }
+
+  // Sans ce contrôle, n'importe quel referent_integration pouvait cocher la
+  // checklist de n'importe quel contact — y compris déclencher le passage
+  // automatique au statut "intégré" pour un contact qui n'est pas le sien.
+  const autorise = await peutAccederContact(req.user!, item.contact_id);
+  if (!autorise) {
+    res.status(403).json({ message: 'Contact hors de votre périmètre' });
     return;
   }
 

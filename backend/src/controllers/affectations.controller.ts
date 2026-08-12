@@ -5,6 +5,7 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { horsPerimetreCampus } from '../lib/authorization';
 
 // GET /api/affectations?planning_id=...
 export async function listAffectations(req: Request, res: Response): Promise<void> {
@@ -18,6 +19,10 @@ export async function listAffectations(req: Request, res: Response): Promise<voi
   const planning = await prisma.planningService.findUnique({ where: { id: planning_id as string } });
   if (!planning) {
     res.status(404).json({ message: 'Planning introuvable' });
+    return;
+  }
+  if (horsPerimetreCampus(req.user!, planning.campus)) {
+    res.status(403).json({ message: 'Planning hors de votre périmètre' });
     return;
   }
 
@@ -63,6 +68,10 @@ export async function createAffectation(req: Request, res: Response): Promise<vo
       res.status(404).json({ message: 'Planning introuvable' });
       return;
     }
+    if (horsPerimetreCampus(req.user!, planning.campus)) {
+      res.status(403).json({ message: 'Planning hors de votre périmètre' });
+      return;
+    }
     if (!ouvrier || !ouvrier.statut) {
       res.status(404).json({ message: 'Ouvrier introuvable ou inactif' });
       return;
@@ -101,9 +110,29 @@ export async function respondToAffectation(req: Request, res: Response): Promise
     return;
   }
 
-  const affectation = await prisma.affectationPlanning.findUnique({ where: { id } });
+  const affectation = await prisma.affectationPlanning.findUnique({
+    where: { id },
+    include: {
+      ouvrier:  { select: { email: true } },
+      planning: { select: { campus: true } },
+    },
+  });
   if (!affectation) {
     res.status(404).json({ message: 'Affectation introuvable' });
+    return;
+  }
+
+  // La route est ouverte à tout utilisateur connecté (un ouvrier n'a pas de rôle
+  // dédié) — sans ce contrôle, n'importe qui pouvait accepter/décliner
+  // l'affectation de n'importe qui d'autre. Autorisé : l'ouvrier concerné
+  // (retrouvé par email, même logique que mesAffectations) OU un admin_campus/
+  // super_admin dans le périmètre du planning.
+  const estOuvrierConcerne = affectation.ouvrier?.email && affectation.ouvrier.email === req.user!.email;
+  const estAdminDuPerimetre =
+    ['admin_campus', 'super_admin'].includes(req.user!.role) &&
+    !horsPerimetreCampus(req.user!, affectation.planning.campus);
+  if (!estOuvrierConcerne && !estAdminDuPerimetre) {
+    res.status(403).json({ message: 'Vous ne pouvez pas répondre à cette affectation' });
     return;
   }
 
@@ -148,9 +177,16 @@ export async function mesAffectations(req: Request, res: Response): Promise<void
 export async function deleteAffectation(req: Request, res: Response): Promise<void> {
   const id = req.params.id as string;
 
-  const affectation = await prisma.affectationPlanning.findUnique({ where: { id } });
+  const affectation = await prisma.affectationPlanning.findUnique({
+    where: { id },
+    include: { planning: { select: { campus: true } } },
+  });
   if (!affectation) {
     res.status(404).json({ message: 'Affectation introuvable' });
+    return;
+  }
+  if (horsPerimetreCampus(req.user!, affectation.planning.campus)) {
+    res.status(403).json({ message: 'Affectation hors de votre périmètre' });
     return;
   }
 

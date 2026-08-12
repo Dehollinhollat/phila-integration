@@ -153,8 +153,9 @@ export async function importContacts(req: Request, res: Response): Promise<void>
     return found?.id ?? null;
   }
 
-  const auteurId   = req.user!.id;
-  const auteurRole = req.user!.role;
+  const auteurId     = req.user!.id;
+  const auteurRole   = req.user!.role;
+  const auteurCampus = req.user!.campus;
 
   for (let i = 0; i < rows.length; i++) {
     const row  = rows[i];
@@ -198,6 +199,13 @@ export async function importContacts(req: Request, res: Response): Promise<void>
       const campus = mapCampus(cell(row, 'CAMPUS'));
       if (!campus) {
         result.erreurs.push({ ligne, raison: `CAMPUS invalide : "${cell(row, 'CAMPUS')}" — attendu Paris, Paris Nord, Orléans ou Montpellier` });
+        continue;
+      }
+      // Sans ce contrôle, un admin_campus pouvait importer des contacts sur
+      // n'importe quel campus simplement en le renseignant dans le fichier —
+      // le rôle n'est vérifié qu'au niveau de la route, jamais par ligne.
+      if (auteurRole !== 'super_admin' && !auteurCampus.includes(campus)) {
+        result.erreurs.push({ ligne, raison: `Campus "${cell(row, 'CAMPUS')}" hors de votre périmètre` });
         continue;
       }
 

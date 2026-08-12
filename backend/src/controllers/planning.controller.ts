@@ -4,6 +4,7 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { horsPerimetreCampus, resoudreCampusCible } from '../lib/authorization';
 
 // Vérifie que la date est un dimanche (0 = dimanche en JS)
 function isDimanche(date: Date): boolean {
@@ -66,6 +67,10 @@ export async function getPlanning(req: Request, res: Response): Promise<void> {
     res.status(404).json({ message: 'Planning introuvable' });
     return;
   }
+  if (horsPerimetreCampus(req.user!, planning.campus)) {
+    res.status(403).json({ message: 'Planning hors de votre périmètre' });
+    return;
+  }
 
   res.json(planning);
 }
@@ -85,11 +90,19 @@ export async function createPlanning(req: Request, res: Response): Promise<void>
     return;
   }
 
+  // Sans ce contrôle, un admin_campus pouvait créer un planning sur n'importe
+  // quel campus simplement en le passant dans le corps de la requête.
+  const cible = resoudreCampusCible(req.user!, campus);
+  if (!cible.ok) {
+    res.status(403).json({ message: cible.message });
+    return;
+  }
+
   try {
     const planning = await prisma.planningService.create({
       data: {
         date_dimanche: date,
-        campus,
+        campus: cible.campus as never,
         nouveaux_membres,
         service_salle,
         preparation_salle,
@@ -102,7 +115,7 @@ export async function createPlanning(req: Request, res: Response): Promise<void>
     if ((err as { code?: string }).code === 'P2002') {
       // Planning already exists for this Sunday/campus — return the existing one
       const existing = await prisma.planningService.findFirst({
-        where: { date_dimanche: date, campus },
+        where: { date_dimanche: date, campus: cible.campus as never },
         include: {
           createur: { select: { id: true, prenom: true, nom: true } },
           affectations: {
@@ -123,9 +136,28 @@ export async function createPlanning(req: Request, res: Response): Promise<void>
 export async function updatePlanning(req: Request, res: Response): Promise<void> {
   const id = req.params['id'] as string;
 
-  const data = { ...req.body };
-  if (data.date_dimanche) {
-    const date = new Date(data.date_dimanche);
+  const existing = await prisma.planningService.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json({ message: 'Planning introuvable' });
+    return;
+  }
+  if (horsPerimetreCampus(req.user!, existing.campus)) {
+    res.status(403).json({ message: 'Planning hors de votre périmètre' });
+    return;
+  }
+
+  const body = req.body as Record<string, unknown>;
+
+  // Liste blanche explicite — un `{ ...req.body }` laisserait réécrire campus
+  // ou created_by, contournant le contrôle de périmètre ci-dessus (même faille
+  // que celle déjà corrigée sur updateEvenement).
+  const data: Record<string, unknown> = {};
+  if (typeof body.nouveaux_membres === 'string')  data.nouveaux_membres  = body.nouveaux_membres;
+  if (typeof body.service_salle === 'string')     data.service_salle     = body.service_salle;
+  if (typeof body.preparation_salle === 'string') data.preparation_salle = body.preparation_salle;
+  if (typeof body.priere_lundi === 'string')      data.priere_lundi      = body.priere_lundi;
+  if (body.date_dimanche) {
+    const date = new Date(body.date_dimanche as string);
     if (!isDimanche(date)) {
       res.status(400).json({ message: 'La date doit être un dimanche' });
       return;
@@ -144,6 +176,10 @@ export async function deletePlanning(req: Request, res: Response): Promise<void>
   const exists = await prisma.planningService.findUnique({ where: { id } });
   if (!exists) {
     res.status(404).json({ message: 'Planning introuvable' });
+    return;
+  }
+  if (horsPerimetreCampus(req.user!, exists.campus)) {
+    res.status(403).json({ message: 'Planning hors de votre périmètre' });
     return;
   }
 

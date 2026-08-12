@@ -5,6 +5,15 @@
 
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { peutAccederContact } from '../lib/authorization';
+
+// Vrai si aucun campus du référent ne recoupe le périmètre de l'appelant —
+// super_admin toujours autorisé (pas de périmètre). Évite d'assigner un
+// référent d'un autre campus à un contact du sien.
+function referentHorsPerimetre(user: { role: string; campus: string[] }, referentCampus: string[]): boolean {
+  if (user.role === 'super_admin') return false;
+  return !referentCampus.some(c => user.campus.includes(c));
+}
 
 // GET /api/referents
 export async function listReferents(req: Request, res: Response): Promise<void> {
@@ -43,6 +52,12 @@ export async function assignReferentIntegration(req: Request, res: Response): Pr
   const contactId = req.params.contactId as string;
   const { referentId } = req.body as { referentId: string };
 
+  const autorise = await peutAccederContact(req.user!, contactId);
+  if (!autorise) {
+    res.status(403).json({ message: 'Contact hors de votre périmètre' });
+    return;
+  }
+
   const contact = await prisma.contact.findUnique({ where: { id: contactId } });
   if (!contact) {
     res.status(404).json({ message: 'Contact introuvable' });
@@ -52,6 +67,10 @@ export async function assignReferentIntegration(req: Request, res: Response): Pr
   const referent = await prisma.user.findUnique({ where: { id: referentId } });
   if (!referent || !referent.actif) {
     res.status(404).json({ message: 'Référent introuvable' });
+    return;
+  }
+  if (referentHorsPerimetre(req.user!, referent.campus)) {
+    res.status(403).json({ message: 'Référent hors de votre périmètre' });
     return;
   }
 
@@ -86,6 +105,12 @@ export async function assignReferentIntegration(req: Request, res: Response): Pr
 export async function removeReferentIntegration(req: Request, res: Response): Promise<void> {
   const contactId = req.params.contactId as string;
 
+  const autorise = await peutAccederContact(req.user!, contactId);
+  if (!autorise) {
+    res.status(404).json({ message: 'Contact introuvable ou accès refusé' });
+    return;
+  }
+
   const updated = await prisma.contact.update({
     where: { id: contactId },
     data: { referent_integration_id: null },
@@ -99,6 +124,12 @@ export async function assignReferentEglise(req: Request, res: Response): Promise
   const contactId = req.params.contactId as string;
   const { referentId } = req.body as { referentId: string };
 
+  const autorise = await peutAccederContact(req.user!, contactId);
+  if (!autorise) {
+    res.status(403).json({ message: 'Contact hors de votre périmètre' });
+    return;
+  }
+
   const contact = await prisma.contact.findUnique({ where: { id: contactId } });
   if (!contact) {
     res.status(404).json({ message: 'Contact introuvable' });
@@ -108,6 +139,10 @@ export async function assignReferentEglise(req: Request, res: Response): Promise
   const referent = await prisma.user.findUnique({ where: { id: referentId } });
   if (!referent || !referent.actif) {
     res.status(404).json({ message: 'Référent introuvable' });
+    return;
+  }
+  if (referentHorsPerimetre(req.user!, referent.campus)) {
+    res.status(403).json({ message: 'Référent hors de votre périmètre' });
     return;
   }
 
@@ -193,6 +228,22 @@ export async function reassignerContacts(req: Request, res: Response): Promise<v
     res.status(404).json({ message: 'Référent introuvable' });
     return;
   }
+  if (referentHorsPerimetre(req.user!, referent.campus)) {
+    res.status(403).json({ message: 'Référent hors de votre périmètre' });
+    return;
+  }
+
+  // Réassignation en masse : sans ce contrôle, un admin_campus pourrait
+  // réassigner des contacts d'un AUTRE campus en passant simplement leurs id.
+  if (req.user!.role !== 'super_admin') {
+    const horsPerimetre = await prisma.contact.count({
+      where: { id: { in: contact_ids }, NOT: { campus: { in: req.user!.campus as never[] } } },
+    });
+    if (horsPerimetre > 0) {
+      res.status(403).json({ message: 'Un ou plusieurs contacts sont hors de votre périmètre' });
+      return;
+    }
+  }
 
   const field = type === 'integration' ? 'referent_integration_id' : 'referent_eglise_id';
   const result = await prisma.contact.updateMany({
@@ -206,6 +257,12 @@ export async function reassignerContacts(req: Request, res: Response): Promise<v
 // DELETE /api/referents/contacts/:contactId/eglise
 export async function removeReferentEglise(req: Request, res: Response): Promise<void> {
   const contactId = req.params.contactId as string;
+
+  const autorise = await peutAccederContact(req.user!, contactId);
+  if (!autorise) {
+    res.status(404).json({ message: 'Contact introuvable ou accès refusé' });
+    return;
+  }
 
   const updated = await prisma.contact.update({
     where: { id: contactId },
