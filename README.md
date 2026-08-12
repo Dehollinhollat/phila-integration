@@ -1,6 +1,6 @@
 # Phila Intégration
 
-Application web full-stack de gestion de l'intégration des membres pour l'église Phila Cité des Adorateurs (Paris + Paris Nord). Projet en production depuis juin 2026.
+Application web full-stack de gestion de l'intégration des membres pour l'église Phila Cité des Adorateurs, sur 4 campus (Paris, Paris Nord, Orléans, Montpellier). En production depuis le 1er juillet 2026.
 
 [Voir l'application](https://phila-integration-five.vercel.app) -compte de démonstration disponible sur demande.
 
@@ -56,6 +56,11 @@ L'application centralise la gestion des contacts, automatise les communications 
 - Questionnaire de satisfaction J+14 avec lien unique par contact
 - Templates configurables avec variables dynamiques ([Prenom], [Referent], [Adresse]...)
 
+**Planning des équipes**
+- Planning dominical par campus (nouveaux membres, service salle, préparation, prière)
+- Affectation des ouvriers par rôle de service, avec confirmation/déclin individuel
+- Rappels automatiques aux ouvriers non confirmés le vendredi précédent
+
 **Tableaux de bord et rapports**
 - Dashboard avec KPIs temps réel et graphiques Recharts
 - Statistiques avancées : taux de conversion, temps d'intégration, performance par référent
@@ -64,12 +69,15 @@ L'application centralise la gestion des contacts, automatise les communications 
 - Résultats du questionnaire de satisfaction avec export PDF
 
 **Sécurité**
-- Authentification JWT avec refresh tokens (expiration sessions inactives 3 jours)
-- Patch IDOR : autorisation par rôle sur chaque endpoint contact
-- Protection timing attack sur l'énumération des emails
-- Validation stricte E.164 des numéros de téléphone
-- CSP strict via headers Vercel, rate limiting, honeypot anti-spam
+- Authentification JWT (algorithme fixé, refresh tokens en base, révocables) — sessions inactives expirées après 3 jours
+- Contrôle d'accès par rôle *et* par périmètre campus sur l'ensemble des endpoints (pas seulement les contacts) — deux audits de sécurité complets menés en cours de développement, tous deux corrigés et vérifiés empiriquement
+- Listes blanches explicites sur les mises à jour sensibles, contre la sur-affectation de champs (mass assignment)
+- Vérification de signature sur les deux webhooks Twilio entrants
+- Protection timing attack sur l'énumération des emails (connexion, mot de passe oublié)
+- Validation stricte E.164 des numéros de téléphone, sanitisation XSS globale des entrées
+- CSP strict via headers Vercel, rate limiting, honeypot anti-spam sur les formulaires publics
 - Audit logs complets (toutes les actions + connexions avec IP)
+- Dépendances tenues à jour (`npm audit` régulier sur les deux paquets)
 
 **UX et mobile**
 - PWA installable sur iOS et Android (sans App Store)
@@ -85,7 +93,7 @@ L'application centralise la gestion des contacts, automatise les communications 
 
 | Outil | Rôle |
 |---|---|
-| React 18 + TypeScript + Vite | Frontend SPA |
+| React 19 + TypeScript + Vite | Frontend SPA |
 | Node.js + Express + TypeScript | API REST backend |
 | Prisma 7 ORM | Accès base de données |
 | PostgreSQL (Neon.tech) | Base de données serverless |
@@ -97,8 +105,8 @@ L'application centralise la gestion des contacts, automatise les communications 
 | Recharts | Graphiques et visualisations |
 | Lucide React | Icônes |
 | vite-plugin-pwa | PWA installable |
-| Jest | Tests unitaires backend (56/56) |
-| Playwright | Tests E2E (21/21) |
+| Jest | Tests unitaires backend (234/234) |
+| Playwright | Tests E2E (23 tests) |
 
 ---
 
@@ -124,7 +132,7 @@ phila-integration/
     │   ├── schemas/           # Validation Zod
     │   └── __tests__/         # Tests Jest
     └── prisma/
-        └── schema.prisma      # Modèle de données (15 entités)
+        └── schema.prisma      # Modèle de données (19 entités)
 ```
 
 ---
@@ -143,10 +151,10 @@ Les besoins ont été identifiés directement avec les responsables de l'église
 - Mode maintenance via variable Vite (build-time) plutôt qu'un fetch réseau, pour éviter les faux positifs avec le service worker PWA
 
 **Qualité et tests**
-- 56 tests unitaires Jest sur les controllers et services backend
-- 21 tests E2E Playwright sur les parcours critiques (inscription, login, planning)
+- 234 tests unitaires Jest sur les controllers et services backend
+- 23 tests E2E Playwright sur les parcours critiques (inscription, login, contacts, accessibilité)
 - Zéro erreur TypeScript strict en frontend et backend (`tsc --noEmit` propre)
-- Audit de sécurité : patch IDOR, timing attack, validation E.164, signature webhook Twilio
+- Deux audits de sécurité complets (IDOR/périmètre campus, mass assignment, timing attack, validation E.164, signature des webhooks Twilio, dépendances npm) — corrections vérifiées empiriquement (`git stash` sur le code corrigé pour confirmer que les nouveaux tests échouent sans le correctif)
 
 **Déploiement**  
 Pipeline CI/CD automatique : chaque push sur `main` déclenche un déploiement Vercel (frontend) et Railway (backend). La base de données Neon.tech reste synchronisée via `prisma db push`.
